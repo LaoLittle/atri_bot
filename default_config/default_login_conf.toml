@@ -1,0 +1,17 @@
+# 默认的'协议'
+# 可使用 IPAD/AndroidPhone/AndroidWatch/MacOS/QiDian
+default_protocol = 'IPAD'
+
+[[bot]]
+account = 123456
+
+# 可配置多个Bot
+[[bot]]
+# Bot的账号(必须)
+account = 114514
+# Bot的密码, 此为可选, token登陆失败会自动尝试密码登陆
+password = '1919810'
+# Bot的'协议'
+protocol = 'AndroidWatch'
+# 是否自动登陆(默认true)
+auto_login = true
