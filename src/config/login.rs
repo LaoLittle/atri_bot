@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub static DEFAULT_CONFIG: &[u8] = include_bytes!("../../default_config/default_login_conf.toml");
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Default)]
 pub struct LoginConfig {
     pub default_protocol: Protocol,
     #[serde(rename = "bot")]
@@ -25,6 +25,12 @@ pub enum Protocol {
     AndroidWatch,
     MacOS,
     QiDian,
+}
+
+impl Default for Protocol {
+    fn default() -> Self {
+        Self::IPAD
+    }
 }
 
 impl Protocol {

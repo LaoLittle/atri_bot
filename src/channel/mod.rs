@@ -1,5 +1,6 @@
-use std::mem;
+use std::panic::catch_unwind;
 use std::sync::OnceLock;
+use std::thread;
 
 use async_trait::async_trait;
 use ricq::handler::QEvent;
@@ -11,8 +12,6 @@ pub fn global_sender() -> &'static Sender<QEvent> {
     GLOBAL_EVENT_CHANNEL.get_or_init(|| {
         let channel = channel(128);
 
-        // make sure at least one receiver there
-        mem::forget(channel.1);
         channel.0
     })
 }
@@ -50,6 +49,6 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
             _ => {}
         }
 
-        global_sender().send(event).expect("Cannot send event, but why");
+        let _ = global_sender().send(event);
     }
 }

@@ -30,39 +30,12 @@ fn main() -> MainResult {
         .enable_all()
         .build()?;
 
-    runtime.spawn(async {
-        main0().await.expect("Error");
-    });
-
     runtime.spawn(main_handler());
     runtime.spawn(fun::handler());
 
-    async fn loop_cli() -> MainResult {
-        let stdin = io::stdin();
-        let mut stdin = BufReader::new(stdin);
-        let mut stdout = io::stdout();
-
-        loop {
-            stdout.write_all(b">>").await?;
-            stdout.flush().await?;
-
-            let mut buf = String::new();
-            stdin.read_line(&mut buf).await?;
-            let cmd = buf.trim_end();
-
-            match cmd {
-                "" => {
-                    // nothing to do
-                }
-                "exit" | "quit" => break,
-                _ => {
-                    println!("Unknown command '{}', use 'help' to show the help info", cmd);
-                }
-            }
-        }
-
-        Ok(())
-    }
+    runtime.spawn(async {
+        main0().await.expect("Error");
+    });
 
     runtime.block_on(loop_cli())?;
 
@@ -71,6 +44,33 @@ fn main() -> MainResult {
 
 async fn main0() -> MainResult {
     login_bots().await?;
+
+    Ok(())
+}
+
+async fn loop_cli() -> MainResult {
+    let stdin = io::stdin();
+    let mut stdin = BufReader::new(stdin);
+    let mut stdout = io::stdout();
+
+    loop {
+        stdout.write_all(b">>").await?;
+        stdout.flush().await?;
+
+        let mut buf = String::new();
+        stdin.read_line(&mut buf).await?;
+        let cmd = buf.trim_end();
+
+        match cmd {
+            "" => {
+                // nothing to do
+            }
+            "exit" | "quit" => break,
+            _ => {
+                println!("Unknown command '{}', use 'help' to show the help info", cmd);
+            }
+        }
+    }
 
     Ok(())
 }

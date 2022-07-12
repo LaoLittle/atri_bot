@@ -1,20 +1,17 @@
 use std::str::FromStr;
 use std::sync::Arc;
-use bytes::Bytes;
 
+use bytes::Bytes;
 use regex::Regex;
 use ricq::handler::QEvent;
 use ricq::msg::elem::{RQElem, Text};
-
 use ricq::msg::MessageChain;
 use skia_safe::EncodedImageFormat;
 use tracing::error;
 
-
-use crate::channel::global_receiver;
 use crate::{check_group, get_app, unwrap_result_or_print_err_return};
+use crate::channel::global_receiver;
 use crate::fun::drawmeme::zero::zero;
-
 
 pub mod drawmeme;
 
@@ -84,8 +81,6 @@ pub async fn handler() {
 
                         return;
                     }
-
-
                 }
                 _ => {}
             }

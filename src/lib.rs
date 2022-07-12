@@ -3,12 +3,12 @@
 extern crate core;
 
 use std::collections::HashMap;
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
+
 use ricq::handler::QEvent;
 use ricq::msg::elem::Text;
 use ricq::msg::MessageChain;
-
-use tokio::sync::{RwLock};
+use tokio::sync::RwLock;
 
 use crate::bot::Bot;
 use crate::channel::global_receiver;
@@ -40,7 +40,7 @@ impl App {
         Self {
             bots: RwLock::new(vec![]),
             group_bot: RwLock::new(HashMap::new()),
-            http_client: reqwest::Client::new()
+            http_client: reqwest::Client::new(),
         }
     }
 
@@ -57,9 +57,7 @@ impl App {
     }
 }
 
-pub fn app_receiver() {
-
-}
+pub fn app_receiver() {}
 
 pub async fn main_handler() {
     let mut rx = global_receiver();

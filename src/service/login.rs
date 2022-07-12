@@ -15,10 +15,11 @@ pub async fn login_bots() -> Result<(), RQError> {
 
     let login_conf = {
         async fn default_config_write<P: AsRef<Path>>(path: P) -> io::Result<LoginConfig> {
-            let mut f = fs::File::create(path.as_ref()).await?;
+            let mut f = fs::File::create(path).await?;
             f.write_all(config::login::DEFAULT_CONFIG).await?;
 
-            Ok(toml::from_slice(config::login::DEFAULT_CONFIG).expect("Shouldn't fail"))
+            let default_config = LoginConfig::default();
+            Ok(default_config)
         }
 
         if login_conf_dir.is_file() {
@@ -26,14 +27,19 @@ pub async fn login_bots() -> Result<(), RQError> {
             let mut s = String::new();
             f.read_to_string(&mut s).await?;
 
-            if let Ok(conf) = toml::from_str(&s) {
-                conf
-            } else {
-                let mut cp = config::service_config_dir_buf();
-                cp.push("login.toml.bak");
+            match toml::from_str(&s) {
+                Ok(conf) => {
+                    conf
+                }
+                Err(e) => {
+                    error!("读取登陆配置文件失败: {}", e);
 
-                fs::copy(&login_conf_dir, cp).await?;
-                default_config_write(&login_conf_dir).await?
+                    let mut cp = config::service_config_dir_buf();
+                    cp.push("login.toml.bak");
+
+                    fs::copy(&login_conf_dir, cp).await?;
+                    default_config_write(&login_conf_dir).await?
+                }
             }
         } else {
             default_config_write(login_conf_dir).await?

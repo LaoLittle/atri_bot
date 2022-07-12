@@ -1,9 +1,8 @@
-
 use bytes::Bytes;
 use skia_safe::{Bitmap, BlurStyle, Color, Data, Font, Image, MaskFilter, Paint, Surface, TextBlob};
 use skia_safe::paint::Style;
-use crate::data::font::get_dir_font;
 
+use crate::data::font::get_dir_font;
 use crate::fun::drawmeme::{Meme, MemeArg};
 
 pub struct Zero;
@@ -38,7 +37,7 @@ pub fn zero(num: u8, img: &[u8]) -> Option<Image> {
     canvas.clear(Color::BLACK);
 
     paint.set_alpha(155);
-    canvas.draw_image(image, (0.0,0.0), Some(&paint));
+    canvas.draw_image(image, (0.0, 0.0), Some(&paint));
 
     let filter = MaskFilter::blur(BlurStyle::Solid, radius * 0.2, true)?;
     paint
