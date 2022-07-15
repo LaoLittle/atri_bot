@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use skia_safe::{Bitmap, BlurStyle, Color, Data, Font, Image, MaskFilter, Paint, Surface, TextBlob};
+use skia_safe::{Bitmap, BlurStyle, Color, Data, Font, Image, MaskFilter, Paint, Shader, Surface, TextBlob};
 use skia_safe::paint::Style;
 
 use crate::data::font::get_dir_font;
@@ -12,7 +12,6 @@ impl Meme for Zero {
         unimplemented!()
     }
 }
-
 
 pub fn zero(num: u8, img: &[u8]) -> Option<Image> {
     let data = unsafe { Data::new_bytes(&img) };

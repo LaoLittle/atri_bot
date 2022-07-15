@@ -11,7 +11,9 @@ use crate::bot::BotConfiguration;
 use crate::config::login::LoginConfig;
 
 pub async fn login_bots() -> Result<(), RQError> {
-    let login_conf_dir = config::login_config_path().await;
+    let mut login_conf_dir = config::service_config_dir_buf();
+    if !login_conf_dir.is_dir() { fs::create_dir_all(&login_conf_dir).await?; }
+    login_conf_dir.push("login.toml");
 
     let login_conf = {
         async fn default_config_write<P: AsRef<Path>>(path: P) -> io::Result<LoginConfig> {
@@ -82,7 +84,7 @@ pub async fn login_bots() -> Result<(), RQError> {
             }
         };
 
-        get_app().bots().write().await.push(bot);
+        get_app().add_bot(bot);
     }
 
     Ok(())

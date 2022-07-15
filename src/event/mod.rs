@@ -16,12 +16,12 @@ pub enum Event {
 
 #[derive(Clone, Debug)]
 pub struct GroupMessageEvent {
-    group: Arc<Group>,
+    group: Group,
     pub(crate) inner: ricq::client::event::GroupMessageEvent,
 }
 
 impl GroupMessageEvent {}
 
 pub struct BotOnlineEvent {
-    bot: Arc<Bot>,
+    bot: Bot,
 }

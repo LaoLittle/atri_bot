@@ -2,13 +2,15 @@
 
 extern crate core;
 
-use std::collections::HashMap;
+use std::default::Default;
 use std::sync::OnceLock;
 
+use dashmap::DashMap;
 use ricq::handler::QEvent;
 use ricq::msg::elem::Text;
 use ricq::msg::MessageChain;
-use tokio::sync::RwLock;
+use tokio::runtime;
+use tokio::runtime::Runtime;
 
 use crate::bot::Bot;
 use crate::channel::global_receiver;
@@ -22,6 +24,7 @@ pub mod fun;
 pub mod service;
 pub mod macros;
 pub mod data;
+pub mod plugin;
 
 static APP: OnceLock<App> = OnceLock::new();
 
@@ -29,27 +32,51 @@ pub fn get_app() -> &'static App {
     APP.get_or_init(App::new)
 }
 
+static ASYNC_RUNTIME: OnceLock<Runtime> = OnceLock::new();
+
+pub fn get_runtime() -> &'static Runtime {
+    ASYNC_RUNTIME.get_or_init(
+        || runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build().unwrap()
+    )
+}
+
 pub struct App {
-    bots: RwLock<Vec<Bot>>,
-    group_bot: RwLock<HashMap<i64, i64>>,
+    bots: DashMap<i64, Bot>,
+    group_bot: DashMap<i64, i64>,
     http_client: reqwest::Client,
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
-            bots: RwLock::new(vec![]),
-            group_bot: RwLock::new(HashMap::new()),
+            bots: Default::default(),
+            group_bot: DashMap::new(),
             http_client: reqwest::Client::new(),
         }
     }
 
-    pub fn bots(&self) -> &RwLock<Vec<Bot>> {
-        &self.bots
+    pub fn bots(&self) -> Vec<Bot> {
+        let mut bots = vec![];
+        for bot in self.bots.iter() {
+            let c = bot.clone();
+            bots.push(c);
+        }
+
+        bots
     }
 
-    pub async fn bots_clone(&self) -> Vec<Bot> {
-        self.bots.read().await.clone()
+    pub fn group_bot(&self, group_id: i64) -> Option<i64> {
+        self.group_bot.get(&group_id).map(|r| *r.value())
+    }
+
+    pub fn set_group_bot(&self, group_id: i64, bot_id: i64) -> Option<i64> {
+        self.group_bot.insert(group_id, bot_id)
+    }
+
+    pub(crate) fn add_bot(&self, bot: Bot) -> Option<Bot> {
+        self.bots.insert(bot.id(), bot)
     }
 
     pub fn http_client(&self) -> &reqwest::Client {
@@ -69,23 +96,19 @@ pub async fn main_handler() {
                     let group_id = e.inner.group_code;
                     let bot_id = e.client.uin().await;
 
-                    let group_bot = {
-                        let lock = get_app().group_bot.read().await;
-                        lock.get(&group_id).map(|id| *id)
-                    };
+                    let group_bot = get_app().group_bot(group_id);
 
                     if let Some(id) = group_bot {
                         if id != bot_id { return; }
                     } else {
-                        let mut lock = get_app().group_bot.write().await;
-                        lock.insert(group_id, bot_id);
+                        get_app().set_group_bot(group_id, bot_id);
                     }
 
                     let s = e.inner.elements.to_string();
                     match &*s {
                         "萝卜子列表" => {
                             let app = get_app();
-                            let bots = app.bots().read().await;
+                            let bots = &app.bots;
 
                             let mut s = String::from("在线的萝卜子\n");
                             for bot in bots.iter() {
