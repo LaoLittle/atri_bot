@@ -1,5 +1,4 @@
-use bytes::Bytes;
-use skia_safe::{Bitmap, BlurStyle, Color, Data, Font, Image, MaskFilter, Paint, Shader, Surface, TextBlob};
+use skia_safe::{Bitmap, BlurStyle, Color, Data, Font, Image, MaskFilter, Paint, Surface, TextBlob};
 use skia_safe::paint::Style;
 
 use crate::data::font::get_dir_font;
@@ -50,7 +49,7 @@ pub fn zero(num: u8, img: &[u8]) -> Option<Image> {
         .set_style(Style::Fill)
         .set_mask_filter(None);
     let text_bounds = text.bounds();
-    canvas.draw_text_blob(&text, (w21 - text_bounds.width() / 2.0, h21 + text_bounds.height() / 4.0), &paint);
+    canvas.draw_text_blob(&text, (w21 - (text_bounds.width() / 4.0), h21 + (text_bounds.height() / 4.0)), &paint);
 
     Some(surface.image_snapshot())
 }

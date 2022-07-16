@@ -20,6 +20,7 @@ time = { version = "0", features = ["macros", "local-offset", "formatting"] }
 regex = "1"
 dashmap = "5"
 libloading = "0"
+rand = "0"
 
 skia-safe = "0"
 

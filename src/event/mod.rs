@@ -1,3 +1,4 @@
+use std::ops::Sub;
 use std::sync::Arc;
 
 use ricq::handler::QEvent;
@@ -24,4 +25,9 @@ impl GroupMessageEvent {}
 
 pub struct BotOnlineEvent {
     bot: Bot,
+}
+
+pub enum Subject {
+    Friend(i64),
+    Group(i64)
 }

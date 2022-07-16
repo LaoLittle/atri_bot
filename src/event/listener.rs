@@ -1,3 +1,69 @@
+use std::marker::PhantomData;
+use std::time::Duration;
+use ricq::client::event::GroupMessageEvent;
+use ricq::handler::QEvent;
+use ricq::msg::MessageChain;
+use tokio::time::error::Elapsed;
+use crate::global_receiver;
+
+pub struct Filter<T, F>
+where F: Fn(&T) -> bool,
+F: Send + 'static
+{
+    inner: F,
+_mark: PhantomData<T>
+}
+
+impl<T,F> Filter<T, F>
+    where F: Fn(&T) -> bool,
+          F: Send + 'static
+{
+    pub fn invoke(&self, val: &T) -> bool {
+        true
+    }
+}
+
+pub async fn next_event<F>(event: &GroupMessageEvent, timeout: Duration, filter: F) -> Result<GroupMessageEvent, Elapsed>
+where F: Fn(&GroupMessageEvent) -> bool,
+F: Send + 'static
+{
+    tokio::time::timeout(timeout,async move {
+        let mut rx = global_receiver();
+        while let Ok(e) = rx.recv().await {
+            if let QEvent::GroupMessage(e) = e {
+                if event.inner.group_code != e.inner.group_code { continue; }
+                if event.inner.from_uin != e.inner.from_uin { continue; }
+
+                if !filter(&e) { continue; }
+                return e;
+            }
+        }
+
+        unreachable!()
+    }).await
+}
+
+pub async fn next_message<F>(event: &GroupMessageEvent, timeout: Duration, filter: F) -> Result<MessageChain, Elapsed>
+where F: Fn(&MessageChain) -> bool,
+F: Send + 'static
+{
+    tokio::time::timeout(timeout,async move {
+        let mut rx = global_receiver();
+        while let Ok(e) = rx.recv().await {
+            if let QEvent::GroupMessage(e) = e {
+                if event.inner.group_code != e.inner.group_code { continue; }
+                if event.inner.from_uin != e.inner.from_uin { continue; }
+
+                if !filter(&e.inner.elements) { continue; }
+
+                return e.inner.elements;
+            }
+        }
+
+        unreachable!()
+    }).await
+}
+
 /*
 #[derive(Default)]
 pub struct GroupMessageListener {

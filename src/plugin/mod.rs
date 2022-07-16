@@ -35,14 +35,14 @@ impl Managed {
     }
 
     pub fn from_static<T>(static_ref: &'static T) -> Self {
-        extern fn __drop(_: *mut ()) {
+        extern fn _drop(_: *mut ()) {
             // nothing to do
         }
 
         Self {
             pointer: static_ref as *const _ as _,
             vtable: VTable {
-                drop: __drop
+                drop: _drop
             }
         }
     }

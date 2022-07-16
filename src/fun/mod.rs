@@ -4,16 +4,18 @@ use std::sync::Arc;
 use bytes::Bytes;
 use regex::Regex;
 use ricq::handler::QEvent;
-use ricq::msg::elem::{RQElem, Text};
+use ricq::msg::elem::Text;
 use ricq::msg::MessageChain;
 use skia_safe::EncodedImageFormat;
 use tracing::error;
 
-use crate::{check_group, get_app, unwrap_result_or_print_err_return};
+use crate::{check_group, unwrap_result_or_print_err_return};
 use crate::channel::global_receiver;
+use crate::fun::drawmeme::get_image_or_wait;
 use crate::fun::drawmeme::zero::zero;
 
 pub mod drawmeme;
+pub mod game;
 
 pub async fn handler() {
     let mut rx = global_receiver();
@@ -23,16 +25,14 @@ pub async fn handler() {
     while let Ok(e) = rx.recv().await {
         let zero_reg = zero_reg.clone();
         tokio::spawn(async move {
-            let http_client = get_app().http_client();
             match e {
                 QEvent::GroupMessage(e) => {
                     check_group!(e);
 
                     let bot_id = e.client.uin().await;
-                    let group_name = e.inner.group_name;
                     let group_id = e.inner.group_code;
 
-                    let msg = e.inner.elements;
+                    let msg = e.inner.elements.clone();
                     let s = msg.to_string();
                     let find = zero_reg.captures(&s);
 
@@ -41,25 +41,16 @@ pub async fn handler() {
                         if num > 100 { return; }
 
                         let mut img = None::<Bytes>;
-                        for elem in msg {
-                            if let RQElem::GroupImage(i) = elem {
-                                let resp = unwrap_result_or_print_err_return!(
-                                    http_client
-                                    .get(i.url())
-                                    .send()
-                                    .await
-                                );
-
-                                img = Some(unwrap_result_or_print_err_return!(resp.bytes().await));
-                            }
-                        }
-
-                        if img.is_none() {
+                        if let Err(_) = get_image_or_wait(&e, &mut img).await {
                             let mut req = MessageChain::default();
-                            req.push(Text::new("请发送图片".into()));
+                            req.push(Text::new("超时未发送".into()));
+                            if let Some(reply) = e.inner.elements.reply() {
+
+                                req.with_reply(reply);
+                            }
                             e.client.send_group_message(group_id, req).await.ok();
                             return;
-                        }
+                        };
 
                         let zero = if let Some(img) = zero(num, &img.expect("Cannot be none")) {
                             img
@@ -73,7 +64,7 @@ pub async fn handler() {
                             error!(
                                 "Bot({})发送信息失败, 目标群: {}({}), {:?}",
                                 bot_id,
-                                group_name,
+                                e.inner.group_name,
                                 group_id,
                                 err
                             )
