@@ -2,7 +2,6 @@
 
 extern crate core;
 
-use std::default::Default;
 use std::sync::OnceLock;
 
 use dashmap::DashMap;
@@ -25,6 +24,7 @@ pub mod service;
 pub mod macros;
 pub mod data;
 pub mod plugin;
+pub mod message;
 
 static APP: OnceLock<App> = OnceLock::new();
 
@@ -51,7 +51,7 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         Self {
-            bots: Default::default(),
+            bots: DashMap::new(),
             group_bot: DashMap::new(),
             http_client: reqwest::Client::new(),
         }
@@ -77,6 +77,10 @@ impl App {
 
     pub(crate) fn add_bot(&self, bot: Bot) -> Option<Bot> {
         self.bots.insert(bot.id(), bot)
+    }
+
+    pub(crate) fn remove_bot(&self, bot: i64) -> Option<Bot> {
+        self.bots.remove(&bot).map(|(_, bot)| bot)
     }
 
     pub fn http_client(&self) -> &reqwest::Client {

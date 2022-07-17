@@ -6,7 +6,7 @@ use std::task::{Context, Poll};
 #[repr(C)]
 pub struct FFIFuture<T> {
     future_ptr: *mut (),
-    fun: extern fn(*mut (), *mut ()) -> FFIPoll<T>,
+    poll: extern fn(*mut (), *mut ()) -> FFIPoll<T>,
 }
 
 impl<T, F> From<F> for FFIFuture<T>
@@ -19,7 +19,7 @@ impl<T, F> From<F> for FFIFuture<T>
 
         Self {
             future_ptr: ptr as *mut (),
-            fun,
+            poll: fun,
         }
     }
 }

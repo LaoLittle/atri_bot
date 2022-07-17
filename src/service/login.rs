@@ -25,7 +25,7 @@ pub async fn login_bots() -> Result<(), RQError> {
         }
 
         if login_conf_dir.is_file() {
-            let mut f = fs::File::open(&login_conf_dir).await.unwrap();
+            let mut f = fs::File::open(&login_conf_dir).await?;
             let mut s = String::new();
             f.read_to_string(&mut s).await?;
 
@@ -77,14 +77,18 @@ pub async fn login_bots() -> Result<(), RQError> {
                 version: bot.protocol.unwrap_or(login_conf.default_protocol).as_version(),
             },
         ).await {
-            Ok(bot) => bot,
+            Ok(bot) => {
+                if let Err(e) = bot.refresh_group_list().await {
+                    warn!("{}刷新群列表失败: {:?}", bot, e);
+                }
+                bot
+            },
             Err(_) => {
                 // todo: optimize
+                get_app().remove_bot(account);
                 continue;
             }
         };
-
-        get_app().add_bot(bot);
     }
 
     Ok(())
@@ -95,18 +99,19 @@ async fn login_bot(account: i64, password: &Option<String>, conf: BotConfigurati
         account,
         conf,
     ).await;
+    get_app().add_bot(bot.clone());
     bot.start().await?;
 
     info!("Bot({})登陆中", account);
     match bot.try_login().await {
         Ok(_) => {
-            info!("Bot({})登陆成功", account);
+            info!("{}登陆成功", bot);
             Ok(bot)
         }
         Err(e) => {
             //error!("Bot({})登陆失败: {:?}", account, e);
             if let Some(pwd) = password {
-                info!("Bot({})尝试密码登陆", account);
+                info!("{}尝试密码登陆", bot);
                 let result = bot.client().password_login(account, &pwd).await;
                 println!("{:?}", result);
                 let mut resp: LoginResponse;
@@ -123,19 +128,19 @@ async fn login_bot(account: i64, password: &Option<String>, conf: BotConfigurati
                             resp = r;
                         }
                         LoginResponse::Success(..) => {
-                            info!("Bot({})登陆成功", account);
+                            info!("{}登陆成功", bot);
                             break;
                         }
                         LoginResponse::UnknownStatus(ref s) => {
-                            error!("Bot({})登陆失败: {}", account, s.message);
+                            error!("{}登陆失败: {}", bot, s.message);
                             return Err(e);
                         }
                         LoginResponse::AccountFrozen => {
-                            error!("Bot({})登陆失败: 账号被冻结", account);
+                            error!("{}登陆失败: 账号被冻结", bot);
                             return Err(e);
                         }
                         _ => {
-                            error!("Bot({})登陆失败: {:?}", account, e);
+                            error!("{}登陆失败: {:?}", bot, e);
                             return Err(e);
                         }
                     }

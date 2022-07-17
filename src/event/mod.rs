@@ -1,7 +1,8 @@
-use std::ops::Sub;
-use std::sync::Arc;
+
+
 
 use ricq::handler::QEvent;
+use ricq::structs::GroupMessage;
 
 use crate::Bot;
 use crate::contact::group::Group;
@@ -18,10 +19,18 @@ pub enum Event {
 #[derive(Clone, Debug)]
 pub struct GroupMessageEvent {
     group: Group,
-    pub(crate) inner: ricq::client::event::GroupMessageEvent,
+    message: GroupMessage,
 }
 
-impl GroupMessageEvent {}
+impl GroupMessageEvent {
+    pub fn from(group: Group, event: ricq::client::event::GroupMessageEvent) -> Self {
+        
+        Self {
+            group,
+            message: event.inner
+        }
+    }
+}
 
 pub struct BotOnlineEvent {
     bot: Bot,

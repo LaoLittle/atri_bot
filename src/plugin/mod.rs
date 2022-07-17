@@ -3,8 +3,8 @@ use std::ptr::null_mut;
 
 pub mod future;
 pub mod manager;
-mod ffi;
 pub mod error;
+pub mod ffi;
 
 #[repr(C)]
 pub struct Managed {

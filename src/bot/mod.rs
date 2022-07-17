@@ -1,10 +1,12 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use ricq::{Client, RQResult};
 use ricq::structs::AccountInfo;
 use tokio::io;
+
+use crate::contact::group::Group;
 
 #[derive(Clone)]
 pub struct Bot(Arc<imp::Bot>);
@@ -24,7 +26,7 @@ impl Bot {
     }
 
     pub fn id(&self) -> i64 {
-        self.0.id()
+        self.0.id
     }
 
     pub async fn nickname(&self) -> String {
@@ -35,12 +37,43 @@ impl Bot {
         self.0.account_info().await
     }
 
+    pub async fn refresh_group_list(&self) -> RQResult<()> {
+        let infos = self.client().get_group_list().await?;
+        self.0.group_list.clear();
+        for info in infos {
+            self.0.group_list.insert(
+                info.code,
+                Group::from(self.clone(), info)
+            );
+        }
+
+        Ok(())
+    }
+
+    pub async fn refresh_group_info(&self, group_id: i64) -> RQResult<()> {
+        let info = self.client().get_group_info(group_id).await?;
+        if let Some(info) = info {
+            self.0.group_list.insert(
+                group_id, 
+                Group::from(self.clone(), info)
+            );
+        } else {
+            self.0.group_list.remove(&group_id);
+        }
+
+        Ok(())
+    }
+    
+    pub fn delete_group(&self, group_id: i64) -> Option<Group> {
+        self.0.group_list.remove(&group_id).map(|(_, g)| g)
+    }
+
     pub fn work_dir(&self) -> PathBuf {
-        self.0.work_dir()
+        self.0.work_dir.clone()
     }
 
     pub fn client(&self) -> &Client {
-        self.0.client()
+        &self.0.client
     }
 }
 
@@ -58,9 +91,16 @@ impl Debug for Bot {
     }
 }
 
+impl Display for Bot {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Bot({})", self.id())
+    }
+}
+
 mod imp {
     use std::path::PathBuf;
     use std::sync::Arc;
+    use dashmap::DashMap;
 
     use ricq::{Client, LoginResponse, RQError, RQResult};
     use ricq::client::Token;
@@ -75,12 +115,14 @@ mod imp {
 
     use crate::bot::BotConfiguration;
     use crate::channel::GlobalEventBroadcastHandler;
+    use crate::contact::group::Group;
 
     #[derive(Clone)]
     pub struct Bot {
-        id: i64,
-        client: Arc<Client>,
-        work_dir: PathBuf,
+        pub id: i64,
+        pub client: Arc<Client>,
+        pub group_list: DashMap<i64, Group>,
+        pub work_dir: PathBuf,
     }
 
     impl Bot {
@@ -88,7 +130,7 @@ mod imp {
             let mut work_dir = PathBuf::new();
 
             if let Some(s) = conf.work_dir {
-                work_dir.push(&s);
+                work_dir = s;
             } else {
                 work_dir.push("bots");
                 work_dir.push(id.to_string());
@@ -148,6 +190,7 @@ mod imp {
 
             Self {
                 id,
+                group_list: DashMap::new(),
                 client,
                 work_dir,
             }
@@ -156,7 +199,7 @@ mod imp {
         pub async fn try_login(&self) -> RQResult<()> {
             //let client = &self.client;
 
-            let mut p = self.work_dir();
+            let mut p = self.work_dir.clone();
             p.push("token.json");
 
             if p.is_file() {
@@ -173,16 +216,14 @@ mod imp {
                     after_login(&self.client).await;
                     let client = self.client.clone();
                     tokio::spawn(async move { client.do_heartbeat().await; });
+                } else {
+                    error!("Bot({})登陆失败: {:?}", self.client.uin().await, resp);
 
-                    return Ok(());
+                    return Err(RQError::TokenLoginFailed);
                 }
-
-                error!("Bot({})登陆失败: {:?}", self.client.uin().await, resp);
-
-                return Err(RQError::TokenLoginFailed);
             };
 
-            Err(RQError::TokenLoginFailed)
+            Ok(())
         }
 
         pub async fn start(&self) -> io::Result<()> {
@@ -196,11 +237,7 @@ mod imp {
 
             Ok(())
         }
-
-        pub fn id(&self) -> i64 {
-            self.id
-        }
-
+        
         pub async fn nickname(&self) -> String {
             self.client.account_info.read().await.nickname.clone()
         }
@@ -213,14 +250,6 @@ mod imp {
                 age: info.age,
                 gender: info.gender,
             }
-        }
-
-        pub fn work_dir(&self) -> PathBuf {
-            self.work_dir.clone()
-        }
-
-        pub fn client(&self) -> &Client {
-            &self.client
         }
     }
 }
