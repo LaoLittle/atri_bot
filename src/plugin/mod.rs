@@ -9,11 +9,11 @@ pub mod ffi;
 #[repr(C)]
 pub struct Managed {
     pointer: *mut (),
-    vtable: VTable,
+    vtable: ManagedVTable,
 }
 
 #[repr(C)]
-struct VTable {
+struct ManagedVTable {
     drop: extern fn(*mut ()),
 }
 
@@ -28,9 +28,9 @@ impl Managed {
 
         Self {
             pointer: ptr.cast(),
-            vtable: VTable {
+            vtable: ManagedVTable {
                 drop: _drop::<T>
-            }
+            },
         }
     }
 
@@ -41,10 +41,16 @@ impl Managed {
 
         Self {
             pointer: static_ref as *const _ as _,
-            vtable: VTable {
+            vtable: ManagedVTable {
                 drop: _drop
-            }
+            },
         }
+    }
+}
+
+impl Drop for Managed {
+    fn drop(&mut self) {
+        (self.vtable.drop)(self.pointer);
     }
 }
 
@@ -52,7 +58,7 @@ impl Managed {
 pub struct RawString {
     pointer: *mut u8,
     length: usize,
-    capacity: usize
+    capacity: usize,
 }
 
 impl RawString {
@@ -60,7 +66,7 @@ impl RawString {
         Self {
             pointer: null_mut(),
             length: 0,
-            capacity: 0
+            capacity: 0,
         }
     }
 
@@ -85,7 +91,7 @@ impl From<String> for RawString {
         Self {
             pointer: ptr,
             length: len,
-            capacity: cap
+            capacity: cap,
         }
     }
 }

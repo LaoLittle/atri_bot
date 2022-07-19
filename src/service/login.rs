@@ -82,7 +82,7 @@ pub async fn login_bots() -> Result<(), RQError> {
                     warn!("{}刷新群列表失败: {:?}", bot, e);
                 }
                 bot
-            },
+            }
             Err(_) => {
                 // todo: optimize
                 get_app().remove_bot(account);

@@ -1,16 +1,15 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 
 use async_trait::async_trait;
-use dashmap::mapref::one::Ref;
 use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
-use tracing::{error, warn};
 
 use crate::{Bot, get_app};
+use crate::event::{BotOnlineEvent, Event, GroupMessageEvent};
 
-static GLOBAL_EVENT_CHANNEL: OnceLock<Sender<QEvent>> = OnceLock::<Sender<QEvent>>::new();
+static GLOBAL_EVENT_CHANNEL: OnceLock<Sender<Event>> = OnceLock::<Sender<Event>>::new();
 
-pub fn global_sender() -> &'static Sender<QEvent> {
+pub fn global_sender() -> &'static Sender<Event> {
     GLOBAL_EVENT_CHANNEL.get_or_init(|| {
         let channel = channel(128);
 
@@ -18,7 +17,7 @@ pub fn global_sender() -> &'static Sender<QEvent> {
     })
 }
 
-pub fn global_receiver() -> Receiver<QEvent> {
+pub fn global_receiver() -> Receiver<Event> {
     global_sender().subscribe()
 }
 
@@ -30,6 +29,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
         let bot_id: i64;
         let bot: Bot;
 
+        let _event_: Event;
         fn get_bot(id: i64) -> Bot {
             get_app().bots.get(&id).expect("Cannot find bot").clone()
         }
@@ -38,113 +38,25 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 bot_id = id;
                 bot = get_bot(bot_id);
 
+                let base = BotOnlineEvent::from(bot);
+                let inner = Event::BotOnlineEvent(base);
+                _event_ = inner.into();
             }
-            QEvent::GroupMessage(ref e) => {
+            QEvent::GroupMessage(e) => {
                 bot_id = e.client.uin().await;
                 if bot_id == e.inner.from_uin { return; }
                 bot = get_bot(bot_id);
+                let base = GroupMessageEvent::from(
+                    bot.find_group(e.inner.group_code).unwrap(),
+                    e,
+                );
+                _event_ = Event::GroupMessageEvent(base);
             }
-            QEvent::GroupAudioMessage(ref e) => {
-                bot_id = e.client.uin().await;
-                if bot_id == e.inner.from_uin { return; }
-                bot = get_bot(bot_id);
-            }
-            QEvent::FriendMessage(ref e) => {
-                bot_id = e.client.uin().await;
-                if bot_id == e.inner.from_uin { return; }
-                bot = get_bot(bot_id);
-            }
-            QEvent::FriendAudioMessage(ref e) => {
-                bot_id = e.client.uin().await;
-                if bot_id == e.inner.from_uin { return; }
-                bot = get_bot(bot_id);
-            }
-            QEvent::GroupTempMessage(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::GroupRequest(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::SelfInvited(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::NewFriendRequest(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::NewMember(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::GroupMute(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::FriendMessageRecall(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::GroupMessageRecall(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::NewFriend(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::GroupLeave(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-                if bot_id == e.inner.member_uin {
-                    if let Err(e) = bot.refresh_group_info(e.inner.group_code).await {
-                        error!("Error on remove group because group leave: {:?}", e);
-                    }
-                }
-
-            }
-            QEvent::GroupDisband(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-                if let Err(e) = bot.refresh_group_info(e.inner.group_code).await {
-                    error!("Error on remove group because group disband: {:?}", e);
-                }
-            }
-            QEvent::FriendPoke(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::GroupNameUpdate(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-                if let Err(e) = bot.refresh_group_info(e.inner.group_code).await {
-                    error!("{}: Error on remove group because group name changed: {:?}",bot, e);
-                }
-            }
-            QEvent::DeleteFriend(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::MemberPermissionChange(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-            }
-            QEvent::KickedOffline(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-                get_app().bots.remove(&bot_id);
-            }
-            QEvent::MSFOffline(ref e) => {
-                bot_id = e.client.uin().await;
-                bot = get_bot(bot_id);
-                get_app().bots.remove(&bot_id);
+            or => {
+                _event_ = Event::Unknown(or);
             }
         }
 
-
-
-        let _ = global_sender().send(event);
+        let _ = global_sender().send(_event_);
     }
 }

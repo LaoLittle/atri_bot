@@ -1,5 +1,3 @@
 pub trait Message {
-    fn sender(&self) {
-
-    }
+    fn sender(&self) {}
 }

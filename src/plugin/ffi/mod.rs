@@ -1,5 +1,3 @@
 mod bot;
 
-pub struct PluginVTable {
-    
-}
+pub struct PluginVTable {}

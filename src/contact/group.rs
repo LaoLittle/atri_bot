@@ -1,7 +1,11 @@
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
-use ricq::structs::GroupInfo;
-use crate::Bot;
+
+use ricq::msg::elem::GroupImage;
+use ricq::RQResult;
+use ricq::structs::{GroupInfo, MessageReceipt};
+
+use crate::{Bot, MessageChain};
 
 #[derive(Debug, Clone)]
 pub struct Group(Arc<imp::Group>);
@@ -11,6 +15,7 @@ impl Group {
         let imp = imp::Group {
             id: info.code,
             bot,
+            info,
         };
 
         Self(Arc::new(imp))
@@ -19,9 +24,27 @@ impl Group {
     pub fn id(&self) -> i64 {
         self.0.id
     }
-    
+
     pub fn bot(&self) -> Bot {
         self.0.bot.clone()
+    }
+
+    pub fn name(&self) -> &str {
+        &self.0.info.name
+    }
+
+    pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
+        self.bot().client().send_group_message(
+            self.id(),
+            chain,
+        ).await
+    }
+
+    pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<GroupImage> {
+        self.bot().client().upload_group_image(
+            self.id(),
+            image,
+        ).await
     }
 }
 
@@ -32,11 +55,14 @@ impl Display for Group {
 }
 
 mod imp {
+    use ricq::structs::GroupInfo;
+
     use crate::Bot;
 
-    #[derive(Debug, Clone)]
+    #[derive(Debug)]
     pub struct Group {
         pub id: i64,
         pub bot: Bot,
+        pub info: GroupInfo,
     }
 }

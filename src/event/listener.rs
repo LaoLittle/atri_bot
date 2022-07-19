@@ -1,38 +1,21 @@
-use std::marker::PhantomData;
 use std::time::Duration;
-use ricq::client::event::GroupMessageEvent;
-use ricq::handler::QEvent;
+
 use ricq::msg::MessageChain;
 use tokio::time::error::Elapsed;
-use crate::global_receiver;
 
-pub struct Filter<T, F>
-where F: Fn(&T) -> bool,
-F: Send + 'static
-{
-    inner: F,
-_mark: PhantomData<T>
-}
-
-impl<T,F> Filter<T, F>
-    where F: Fn(&T) -> bool,
-          F: Send + 'static
-{
-    pub fn invoke(&self, val: &T) -> bool {
-        true
-    }
-}
+use crate::{Event, global_receiver};
+use crate::event::GroupMessageEvent;
 
 pub async fn next_event<F>(event: &GroupMessageEvent, timeout: Duration, filter: F) -> Result<GroupMessageEvent, Elapsed>
-where F: Fn(&GroupMessageEvent) -> bool,
-F: Send + 'static
+    where F: Fn(&GroupMessageEvent) -> bool,
+          F: Send + 'static
 {
-    tokio::time::timeout(timeout,async move {
+    tokio::time::timeout(timeout, async move {
         let mut rx = global_receiver();
         while let Ok(e) = rx.recv().await {
-            if let QEvent::GroupMessage(e) = e {
-                if event.inner.group_code != e.inner.group_code { continue; }
-                if event.inner.from_uin != e.inner.from_uin { continue; }
+            if let Event::GroupMessageEvent(e) = e {
+                if event.group().id() != e.group().id() { continue; }
+                if event.message().from_uin != e.message().from_uin { continue; }
 
                 if !filter(&e) { continue; }
                 return e;
@@ -44,25 +27,27 @@ F: Send + 'static
 }
 
 pub async fn next_message<F>(event: &GroupMessageEvent, timeout: Duration, filter: F) -> Result<MessageChain, Elapsed>
-where F: Fn(&MessageChain) -> bool,
-F: Send + 'static
+    where F: Fn(&MessageChain) -> bool,
+          F: Send + 'static
 {
-    tokio::time::timeout(timeout,async move {
+    tokio::time::timeout(timeout, async move {
         let mut rx = global_receiver();
         while let Ok(e) = rx.recv().await {
-            if let QEvent::GroupMessage(e) = e {
-                if event.inner.group_code != e.inner.group_code { continue; }
-                if event.inner.from_uin != e.inner.from_uin { continue; }
+            if let Event::GroupMessageEvent(e) = e {
+                if event.group().id() != e.group().id() { continue; }
+                if event.message().from_uin != e.message().from_uin { continue; }
 
-                if !filter(&e.inner.elements) { continue; }
+                if !filter(&e.message().elements) { continue; }
 
-                return e.inner.elements;
+                return e.message().elements.clone();
             }
         }
 
         unreachable!()
     }).await
 }
+
+
 
 /*
 #[derive(Default)]

@@ -11,6 +11,7 @@ QQ群怎能少得了高性能亚托莉的身影呢？
 > Rust: 一门赋予每个人的构建可靠且高效软件能力的语言。
 > 
 > ricq: 基于rust编写的qq协议
+- 部署快速，易于使用
 
 ## 功能
  - DrawMeme: 奇怪的图片生成器 (移植于[DrawMeme](https://github.com/LaoLittle/DrawMeme))

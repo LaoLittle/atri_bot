@@ -3,13 +3,12 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use regex::Regex;
-use ricq::handler::QEvent;
 use ricq::msg::elem::{Reply, RQElem, Text};
 use ricq::msg::MessageChain;
 use skia_safe::EncodedImageFormat;
 use tracing::error;
 
-use crate::{check_group, unwrap_result_or_print_err_return};
+use crate::{check_group, Event, unwrap_result_or_print_err_return};
 use crate::channel::global_receiver;
 use crate::fun::drawmeme::get_image_or_wait;
 use crate::fun::drawmeme::zero::zero;
@@ -26,13 +25,11 @@ pub async fn handler() {
         let zero_reg = zero_reg.clone();
         tokio::spawn(async move {
             match e {
-                QEvent::GroupMessage(e) => {
-                    check_group!(e);
+                Event::GroupMessageEvent(e) => {
+                    let bot_id = e.group().bot();
+                    let group_id = e.group().id();
 
-                    let bot_id = e.client.uin().await;
-                    let group_id = e.inner.group_code;
-
-                    let msg = e.inner.elements.clone();
+                    let msg = e.message().elements.clone();
                     let s = msg.to_string();
                     let find = zero_reg.captures(&s);
 
@@ -47,13 +44,13 @@ pub async fn handler() {
 
                             let mut reply = Reply::default();
 
-                            reply.time = e.inner.time;
-                            reply.reply_seq = e.inner.seqs[0];
-                            reply.sender = e.inner.from_uin;
+                            reply.time = e.message().time;
+                            reply.reply_seq = e.message().seqs[0];
+                            reply.sender = e.message().from_uin;
                             reply.elements = msg;
                             req.with_reply(reply);
 
-                            e.client.send_group_message(group_id, req).await.ok();
+                            e.group().send_message(req).await.ok();
                             return;
                         };
 
@@ -63,13 +60,13 @@ pub async fn handler() {
 
                         let mut chain = MessageChain::default();
                         let vec: Vec<u8> = zero.encode_to_data(EncodedImageFormat::PNG).expect("Cannot encode image").to_vec();
-                        let image = unwrap_result_or_print_err_return!(e.client.upload_group_image(group_id, vec).await);
+                        let image = unwrap_result_or_print_err_return!(e.group().upload_image(vec).await);
                         chain.push(image);
-                        if let Err(err) = e.client.send_group_message(group_id, chain).await {
+                        if let Err(err) = e.group().send_message(chain).await {
                             error!(
                                 "Bot({})发送信息失败, 目标群: {}({}), {:?}",
                                 bot_id,
-                                e.inner.group_name,
+                                e.group().name(),
                                 group_id,
                                 err
                             )

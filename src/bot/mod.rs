@@ -43,7 +43,7 @@ impl Bot {
         for info in infos {
             self.0.group_list.insert(
                 info.code,
-                Group::from(self.clone(), info)
+                Group::from(self.clone(), info),
             );
         }
 
@@ -54,8 +54,8 @@ impl Bot {
         let info = self.client().get_group_info(group_id).await?;
         if let Some(info) = info {
             self.0.group_list.insert(
-                group_id, 
-                Group::from(self.clone(), info)
+                group_id,
+                Group::from(self.clone(), info),
             );
         } else {
             self.0.group_list.remove(&group_id);
@@ -63,7 +63,7 @@ impl Bot {
 
         Ok(())
     }
-    
+
     pub fn delete_group(&self, group_id: i64) -> Option<Group> {
         self.0.group_list.remove(&group_id).map(|(_, g)| g)
     }
@@ -72,7 +72,11 @@ impl Bot {
         self.0.work_dir.clone()
     }
 
-    pub fn client(&self) -> &Client {
+    pub fn find_group(&self, id: i64) -> Option<Group> {
+        self.0.group_list.get(&id).map(|g| g.clone())
+    }
+
+    pub(crate) fn client(&self) -> &Client {
         &self.0.client
     }
 }
@@ -100,8 +104,8 @@ impl Display for Bot {
 mod imp {
     use std::path::PathBuf;
     use std::sync::Arc;
-    use dashmap::DashMap;
 
+    use dashmap::DashMap;
     use ricq::{Client, LoginResponse, RQError, RQResult};
     use ricq::client::Token;
     use ricq::device::Device;
@@ -109,7 +113,7 @@ mod imp {
     use ricq::structs::AccountInfo;
     use tokio::{fs, io};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
-    use tokio::net::TcpStream;
+    use tokio::net::TcpSocket;
     use tokio::task::yield_now;
     use tracing::error;
 
@@ -230,14 +234,16 @@ mod imp {
             let client = self.client.clone();
 
             //let addr = SocketAddr::new(Ipv4Addr::new(113, 96, 18, 253).into(), 80);
-            let stream = TcpStream::connect(client.get_address()).await?;
+            let socket = TcpSocket::new_v4()?;
+            let stream = socket.connect(client.get_address()).await?;
+            //let stream = TcpStream::connect(client.get_address()).await?;
 
             tokio::spawn(async move { client.start(stream).await; });
             yield_now().await;
 
             Ok(())
         }
-        
+
         pub async fn nickname(&self) -> String {
             self.client.account_info.read().await.nickname.clone()
         }

@@ -5,7 +5,6 @@ extern crate core;
 use std::sync::OnceLock;
 
 use dashmap::DashMap;
-use ricq::handler::QEvent;
 use ricq::msg::elem::Text;
 use ricq::msg::MessageChain;
 use tokio::runtime;
@@ -13,6 +12,7 @@ use tokio::runtime::Runtime;
 
 use crate::bot::Bot;
 use crate::channel::global_receiver;
+use crate::event::Event;
 
 pub mod bot;
 pub mod channel;
@@ -96,9 +96,9 @@ pub async fn main_handler() {
     while let Ok(e) = rx.recv().await {
         tokio::spawn(async move {
             match e {
-                QEvent::GroupMessage(e) => {
-                    let group_id = e.inner.group_code;
-                    let bot_id = e.client.uin().await;
+                Event::GroupMessageEvent(e) => {
+                    let group_id = e.group().id();
+                    let bot_id = e.group().bot().id();
 
                     let group_bot = get_app().group_bot(group_id);
 
@@ -108,7 +108,7 @@ pub async fn main_handler() {
                         get_app().set_group_bot(group_id, bot_id);
                     }
 
-                    let s = e.inner.elements.to_string();
+                    let s = e.message().elements.to_string();
                     match &*s {
                         "萝卜子列表" => {
                             let app = get_app();
@@ -123,7 +123,7 @@ pub async fn main_handler() {
 
                             let chain = MessageChain::new(Text::new(s));
 
-                            e.client.send_group_message(e.inner.group_code, chain).await.expect("Error");
+                            e.group().send_message(chain).await.expect("Error");
                         }
                         _ => {}
                     };

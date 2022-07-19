@@ -1,5 +1,7 @@
 use std::path::PathBuf;
+
 use ricq::version::{get_version, Protocol};
+
 use crate::Bot;
 use crate::bot::BotConfiguration;
 use crate::plugin::{Managed, RawString};

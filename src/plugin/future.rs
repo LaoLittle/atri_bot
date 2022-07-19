@@ -7,19 +7,25 @@ use std::task::{Context, Poll};
 pub struct FFIFuture<T> {
     future_ptr: *mut (),
     poll: extern fn(*mut (), *mut ()) -> FFIPoll<T>,
+    drop: extern fn(*mut ()),
 }
 
 impl<T> FFIFuture<T> {
     pub fn from<F>(fu: F) -> Self
-    where F: Future<Output=T>
+        where F: Future<Output=T>
     {
+        extern fn _drop<T>(ptr: *mut ()) {
+            unsafe { Box::from_raw(ptr as *mut T); }
+        }
+
         let fun = poll_future::<T, F>;
         let b = Box::new(fu);
         let ptr = Box::into_raw(b);
 
         Self {
             future_ptr: ptr as *mut (),
-            poll: fun
+            poll: fun,
+            drop: _drop::<F>,
         }
     }
 }
@@ -27,6 +33,12 @@ impl<T> FFIFuture<T> {
 unsafe impl<T: Send> Send for FFIFuture<T> {}
 
 unsafe impl<T: Sync> Sync for FFIFuture<T> {}
+
+impl<T> Drop for FFIFuture<T> {
+    fn drop(&mut self) {
+        (self.drop)(self.future_ptr)
+    }
+}
 
 #[repr(C)]
 pub struct FFIPoll<T> {

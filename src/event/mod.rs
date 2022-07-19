@@ -1,42 +1,105 @@
-
-
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use ricq::handler::QEvent;
 use ricq::structs::GroupMessage;
 
 use crate::Bot;
+use crate::contact::{Contact, HasSubject};
 use crate::contact::group::Group;
 
 pub mod listener;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum Event {
-    GroupMessage(GroupMessageEvent),
-    BotOnline,
-    Other(QEvent),
+    BotOnlineEvent(BotOnlineEvent),
+    GroupMessageEvent(GroupMessageEvent),
+    Unknown(QEvent),
 }
 
-#[derive(Clone, Debug)]
-pub struct GroupMessageEvent {
-    group: Group,
-    message: GroupMessage,
+#[derive(Debug)]
+pub struct EventInner<T> {
+    intercepted: Arc<AtomicBool>,
+    event: Arc<T>,
 }
 
-impl GroupMessageEvent {
-    pub fn from(group: Group, event: ricq::client::event::GroupMessageEvent) -> Self {
-        
+impl<T> EventInner<T> {
+    fn new(event: T) -> Self {
         Self {
-            group,
-            message: event.inner
+            intercepted: AtomicBool::new(false).into(),
+            event: event.into(),
+        }
+    }
+
+    pub fn intercept(&self) {
+        self.intercepted.swap(true, Ordering::Release);
+    }
+
+    pub fn is_intercepted(&self) -> bool {
+        self.intercepted.load(Ordering::Relaxed)
+    }
+}
+
+impl<T> Clone for EventInner<T> {
+    fn clone(&self) -> Self {
+        Self {
+            intercepted: self.intercepted.clone(),
+            event: self.event.clone(),
         }
     }
 }
 
-pub struct BotOnlineEvent {
-    bot: Bot,
+pub type GroupMessageEvent = EventInner<imp::GroupMessageEvent>;
+
+impl GroupMessageEvent {
+    pub fn from(group: Group, ori: ricq::client::event::GroupMessageEvent) -> Self {
+        Self::new(imp::GroupMessageEvent {
+            group,
+            message: ori.inner,
+        })
+    }
+
+    pub fn group(&self) -> Group {
+        self.event.group.clone()
+    }
+
+    pub fn message(&self) -> &GroupMessage {
+        &self.event.message
+    }
 }
 
-pub enum Subject {
-    Friend(i64),
-    Group(i64)
+impl HasSubject for GroupMessageEvent {
+    fn subject(&self) -> Contact {
+        Contact::Group(self.event.group.clone())
+    }
+}
+
+pub type BotOnlineEvent = EventInner<imp::BotOnlineEvent>;
+
+impl BotOnlineEvent {
+    pub fn from(bot: Bot) -> Self {
+        Self::new(
+            imp::BotOnlineEvent {
+                bot
+            }
+        )
+    }
+}
+
+mod imp {
+    use ricq::structs::GroupMessage;
+
+    use crate::Bot;
+    use crate::contact::group::Group;
+
+    #[derive(Debug)]
+    pub struct GroupMessageEvent {
+        pub group: Group,
+        pub message: GroupMessage,
+    }
+
+    #[derive(Debug)]
+    pub struct BotOnlineEvent {
+        pub bot: Bot,
+    }
 }

@@ -1,13 +1,13 @@
 use std::time::Duration;
 
 use bytes::Bytes;
-use ricq::client::event::GroupMessageEvent;
 use ricq::msg::elem::{RQElem, Text};
 use ricq::msg::MessageChain;
 use skia_safe::Bitmap;
 use tokio::time::error::Elapsed;
 
 use crate::{get_app, unwrap_result_or_print_err_return};
+use crate::event::GroupMessageEvent;
 use crate::event::listener::next_message;
 
 pub mod zero;
@@ -26,7 +26,7 @@ pub enum MemeError {
 }
 
 pub async fn get_image_or_wait(event: &GroupMessageEvent, img: &mut Option<Bytes>) -> Result<(), Elapsed> {
-    let msg = event.inner.elements.clone();
+    let msg = event.message().elements.clone();
     async fn get_img(msg: MessageChain, img: &mut Option<Bytes>) {
         for elem in msg {
             if let RQElem::GroupImage(i) = elem {
@@ -48,7 +48,7 @@ pub async fn get_image_or_wait(event: &GroupMessageEvent, img: &mut Option<Bytes
     if img.is_none() {
         let mut req = MessageChain::default();
         req.push(Text::new("请在30秒内发送图片".into()));
-        event.client.send_group_message(event.inner.group_code, req).await.ok();
+        event.group().send_message(req).await.ok();
     }
 
     let r = next_message(

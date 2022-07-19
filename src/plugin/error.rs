@@ -1,11 +1,12 @@
 use std::error::Error;
-use std::mem::{ManuallyDrop};
-use crate::plugin::{RawString};
+use std::mem::ManuallyDrop;
+
+use crate::plugin::RawString;
 
 #[repr(C)]
 pub struct FFIResult<T> {
     has_error: bool,
-    result: ResultWithValue<T>
+    result: ResultWithValue<T>,
 }
 
 impl<T, E: Error> From<Result<T, E>> for FFIResult<T> {
@@ -14,13 +15,13 @@ impl<T, E: Error> From<Result<T, E>> for FFIResult<T> {
             Ok(val) => {
                 Self {
                     has_error: false,
-                    result: ResultWithValue { value: ManuallyDrop::new(val) }
+                    result: ResultWithValue { value: ManuallyDrop::new(val) },
                 }
             }
             Err(e) => {
                 Self {
                     has_error: true,
-                    result: ResultWithValue { error: ManuallyDrop::new(e.into()) }
+                    result: ResultWithValue { error: ManuallyDrop::new(e.into()) },
                 }
             }
         }
@@ -43,7 +44,7 @@ impl<T> From<FFIResult<T>> for Result<T, FFIError> {
 #[repr(C)]
 union ResultWithValue<T> {
     value: ManuallyDrop<T>,
-    error: ManuallyDrop<FFIError>
+    error: ManuallyDrop<FFIError>,
 }
 
 #[repr(C)]
@@ -58,7 +59,7 @@ impl<E: Error> From<E> for FFIError {
 
         Self {
             message: RawString::from(message),
-            cause: RawString::null()
+            cause: RawString::null(),
         }
     }
 }

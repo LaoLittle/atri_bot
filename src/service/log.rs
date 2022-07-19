@@ -1,3 +1,1 @@
-pub fn load_log() {
-
-}
+pub fn load_log() {}
