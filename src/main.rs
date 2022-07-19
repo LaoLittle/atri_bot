@@ -12,6 +12,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 
 use atri_qq::{fun, get_runtime, main_handler};
 use atri_qq::service::login::login_bots;
+use atri_qq::service::plugin::load_plugins;
 
 type MainResult = Result<(), Box<dyn Error>>;
 
@@ -26,6 +27,7 @@ fn main() -> MainResult {
         .with(tracing_subscriber::fmt::layer().with_target(true))
         .init();
 
+    load_plugins()?;
 
     let runtime = get_runtime();
 

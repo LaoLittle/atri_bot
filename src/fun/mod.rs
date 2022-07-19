@@ -3,12 +3,12 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use regex::Regex;
-use ricq::msg::elem::{Reply, RQElem, Text};
+use ricq::msg::elem::{Reply, Text};
 use ricq::msg::MessageChain;
 use skia_safe::EncodedImageFormat;
 use tracing::error;
 
-use crate::{check_group, Event, unwrap_result_or_print_err_return};
+use crate::{Event, unwrap_result_or_print_err_return};
 use crate::channel::global_receiver;
 use crate::fun::drawmeme::get_image_or_wait;
 use crate::fun::drawmeme::zero::zero;
@@ -26,7 +26,7 @@ pub async fn handler() {
         tokio::spawn(async move {
             match e {
                 Event::GroupMessageEvent(e) => {
-                    let bot_id = e.group().bot();
+                    let bot = e.group().bot();
                     let group_id = e.group().id();
 
                     let msg = e.message().elements.clone();
@@ -64,8 +64,8 @@ pub async fn handler() {
                         chain.push(image);
                         if let Err(err) = e.group().send_message(chain).await {
                             error!(
-                                "Bot({})发送信息失败, 目标群: {}({}), {:?}",
-                                bot_id,
+                                "{}发送信息失败, 目标群: {}({}), {:?}",
+                                bot,
                                 e.group().name(),
                                 group_id,
                                 err

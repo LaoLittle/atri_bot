@@ -5,7 +5,7 @@ use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 
 use crate::{Bot, get_app};
-use crate::event::{BotOnlineEvent, Event, GroupMessageEvent};
+use crate::event::{BotOnlineEvent, Event, EventInner, GroupMessageEvent};
 
 static GLOBAL_EVENT_CHANNEL: OnceLock<Sender<Event>> = OnceLock::<Sender<Event>>::new();
 
@@ -53,7 +53,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 _event_ = Event::GroupMessageEvent(base);
             }
             or => {
-                _event_ = Event::Unknown(or);
+                _event_ = Event::Unknown(EventInner::<QEvent>::from(or));
             }
         }
 

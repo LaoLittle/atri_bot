@@ -7,6 +7,7 @@ use ricq::structs::GroupMessage;
 use crate::Bot;
 use crate::contact::{Contact, HasSubject};
 use crate::contact::group::Group;
+use crate::plugin::Managed;
 
 pub mod listener;
 
@@ -14,7 +15,7 @@ pub mod listener;
 pub enum Event {
     BotOnlineEvent(BotOnlineEvent),
     GroupMessageEvent(GroupMessageEvent),
-    Unknown(QEvent),
+    Unknown(EventInner<QEvent>),
 }
 
 #[derive(Debug)]
@@ -37,6 +38,10 @@ impl<T> EventInner<T> {
 
     pub fn is_intercepted(&self) -> bool {
         self.intercepted.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn intercept_managed(&self) -> Managed {
+        Managed::from_value(self.intercepted.clone())
     }
 }
 
@@ -83,6 +88,12 @@ impl BotOnlineEvent {
                 bot
             }
         )
+    }
+}
+
+impl EventInner<QEvent> {
+    pub fn from(e: QEvent) -> Self {
+        Self::new(e)
     }
 }
 
