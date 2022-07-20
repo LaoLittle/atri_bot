@@ -1,10 +1,12 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use ricq::handler::QEvent;
 use ricq::structs::GroupMessage;
+use tokio::time::error::Elapsed;
 
-use crate::Bot;
+use crate::{Bot, global_receiver, MessageChain};
 use crate::contact::{Contact, HasSubject};
 use crate::contact::group::Group;
 use crate::plugin::Managed;
@@ -70,6 +72,36 @@ impl GroupMessageEvent {
 
     pub fn message(&self) -> &GroupMessage {
         &self.event.message
+    }
+
+    pub async fn next_event<F>(&self, timeout: Duration, filter: F) -> Result<GroupMessageEvent, Elapsed>
+        where F: Fn(&GroupMessageEvent) -> bool,
+    {
+        tokio::time::timeout(timeout, async move {
+            let mut rx = global_receiver();
+            while let Ok(e) = rx.recv().await {
+                if let Event::GroupMessageEvent(e) = e {
+                    if self.group().id() != e.group().id() { continue; }
+                    if self.message().from_uin != e.message().from_uin { continue; }
+
+                    if !filter(&e) { continue; }
+                    return e;
+                }
+            }
+
+            unreachable!()
+        }).await
+    }
+
+    pub async fn next_message<F>(&self, timeout: Duration, filter: F) -> Result<MessageChain, Elapsed>
+        where F: Fn(&MessageChain) -> bool,
+    {
+        self.next_event(
+            timeout,
+            |e| filter(&e.message().elements),
+        )
+            .await
+            .map(|e| e.message().elements.clone())
     }
 }
 

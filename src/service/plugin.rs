@@ -2,16 +2,17 @@ use std::{fs, io};
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::sync::{OnceLock, RwLock};
-use libloading::Library;
 
-use tracing::{debug, error, info, trace};
+use libloading::Library;
+use tracing::{error, info, trace};
+
 use crate::plugin::ffi::{get_plugin_vtable, PluginVTable};
 
 static PLUGINS_PATH: &str = "plugins";
 
 #[derive(Default)]
 pub struct PluginManager {
-    plugins: RwLock<Vec<Plugin>>
+    plugins: RwLock<Vec<Plugin>>,
 }
 
 static PLUGIN_MANAGER: OnceLock<PluginManager> = OnceLock::new();
@@ -58,9 +59,8 @@ pub fn load_plugins() -> io::Result<()> {
                     let result = load_plugin(&buf);
                     buf.pop();
                     match result {
-                        Ok(v) => {
+                        Ok(p) => {
                             info!("插件加载成功");
-
                         }
                         Err(e) => {
                             error!("插件: {} 加载失败: {}", name, e);
@@ -90,5 +90,6 @@ fn load_plugin<P: AsRef<OsStr>>(path: P) -> Result<Plugin, libloading::Error> {
             lib,
         }
     };
+
     Ok(plugin)
 }

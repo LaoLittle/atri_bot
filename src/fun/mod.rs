@@ -1,3 +1,4 @@
+use std::mem;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -9,7 +10,7 @@ use skia_safe::EncodedImageFormat;
 use tracing::error;
 
 use crate::{Event, unwrap_result_or_print_err_return};
-use crate::channel::global_receiver;
+use crate::event::listener::Listener;
 use crate::fun::drawmeme::get_image_or_wait;
 use crate::fun::drawmeme::zero::zero;
 
@@ -17,16 +18,17 @@ pub mod drawmeme;
 pub mod game;
 
 pub async fn handler() {
-    let mut rx = global_receiver();
-
     let zero_reg = Regex::new("^#(\\d{1,3})").expect("Unknown regex");
     let zero_reg = Arc::new(zero_reg);
-    while let Ok(e) = rx.recv().await {
-        let zero_reg = zero_reg.clone();
-        tokio::spawn(async move {
+
+    let z = zero_reg.clone();
+
+    let guard = Listener::new_always(move |e| {
+        let zero_reg = z.clone();
+        async move {
             match e {
                 Event::GroupMessageEvent(e) => {
-                    let bot = e.group().bot();
+                    let bot = e.group().bot().clone();
                     let group_id = e.group().id();
 
                     let msg = e.message().elements.clone();
@@ -71,12 +73,14 @@ pub async fn handler() {
                                 err
                             )
                         };
-
-                        return;
                     }
                 }
                 _ => {}
             }
-        });
-    }
+        }
+    })
+        .name("Fun")
+        .finish();
+
+    mem::forget(guard);
 }

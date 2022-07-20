@@ -25,8 +25,8 @@ impl Group {
         self.0.id
     }
 
-    pub fn bot(&self) -> Bot {
-        self.0.bot.clone()
+    pub fn bot(&self) -> &Bot {
+        &self.0.bot
     }
 
     pub fn name(&self) -> &str {

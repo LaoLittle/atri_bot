@@ -1,4 +1,5 @@
 use std::mem::ManuallyDrop;
+
 use crate::Event;
 use crate::plugin::Managed;
 
@@ -39,7 +40,7 @@ impl From<Event> for FFIEvent {
         Self {
             t,
             intercepted,
-            base
+            base,
         }
     }
 }
@@ -48,5 +49,5 @@ impl From<Event> for FFIEvent {
 union EventUnion {
     group_message_event: ManuallyDrop<Managed>,
     bot_online_event: ManuallyDrop<Managed>,
-    unknown: ManuallyDrop<Managed>
+    unknown: ManuallyDrop<Managed>,
 }

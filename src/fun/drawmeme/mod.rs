@@ -8,7 +8,6 @@ use tokio::time::error::Elapsed;
 
 use crate::{get_app, unwrap_result_or_print_err_return};
 use crate::event::GroupMessageEvent;
-use crate::event::listener::next_message;
 
 pub mod zero;
 
@@ -51,8 +50,7 @@ pub async fn get_image_or_wait(event: &GroupMessageEvent, img: &mut Option<Bytes
         event.group().send_message(req).await.ok();
     }
 
-    let r = next_message(
-        &event,
+    let r = event.next_message(
         Duration::from_secs(30),
         |m| {
             let m = m.clone();

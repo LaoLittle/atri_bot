@@ -1,4 +1,5 @@
 use std::sync::OnceLock;
+
 use crate::plugin::ffi::channel::new_receiver;
 use crate::plugin::ffi::channel::receiver_receive;
 use crate::plugin::ffi::event::FFIEvent;
@@ -21,7 +22,7 @@ pub fn get_plugin_vtable() -> *const PluginVTable {
     PLUGIN_VTABLE.get_or_init(|| {
         PluginVTable {
             new_receiver,
-            receiver_receive
+            receiver_receive,
         }
     }) as _
 }

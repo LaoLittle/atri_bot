@@ -1,10 +1,15 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
-use ricq::{Client, RQResult};
+use ricq::{Client, LoginResponse, RQError, RQResult};
+use ricq::client::Token;
+use ricq::ext::common::after_login;
 use ricq::structs::AccountInfo;
-use tokio::io;
+use tokio::{fs, io};
+use tokio::io::AsyncReadExt;
+use tracing::error;
 
 use crate::contact::group::Group;
 
@@ -18,7 +23,35 @@ impl Bot {
     }
 
     pub async fn try_login(&self) -> RQResult<()> {
-        self.0.try_login().await
+        //let client = &self.client;
+
+        let mut p = self.0.work_dir.clone();
+        p.push("token.json");
+
+        if p.is_file() {
+            let mut f = fs::File::open(&p).await.expect("Cannot open file");
+
+            let mut s = String::new();
+            f.read_to_string(&mut s).await?;
+
+            let token: Token = serde_json::from_str(&s).expect("Cannot read token from file");
+
+            let resp = self.0.client.token_login(token).await?;
+
+            if let LoginResponse::Success(..) = resp {
+                after_login(&self.0.client).await;
+                let client = self.0.client.clone();
+                tokio::spawn(async move { client.do_heartbeat().await; });
+
+                self.0.enable.swap(true, Ordering::Relaxed);
+            } else {
+                error!("Bot({})登陆失败: {:?}", self.0.client.uin().await, resp);
+
+                return Err(RQError::TokenLoginFailed);
+            }
+        };
+
+        Ok(())
     }
 
     pub async fn start(&self) -> io::Result<()> {
@@ -53,9 +86,10 @@ impl Bot {
     pub async fn refresh_group_info(&self, group_id: i64) -> RQResult<()> {
         let info = self.client().get_group_info(group_id).await?;
         if let Some(info) = info {
+            let g = Group::from(self.clone(), info);
             self.0.group_list.insert(
                 group_id,
-                Group::from(self.clone(), info),
+                g,
             );
         } else {
             self.0.group_list.remove(&group_id);
@@ -104,26 +138,24 @@ impl Display for Bot {
 mod imp {
     use std::path::PathBuf;
     use std::sync::Arc;
+    use std::sync::atomic::AtomicBool;
 
     use dashmap::DashMap;
-    use ricq::{Client, LoginResponse, RQError, RQResult};
-    use ricq::client::Token;
+    use ricq::Client;
     use ricq::device::Device;
-    use ricq::ext::common::after_login;
     use ricq::structs::AccountInfo;
     use tokio::{fs, io};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpSocket;
     use tokio::task::yield_now;
-    use tracing::error;
 
     use crate::bot::BotConfiguration;
     use crate::channel::GlobalEventBroadcastHandler;
     use crate::contact::group::Group;
 
-    #[derive(Clone)]
     pub struct Bot {
         pub id: i64,
+        pub enable: AtomicBool,
         pub client: Arc<Client>,
         pub group_list: DashMap<i64, Group>,
         pub work_dir: PathBuf,
@@ -194,40 +226,11 @@ mod imp {
 
             Self {
                 id,
+                enable: AtomicBool::new(false),
                 group_list: DashMap::new(),
                 client,
                 work_dir,
             }
-        }
-
-        pub async fn try_login(&self) -> RQResult<()> {
-            //let client = &self.client;
-
-            let mut p = self.work_dir.clone();
-            p.push("token.json");
-
-            if p.is_file() {
-                let mut f = fs::File::open(&p).await.expect("Cannot open file");
-
-                let mut s = String::new();
-                f.read_to_string(&mut s).await?;
-
-                let token: Token = serde_json::from_str(&s).expect("Cannot read token from file");
-
-                let resp = self.client.token_login(token).await?;
-
-                if let LoginResponse::Success(..) = resp {
-                    after_login(&self.client).await;
-                    let client = self.client.clone();
-                    tokio::spawn(async move { client.do_heartbeat().await; });
-                } else {
-                    error!("Bot({})登陆失败: {:?}", self.client.uin().await, resp);
-
-                    return Err(RQError::TokenLoginFailed);
-                }
-            };
-
-            Ok(())
         }
 
         pub async fn start(&self) -> io::Result<()> {

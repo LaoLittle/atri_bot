@@ -37,6 +37,19 @@ static ASYNC_RUNTIME: OnceLock<Runtime> = OnceLock::new();
 pub fn get_runtime() -> &'static Runtime {
     ASYNC_RUNTIME.get_or_init(
         || runtime::Builder::new_multi_thread()
+            .thread_name("GlobalRuntime")
+            .enable_all()
+            .build().unwrap()
+    )
+}
+
+static LISTENER_RUNTIME: OnceLock<Runtime> = OnceLock::new();
+
+pub fn get_listener_runtime() -> &'static Runtime {
+    LISTENER_RUNTIME.get_or_init(
+        || runtime::Builder::new_multi_thread()
+            .worker_threads(8)
+            .thread_name("Listeners")
             .enable_all()
             .build().unwrap()
     )

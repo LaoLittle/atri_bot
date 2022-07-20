@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 use async_trait::async_trait;
 use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
+use tokio::task::yield_now;
 
 use crate::{Bot, get_app};
 use crate::event::{BotOnlineEvent, Event, EventInner, GroupMessageEvent};
@@ -33,6 +34,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
         fn get_bot(id: i64) -> Bot {
             get_app().bots.get(&id).expect("Cannot find bot").clone()
         }
+
         match event {
             QEvent::Login(id) => {
                 bot_id = id;
@@ -46,8 +48,16 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 bot_id = e.client.uin().await;
                 if bot_id == e.inner.from_uin { return; }
                 bot = get_bot(bot_id);
+
+                let group = if let Some(g) = bot.find_group(e.inner.group_code) {
+                    g
+                } else {
+                    yield_now().await;
+                    bot.find_group(e.inner.group_code).expect("Cannot find group")
+                };
+
                 let base = GroupMessageEvent::from(
-                    bot.find_group(e.inner.group_code).unwrap(),
+                    group,
                     e,
                 );
                 _event_ = Event::GroupMessageEvent(base);
