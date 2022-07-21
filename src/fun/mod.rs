@@ -79,8 +79,8 @@ pub async fn handler() {
             }
         }
     })
-        .name("Fun")
-        .finish();
+        .with_name("Fun")
+        .start();
 
     mem::forget(guard);
 }

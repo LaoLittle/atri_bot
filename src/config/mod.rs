@@ -1,7 +1,5 @@
 use std::path::PathBuf;
 
-use tokio::fs;
-
 pub mod login;
 
 static SERVICE_CONFIG_PATH: &str = "service";

@@ -20,6 +20,22 @@ pub enum Event {
     Unknown(EventInner<QEvent>),
 }
 
+impl Event {
+    pub fn intercept(&self) {
+        match self {
+            Self::BotOnlineEvent(e) => {
+                e.intercept();
+            }
+            Self::GroupMessageEvent(e) => {
+                e.intercept();
+            }
+            Self::Unknown(e) => {
+                e.intercept();
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct EventInner<T> {
     intercepted: Arc<AtomicBool>,

@@ -1,6 +1,8 @@
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::time::Duration;
 
+use rand::{Rng, thread_rng};
 use ricq::{LoginResponse, RQError};
 use tokio::fs;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -53,6 +55,7 @@ pub async fn login_bots() -> Result<(), RQError> {
 
     bots_path.push("0");
 
+    let mut logins = vec![];
     for bot in login_conf.bots {
         if !bot.auto_login { continue; }
 
@@ -69,26 +72,41 @@ pub async fn login_bots() -> Result<(), RQError> {
         }
         bots_path.pop();
 
-        let bot = match login_bot(
-            account,
-            &pwd,
-            BotConfiguration {
-                work_dir: None,
-                version: bot.protocol.unwrap_or(login_conf.default_protocol).as_version(),
-            },
-        ).await {
-            Ok(bot) => {
-                if let Err(e) = bot.refresh_group_list().await {
-                    warn!("{}刷新群列表失败: {:?}", bot, e);
+        let handle = tokio::spawn(async move {
+            match login_bot(
+                account,
+                &pwd,
+                BotConfiguration {
+                    work_dir: None,
+                    version: bot.protocol.unwrap_or(login_conf.default_protocol).as_version(),
+                },
+            ).await {
+                Ok(bot) => {
+                    if let Err(e) = bot.refresh_group_list().await {
+                        warn!("{}刷新群列表失败: {:?}", bot, e);
+                    }
+                    Ok(bot)
                 }
-                bot
+                Err(e) => {
+                    get_app().remove_bot(account);
+                    Err(e)
+                }
             }
-            Err(_) => {
-                // todo: optimize
-                get_app().remove_bot(account);
-                continue;
-            }
+        });
+        logins.push(handle);
+
+        let random = {
+            thread_rng().gen_range(0..44) as f32 / 11.2f32
         };
+        tokio::time::sleep(Duration::from_secs_f32(random)).await;
+    }
+
+    for result in logins {
+        match result.await.unwrap() {
+            // todo: optimize
+            Ok(_) => {}
+            Err(_) => {}
+        }
     }
 
     Ok(())
@@ -112,23 +130,25 @@ async fn login_bot(account: i64, password: &Option<String>, conf: BotConfigurati
             //error!("Bot({})登陆失败: {:?}", account, e);
             if let Some(pwd) = password {
                 info!("{}尝试密码登陆", bot);
-                let result = bot.client().password_login(account, &pwd).await;
-                println!("{:?}", result);
-                let mut resp: LoginResponse;
-                if let Ok(r) = result {
-                    resp = r;
-                } else { return Err(e); }
+                let mut resp = bot.client().password_login(account, pwd).await?;
 
                 loop {
                     match resp {
                         LoginResponse::DeviceLockLogin(..) => {
-                            let r = if let Ok(r) = bot.client().device_lock_login().await {
-                                r
-                            } else { return Err(e); };
+                            let r = bot.client().device_lock_login().await?;
                             resp = r;
                         }
                         LoginResponse::Success(..) => {
                             info!("{}登陆成功", bot);
+                            let mut dir = bot.work_dir();
+                            dir.push("token.json");
+
+                            if let Ok(mut f) = fs::File::create(&dir).await {
+                                let token = bot.client().gen_token().await;
+                                let s = serde_json::to_string_pretty(&token).expect("Cannot serialize token");
+                                let _ = f.write_all(s.as_bytes()).await;
+                            }
+
                             break;
                         }
                         LoginResponse::UnknownStatus(ref s) => {
@@ -140,7 +160,7 @@ async fn login_bot(account: i64, password: &Option<String>, conf: BotConfigurati
                             return Err(e);
                         }
                         _ => {
-                            error!("{}登陆失败: {:?}", bot, e);
+                            error!("{}登陆失败: {:?}", bot, resp);
                             return Err(e);
                         }
                     }
@@ -148,6 +168,7 @@ async fn login_bot(account: i64, password: &Option<String>, conf: BotConfigurati
 
                 Ok(bot)
             } else {
+                error!("{}登陆失败: {:?}", bot, e);
                 Err(e)
             }
         }

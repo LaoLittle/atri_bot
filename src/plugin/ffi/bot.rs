@@ -20,7 +20,7 @@ extern fn new_bot(id: i64, work_dir: RawString, protocol: u8) -> FFIFuture<Manag
             };
 
             let conf = BotConfiguration {
-                work_dir: work_dir.to_string().map(|s| PathBuf::from(s)),
+                work_dir: work_dir.to_string().map(PathBuf::from),
                 version: get_version(protocol),
             };
 

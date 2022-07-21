@@ -5,9 +5,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use tokio::sync::oneshot;
-use tokio::task::JoinHandle;
+use tokio::task::{JoinError, JoinHandle};
 use tokio::time::timeout;
-use tracing::{debug, trace};
+use tracing::trace;
 
 use crate::{Event, get_listener_runtime, global_receiver};
 
@@ -59,7 +59,7 @@ impl Listener {
         }
     }
 
-    pub fn name(mut self, name: impl ToString) -> Self {
+    pub fn with_name(mut self, name: impl ToString) -> Self {
         self.name = Some(name.to_string());
         self
     }
@@ -74,7 +74,7 @@ impl Listener {
         self
     }
 
-    pub fn finish(self) -> ListenerGuard {
+    pub fn start(self) -> ListenerGuard {
         let (sigtx, mut sigrx) = oneshot::channel::<()>();
         let handle = get_listener_runtime().spawn(async move {
             let mut rx = global_receiver();
@@ -84,11 +84,10 @@ impl Listener {
                 let mut handles = vec![];
                 while let Ok(e) = rx.recv().await {
                     if let Ok(()) | Err(oneshot::error::TryRecvError::Closed) = sigrx.try_recv() {
-                        debug!("Listener Closing...");
                         break;
                     }
 
-                    if finished.load(Ordering::Relaxed) { break; }
+                    if finished.load(Ordering::Acquire) { break; }
 
                     let fu = (self.handler)(e);
                     let finished = finished.clone();
@@ -115,9 +114,12 @@ impl Listener {
                     if !finished { break; }
                 }
             }
+
+            trace!("Listener closed.");
         });
 
         ListenerGuard {
+            name: self.name.unwrap_or(String::from("Unnamed-Listener")),
             signal_tx: sigtx,
             handle,
         }
@@ -125,14 +127,16 @@ impl Listener {
 }
 
 pub struct ListenerGuard {
+    name: String,
     signal_tx: oneshot::Sender<()>,
     handle: JoinHandle<()>,
 }
 
 impl ListenerGuard {
-    pub async fn complete(self) {
+    pub async fn complete(self) -> Result<(), JoinError> {
         let _ = self.signal_tx.send(());
-        let _ = self.handle.await;
+        self.handle.await?;
+        Ok(())
     }
 
     pub fn abort(&self) {

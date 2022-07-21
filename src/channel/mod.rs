@@ -1,9 +1,9 @@
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use async_trait::async_trait;
 use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
-use tokio::task::yield_now;
 
 use crate::{Bot, get_app};
 use crate::event::{BotOnlineEvent, Event, EventInner, GroupMessageEvent};
@@ -52,7 +52,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let group = if let Some(g) = bot.find_group(e.inner.group_code) {
                     g
                 } else {
-                    yield_now().await;
+                    tokio::time::sleep(Duration::from_millis(1000)).await;
                     bot.find_group(e.inner.group_code).expect("Cannot find group")
                 };
 

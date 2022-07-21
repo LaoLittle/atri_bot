@@ -49,7 +49,9 @@ impl Bot {
 
                 return Err(RQError::TokenLoginFailed);
             }
-        };
+        } else {
+            return Err(RQError::TokenLoginFailed);
+        }
 
         Ok(())
     }
@@ -148,6 +150,7 @@ mod imp {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpSocket;
     use tokio::task::yield_now;
+    use tracing::error;
 
     use crate::bot::BotConfiguration;
     use crate::channel::GlobalEventBroadcastHandler;
@@ -186,7 +189,7 @@ mod imp {
                         match serde_json::from_str(&str) {
                             Ok(d) => d,
                             Err(e) => {
-                                println!("{:?}", e);
+                                error!("{:?}", e);
                                 let d = Device::random();
 
                                 let mut bak = file_p.clone();
