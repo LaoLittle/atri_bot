@@ -15,7 +15,7 @@ impl<T> FFIFuture<T> {
         where F: Future<Output=T>
     {
         extern fn _drop<T>(ptr: *mut ()) {
-            unsafe { Box::from_raw(ptr as *mut T); }
+            drop(unsafe { Box::from_raw(ptr as *mut T) });
         }
 
         let fun = poll_future::<T, F>;
@@ -73,7 +73,7 @@ extern fn poll_future<T, F>(f: *mut (), cx: *mut ()) -> FFIPoll<T>
     let poll = pin.poll(cx);
     match poll {
         Poll::Ready(value) => {
-            unsafe { Box::from_raw(f.cast::<F>()); };
+            drop(unsafe { Box::from_raw(f.cast::<F>()) });
             FFIPoll {
                 ready: true,
                 value: MaybeUninit::new(value),

@@ -23,7 +23,7 @@ impl Managed {
         let ptr = Box::into_raw(b);
 
         extern fn _drop<B>(pointer: *mut ()) {
-            unsafe { Box::from_raw(pointer.cast::<B>()); };
+            drop(unsafe { Box::from_raw(pointer.cast::<B>()) });
         }
 
         Self {

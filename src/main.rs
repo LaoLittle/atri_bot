@@ -19,8 +19,8 @@ fn main() -> MainResult {
 
     let runtime = get_runtime();
 
-    runtime.spawn(main_handler());
-    runtime.spawn(fun::handler());
+    main_handler();
+    fun::handler();
 
     runtime.spawn(async {
         main0().await.expect("Error");

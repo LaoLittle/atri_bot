@@ -2,17 +2,21 @@
 
 extern crate core;
 
-use std::sync::OnceLock;
+use std::mem;
+use std::sync::{Arc, OnceLock};
 
 use dashmap::DashMap;
 use ricq::msg::elem::Text;
 use ricq::msg::MessageChain;
+use ricq::structs::GroupMemberInfo;
 use tokio::runtime;
 use tokio::runtime::Runtime;
+
 
 use crate::bot::Bot;
 use crate::channel::global_receiver;
 use crate::event::Event;
+use crate::event::listener::Listener;
 
 pub mod bot;
 pub mod channel;
@@ -58,6 +62,7 @@ pub fn get_listener_runtime() -> &'static Runtime {
 pub struct App {
     bots: DashMap<i64, Bot>,
     group_bot: DashMap<i64, i64>,
+    group_members_info: DashMap<i64, Arc<GroupMemberInfo>>,
     http_client: reqwest::Client,
 }
 
@@ -66,6 +71,7 @@ impl App {
         Self {
             bots: DashMap::new(),
             group_bot: DashMap::new(),
+            group_members_info: DashMap::new(),
             http_client: reqwest::Client::new(),
         }
     }
@@ -103,11 +109,8 @@ impl App {
 
 pub fn app_receiver() {}
 
-pub async fn main_handler() {
-    let mut rx = global_receiver();
-
-    while let Ok(e) = rx.recv().await {
-        tokio::spawn(async move {
+pub fn main_handler() {
+    let guard = Listener::new_always(|e| async move {
             match e {
                 Event::GroupMessageEvent(e) => {
                     let group_id = e.group().id();
@@ -143,6 +146,8 @@ pub async fn main_handler() {
                 }
                 _ => {}
             }
-        });
-    }
+        })
+        .start();
+
+    mem::forget(guard);
 }

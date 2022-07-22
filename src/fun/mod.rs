@@ -17,7 +17,7 @@ use crate::fun::drawmeme::zero::zero;
 pub mod drawmeme;
 pub mod game;
 
-pub async fn handler() {
+pub fn handler() {
     let zero_reg = Regex::new("^#(\\d{1,3})").expect("Unknown regex");
     let zero_reg = Arc::new(zero_reg);
 

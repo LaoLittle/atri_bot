@@ -65,4 +65,8 @@ mod imp {
         pub bot: Bot,
         pub info: GroupInfo,
     }
+
+    pub struct NamedMember;
+
+    pub struct AnonymousMember;
 }

@@ -2,8 +2,10 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use async_trait::async_trait;
+use regex::Regex;
 use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
+use tracing::info;
 
 use crate::{Bot, get_app};
 use crate::event::{BotOnlineEvent, Event, EventInner, GroupMessageEvent};
@@ -56,6 +58,13 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     bot.find_group(e.inner.group_code).expect("Cannot find group")
                 };
 
+                let filter = get_filter_regex();
+
+                info!("{group}{0} to {bot}: {1}",
+                    filter.replace_all(group.name(), ""),
+                    e.inner.elements,
+                );
+
                 let base = GroupMessageEvent::from(
                     group,
                     e,
@@ -69,4 +78,12 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
         let _ = global_sender().send(_event_);
     }
+}
+
+static FILTER_REGEX: OnceLock<Regex> = OnceLock::new();
+
+fn get_filter_regex() -> &'static Regex {
+    FILTER_REGEX.get_or_init(|| {
+        Regex::new("<[$&].+>").expect("Cannot parse regex")
+    })
 }
