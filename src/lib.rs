@@ -94,6 +94,18 @@ impl App {
         self.group_bot.insert(group_id, bot_id)
     }
 
+    pub fn check_group_bot(&self, bot_id: i64, group_id: i64) -> bool {
+        let group_bot = self.group_bot(group_id);
+
+        if let Some(id) = group_bot {
+            if id != bot_id { return false; }
+        } else {
+            get_app().set_group_bot(group_id, bot_id);
+        }
+
+        true
+    }
+
     pub(crate) fn add_bot(&self, bot: Bot) -> Option<Bot> {
         self.bots.insert(bot.id(), bot)
     }
@@ -116,13 +128,7 @@ pub fn main_handler() {
                     let group_id = e.group().id();
                     let bot_id = e.group().bot().id();
 
-                    let group_bot = get_app().group_bot(group_id);
-
-                    if let Some(id) = group_bot {
-                        if id != bot_id { return; }
-                    } else {
-                        get_app().set_group_bot(group_id, bot_id);
-                    }
+                    if !get_app().check_group_bot(bot_id,group_id) { return; }
 
                     let s = e.message().elements.to_string();
                     match &*s {

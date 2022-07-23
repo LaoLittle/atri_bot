@@ -6,7 +6,7 @@ use tokio::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use atri_qq::{fun, get_runtime, main_handler};
-use atri_qq::service::log::init_logger;
+use atri_qq::service::log::{init_logger};
 use atri_qq::service::login::login_bots;
 use atri_qq::service::plugin::load_plugins;
 
@@ -51,7 +51,18 @@ async fn loop_cli() -> MainResult {
             "" => {
                 // nothing to do
             }
-            "exit" | "quit" => break,
+            "help" | "?" => {
+                static HELP_INFO: &str =
+"\
+help: Show this info
+exit: Exit this program
+";
+                stdout.write_all(HELP_INFO.as_bytes()).await?;
+            }
+            "exit" | "quit" | "stop" => {
+                println!("Stopping...");
+                break;
+            },
             _ => {
                 println!("Unknown command '{}', use 'help' to show the help info", cmd);
             }

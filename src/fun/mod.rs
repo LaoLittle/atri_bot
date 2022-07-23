@@ -9,7 +9,7 @@ use ricq::msg::MessageChain;
 use skia_safe::EncodedImageFormat;
 use tracing::error;
 
-use crate::{Event, unwrap_result_or_print_err_return};
+use crate::{Event, get_app, unwrap_result_or_print_err_return};
 use crate::event::listener::Listener;
 use crate::fun::drawmeme::get_image_or_wait;
 use crate::fun::drawmeme::zero::zero;
@@ -30,6 +30,8 @@ pub fn handler() {
                 Event::GroupMessageEvent(e) => {
                     let bot = e.group().bot().clone();
                     let group_id = e.group().id();
+
+                    if !get_app().check_group_bot(bot.id(), group_id) { return; }
 
                     let msg = e.message().elements.clone();
                     let s = msg.to_string();

@@ -4,7 +4,6 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-
 use tracing::{error, Level};
 use tracing_subscriber::fmt::time::{OffsetTime, UtcTime};
 use tracing_subscriber::FmtSubscriber;
@@ -47,8 +46,7 @@ impl Write for LogWriter {
         let size: usize;
         {
             let mut stdout = io::stdout().lock();
-            //stdout.write(b"\n")?;
-            stdout.write(&[8,8])?;
+            stdout.write(&[13])?;
             size = stdout.write(buf)?;
 
             stdout.write(b">>")?;
