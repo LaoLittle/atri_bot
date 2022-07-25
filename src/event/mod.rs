@@ -34,7 +34,7 @@ impl Event {
             }
         }
     }
-    
+
     pub fn is_intercepted(&self) -> bool {
         match self {
             Self::BotOnlineEvent(e) => {
@@ -141,6 +141,14 @@ impl HasSubject for GroupMessageEvent {
     }
 }
 
+impl FromEvent for GroupMessageEvent {
+    fn from_event(e: Event) -> Option<Self> {
+        if let Event::GroupMessageEvent(e) = e {
+            Some(e)
+        } else { None }
+    }
+}
+
 pub type BotOnlineEvent = EventInner<imp::BotOnlineEvent>;
 
 impl BotOnlineEvent {
@@ -175,4 +183,10 @@ mod imp {
     pub struct BotOnlineEvent {
         pub bot: Bot,
     }
+}
+
+pub enum MessageEvent {}
+
+pub trait FromEvent: Sized {
+    fn from_event(e: Event) -> Option<Self>;
 }

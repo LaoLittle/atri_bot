@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, oneshot};
 
 use crate::{Event, get_listener_runtime};
+use crate::event::FromEvent;
 use crate::service::listeners::get_global_worker;
 
 pub struct Listener {
@@ -67,6 +68,55 @@ impl Listener {
                     fu.await;
                     true
                 });
+                Box::into_pin(b)
+            }
+        )
+    }
+
+    pub fn listening_on<E, F, Fu>(handler: F) -> Self
+        where F: Fn(E) -> Fu,
+              F: Send + 'static,
+              Fu: Future<Output=bool>,
+              Fu: Send + 'static,
+              E: FromEvent
+    {
+        async fn t() -> bool {
+            true
+        }
+
+        Self::new(
+            move |e: Event| {
+                let b: Box<dyn Future<Output=bool> + Send + 'static> = if let Some(e) = E::from_event(e) {
+                    let fu = handler(e);
+                    Box::new(fu)
+                } else { Box::new(t()) };
+
+                Box::into_pin(b)
+            }
+        )
+    }
+
+    pub fn listening_on_always<E, F, Fu>(handler: F) -> Self
+        where F: Fn(E) -> Fu,
+              F: Send + 'static,
+              Fu: Future<Output=()>,
+              Fu: Send + 'static,
+              E: FromEvent
+    {
+        async fn t() -> bool {
+            true
+        }
+
+        Self::new(
+            move |e: Event| {
+                let b: Box<dyn Future<Output=bool> + Send + 'static> = if let Some(e) = E::from_event(e) {
+                    let fu = handler(e);
+                    Box::new(async move {
+                        fu.await;
+                        true
+                    })
+                } else { Box::new(t()) };
+
                 Box::into_pin(b)
             }
         )
