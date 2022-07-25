@@ -7,8 +7,9 @@ use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tracing::info;
 
-use crate::{Bot, get_app};
+use crate::{Bot, get_app, get_listener_runtime};
 use crate::event::{BotOnlineEvent, Event, EventInner, GroupMessageEvent};
+use crate::service::listeners::get_global_worker;
 
 static GLOBAL_EVENT_CHANNEL: OnceLock<Sender<Event>> = OnceLock::<Sender<Event>>::new();
 
@@ -75,6 +76,11 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 _event_ = Event::Unknown(EventInner::<QEvent>::from(or));
             }
         }
+
+        let e = _event_.clone();
+        get_listener_runtime().spawn(async move {
+            get_global_worker().handle(&e).await;
+        });
 
         let _ = global_sender().send(_event_);
     }

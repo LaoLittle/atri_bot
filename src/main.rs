@@ -1,11 +1,15 @@
 extern crate core;
 
 use std::error::Error;
+use std::mem;
 
 use tokio::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-use atri_qq::{fun, get_runtime, main_handler};
+use atri_qq::{fun, get_app, get_listener_runtime, get_runtime, main_handler};
+use atri_qq::event::Event;
+use atri_qq::event::listener::{Listener, Priority};
+use atri_qq::service::listeners::get_global_worker;
 use atri_qq::service::log::{init_logger};
 use atri_qq::service::login::login_bots;
 use atri_qq::service::plugin::load_plugins;
@@ -15,9 +19,24 @@ type MainResult = Result<(), Box<dyn Error>>;
 fn main() -> MainResult {
     init_logger();
 
+    get_listener_runtime().spawn(get_global_worker().start());
     load_plugins()?;
 
     let runtime = get_runtime();
+
+    let guard = Listener::new_always(|e| async move {
+        match e {
+            Event::GroupMessageEvent(e) => {
+                if !get_app().check_group_bot(e.group().bot().id(), e.group().id()) {
+                    e.intercept();
+                }
+            }
+            _ => {
+
+            }
+        }
+    }).set_priority(Priority::Top).start();
+    mem::forget(guard);
 
     main_handler();
     fun::handler();
@@ -62,7 +81,7 @@ exit: Exit this program
             "exit" | "quit" | "stop" => {
                 println!("Stopping...");
                 break;
-            },
+            }
             _ => {
                 println!("Unknown command '{}', use 'help' to show the help info", cmd);
             }

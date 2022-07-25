@@ -31,8 +31,6 @@ pub fn handler() {
                     let bot = e.group().bot().clone();
                     let group_id = e.group().id();
 
-                    if !get_app().check_group_bot(bot.id(), group_id) { return; }
-
                     let msg = e.message().elements.clone();
                     let s = msg.to_string();
                     let find = zero_reg.captures(&s);

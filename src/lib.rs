@@ -12,7 +12,6 @@ use ricq::structs::GroupMemberInfo;
 use tokio::runtime;
 use tokio::runtime::Runtime;
 
-
 use crate::bot::Bot;
 use crate::channel::global_receiver;
 use crate::event::Event;
@@ -123,36 +122,31 @@ pub fn app_receiver() {}
 
 pub fn main_handler() {
     let guard = Listener::new_always(|e| async move {
-            match e {
-                Event::GroupMessageEvent(e) => {
-                    let group_id = e.group().id();
-                    let bot_id = e.group().bot().id();
+        match e {
+            Event::GroupMessageEvent(e) => {
+                let s = e.message().elements.to_string();
+                match &*s {
+                    "萝卜子列表" => {
+                        let app = get_app();
+                        let bots = &app.bots;
 
-                    if !get_app().check_group_bot(bot_id,group_id) { return; }
-
-                    let s = e.message().elements.to_string();
-                    match &*s {
-                        "萝卜子列表" => {
-                            let app = get_app();
-                            let bots = &app.bots;
-
-                            let mut s = String::from("在线的萝卜子\n");
-                            for bot in bots.iter() {
-                                s.push_str(format!("{0}: {1}", bot.client().account_info.read().await.nickname, bot.client().uin().await).as_str());
-                                s.push('\n');
-                            }
-                            s.pop();
-
-                            let chain = MessageChain::new(Text::new(s));
-
-                            e.group().send_message(chain).await.expect("Error");
+                        let mut s = String::from("在线的萝卜子\n");
+                        for bot in bots.iter() {
+                            s.push_str(format!("{0}: {1}", bot.client().account_info.read().await.nickname, bot.client().uin().await).as_str());
+                            s.push('\n');
                         }
-                        _ => {}
-                    };
-                }
-                _ => {}
+                        s.pop();
+
+                        let chain = MessageChain::new(Text::new(s));
+
+                        e.group().send_message(chain).await.expect("Error");
+                    }
+                    _ => {}
+                };
             }
-        })
+            _ => {}
+        }
+    })
         .start();
 
     mem::forget(guard);

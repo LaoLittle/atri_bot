@@ -34,6 +34,20 @@ impl Event {
             }
         }
     }
+    
+    pub fn is_intercepted(&self) -> bool {
+        match self {
+            Self::BotOnlineEvent(e) => {
+                e.is_intercepted()
+            }
+            Self::GroupMessageEvent(e) => {
+                e.is_intercepted()
+            }
+            Self::Unknown(e) => {
+                e.is_intercepted()
+            }
+        }
+    }
 }
 
 #[derive(Debug)]

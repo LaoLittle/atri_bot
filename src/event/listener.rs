@@ -1,21 +1,37 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 
-use tokio::sync::oneshot;
-use tokio::task::{JoinError, JoinHandle};
-use tokio::time::timeout;
-use tracing::trace;
+use tokio::sync::{Mutex, oneshot};
 
-use crate::{Event, get_listener_runtime, global_receiver};
+use crate::{Event, get_listener_runtime};
+use crate::service::listeners::get_global_worker;
 
 pub struct Listener {
-    name: Option<String>,
-    concurrent: bool,
-    handler: Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output=bool> + Send + 'static>> + Send + 'static>,
+    pub(crate) name: Option<String>,
+    pub(crate) concurrent_mutex: Option<Arc<Mutex<()>>>,
+    pub(crate) handler: Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output=bool> + Send + 'static>> + Send + 'static>,
+    pub(crate) priority: Priority,
 }
+
+#[derive(Copy, Clone)]
+pub enum Priority {
+    Top = 0,
+    High = 1,
+    Middle = 2,
+    Low = 3,
+    Base = 4,
+}
+
+impl Default for Priority {
+    fn default() -> Self {
+        Self::Middle
+    }
+}
+
+unsafe impl Send for Listener {}
+
+unsafe impl Sync for Listener {}
 
 impl Listener {
     pub fn new<F, Fu>(handler: F) -> Self
@@ -32,8 +48,9 @@ impl Listener {
 
         Listener {
             name: None,
-            concurrent: true,
+            concurrent_mutex: None,
             handler,
+            priority: Priority::Middle,
         }
     }
 
@@ -43,20 +60,16 @@ impl Listener {
               Fu: Future<Output=()>,
               Fu: Send + 'static
     {
-        let handler = Box::new(move |e: Event| {
-            let fu = handler(e);
-            let b: Box<dyn Future<Output=bool> + Send + 'static> = Box::new(async move {
-                fu.await;
-                true
-            });
-            Box::into_pin(b)
-        });
-
-        Listener {
-            name: None,
-            concurrent: true,
-            handler,
-        }
+        Self::new(
+            move |e: Event| {
+                let fu = handler(e);
+                let b: Box<dyn Future<Output=bool> + Send + 'static> = Box::new(async move {
+                    fu.await;
+                    true
+                });
+                Box::into_pin(b)
+            }
+        )
     }
 
     pub fn with_name(mut self, name: impl ToString) -> Self {
@@ -65,81 +78,39 @@ impl Listener {
     }
 
     pub fn synchronize(mut self) -> Self {
-        self.concurrent = false;
+        self.concurrent_mutex = None;
         self
     }
 
     pub fn concurrent(mut self) -> Self {
-        self.concurrent = true;
+        self.concurrent_mutex = Some(Mutex::new(()).into());
+        self
+    }
+
+    pub fn set_priority(mut self, priority: Priority) -> Self {
+        self.priority = priority;
         self
     }
 
     pub fn start(self) -> ListenerGuard {
         let (sigtx, mut sigrx) = oneshot::channel::<()>();
-        let handle = get_listener_runtime().spawn(async move {
-            let mut rx = global_receiver();
 
-            if self.concurrent {
-                let finished = Arc::new(AtomicBool::new(false));
-                let mut handles = vec![];
-                while let Ok(e) = rx.recv().await {
-                    if let Ok(()) | Err(oneshot::error::TryRecvError::Closed) = sigrx.try_recv() {
-                        break;
-                    }
-
-                    if finished.load(Ordering::Acquire) { break; }
-
-                    let fu = (self.handler)(e);
-                    let finished = finished.clone();
-                    handles.push(
-                        tokio::spawn(async move {
-                            let f: bool = fu.await;
-                            if !f { finished.swap(true, Ordering::Release); }
-                        })
-                    );
-                }
-
-                for handle in handles {
-                    let _ = timeout(Duration::from_secs(300), handle).await;
-                }
-            } else {
-                while let Ok(e) = rx.recv().await {
-                    if let Ok(()) | Err(oneshot::error::TryRecvError::Closed) = sigrx.try_recv() {
-                        break;
-                    }
-
-                    let fu = (self.handler)(e);
-
-                    let finished: bool = fu.await;
-                    if !finished { break; }
-                }
-            }
-
-            trace!("Listener closed.");
+        get_listener_runtime().spawn(async move {
+            get_global_worker().schedule(self).await;
         });
 
         ListenerGuard {
-            name: self.name.unwrap_or(String::from("Unnamed-Listener")),
             signal_tx: sigtx,
-            handle,
         }
     }
 }
 
 pub struct ListenerGuard {
-    name: String,
     signal_tx: oneshot::Sender<()>,
-    handle: JoinHandle<()>,
 }
 
 impl ListenerGuard {
-    pub async fn complete(self) -> Result<(), JoinError> {
+    pub async fn complete(self) {
         let _ = self.signal_tx.send(());
-        self.handle.await?;
-        Ok(())
-    }
-
-    pub fn abort(&self) {
-        self.handle.abort();
     }
 }
