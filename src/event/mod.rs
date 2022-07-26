@@ -96,8 +96,12 @@ impl GroupMessageEvent {
         })
     }
 
-    pub fn group(&self) -> Group {
-        self.event.group.clone()
+    pub fn group(&self) -> &Group {
+        &self.event.group
+    }
+
+    pub fn bot(&self) -> &Bot {
+        self.group().bot()
     }
 
     pub fn message(&self) -> &GroupMessage {
@@ -185,7 +189,19 @@ mod imp {
     }
 }
 
-pub enum MessageEvent {}
+pub enum MessageEvent {
+    Group(GroupMessageEvent),
+    Friend,
+}
+
+impl FromEvent for MessageEvent {
+    fn from_event(e: Event) -> Option<Self> {
+        match e {
+            Event::GroupMessageEvent(e) => Some(Self::Group(e)),
+            _ => None
+        }
+    }
+}
 
 pub trait FromEvent: Sized {
     fn from_event(e: Event) -> Option<Self>;

@@ -1,18 +1,163 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
-use tokio::sync::{Mutex, oneshot};
+use tokio::sync::Mutex;
 
 use crate::{Event, get_listener_runtime};
 use crate::event::FromEvent;
 use crate::service::listeners::get_global_worker;
 
 pub struct Listener {
-    pub(crate) name: Option<String>,
-    pub(crate) concurrent_mutex: Option<Arc<Mutex<()>>>,
+    pub(crate) name: Arc<String>,
+    pub(crate) concurrent_mutex: Option<Mutex<()>>,
     pub(crate) handler: Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output=bool> + Send + 'static>> + Send + 'static>,
+    pub(crate) closed: Arc<AtomicBool>,
     pub(crate) priority: Priority,
+}
+
+impl Listener {
+    pub fn new<F, Fu>(handler: F) -> ListenerBuilder
+        where F: Fn(Event) -> Fu,
+              F: Send + 'static,
+              Fu: Future<Output=bool>,
+              Fu: Send + 'static
+    {
+        let handler = Box::new(move |e: Event| {
+            let fu = handler(e);
+            let b: Box<dyn Future<Output=bool> + Send + 'static> = Box::new(fu);
+            Box::into_pin(b)
+        });
+
+        ListenerBuilder {
+            name: None,
+            concurrent: true,
+            handler,
+            closed: AtomicBool::new(false).into(),
+            priority: Priority::Middle,
+        }
+    }
+
+    pub fn new_always<F, Fu>(handler: F) -> ListenerBuilder
+        where F: Fn(Event) -> Fu,
+              F: Send + 'static,
+              Fu: Future<Output=()>,
+              Fu: Send + 'static
+    {
+        Self::new(
+            move |e: Event| {
+                let fu = handler(e);
+                let b: Box<dyn Future<Output=bool> + Send + 'static> = Box::new(async move {
+                    fu.await;
+                    true
+                });
+                Box::into_pin(b)
+            }
+        )
+    }
+
+    pub fn listening_on<E, F, Fu>(handler: F) -> ListenerBuilder
+        where F: Fn(E) -> Fu,
+              F: Send + 'static,
+              Fu: Future<Output=bool>,
+              Fu: Send + 'static,
+              E: FromEvent
+    {
+        Self::new(
+            move |e: Event| {
+                let b: Box<dyn Future<Output=bool> + Send + 'static> = if let Some(e) = E::from_event(e) {
+                    let fu = handler(e);
+                    Box::new(fu)
+                } else { Box::new(bool_true()) };
+
+                Box::into_pin(b)
+            }
+        )
+    }
+
+    pub fn listening_on_always<E, F, Fu>(handler: F) -> ListenerBuilder
+        where F: Fn(E) -> Fu,
+              F: Send + 'static,
+              Fu: Future<Output=()>,
+              Fu: Send + 'static,
+              E: FromEvent
+    {
+        Self::new(
+            move |e: Event| {
+                let b: Box<dyn Future<Output=bool> + Send + 'static> = if let Some(e) = E::from_event(e) {
+                    let fu = handler(e);
+                    Box::new(async move {
+                        fu.await;
+                        true
+                    })
+                } else { Box::new(bool_true()) };
+
+                Box::into_pin(b)
+            }
+        )
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
+pub struct ListenerBuilder {
+    pub name: Option<String>,
+    pub concurrent: bool,
+    handler: Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output=bool> + Send + 'static>> + Send + 'static>,
+    closed: Arc<AtomicBool>,
+    pub priority: Priority,
+}
+
+impl ListenerBuilder {
+    pub fn start(self) -> ListenerGuard {
+        let Self {
+            name,
+            concurrent,
+            handler,
+            closed,
+            priority,
+        } = self;
+        let name = Arc::new(name.unwrap_or_else(|| String::from("Unnamed-Listener")));
+        let arc_name = name.clone();
+        let arc_closed = closed.clone();
+        let listener = Listener {
+            name,
+            concurrent_mutex: if concurrent { None } else { Some(Mutex::new(())) },
+            handler,
+            closed,
+            priority,
+        };
+
+        get_listener_runtime().spawn(get_global_worker().schedule(listener));
+
+        ListenerGuard {
+            name: arc_name,
+            closed: arc_closed,
+        }
+    }
+
+    pub fn with_name(mut self, name: impl ToString) -> Self {
+        self.name = Some(name.to_string());
+        self
+    }
+
+    pub fn synchronize(mut self) -> Self {
+        self.concurrent = false;
+        self
+    }
+
+    pub fn concurrent(mut self) -> Self {
+        self.concurrent = false;
+        self
+    }
+
+    pub fn set_priority(mut self, priority: Priority) -> Self {
+        self.priority = priority;
+        self
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -34,133 +179,27 @@ unsafe impl Send for Listener {}
 
 unsafe impl Sync for Listener {}
 
-impl Listener {
-    pub fn new<F, Fu>(handler: F) -> Self
-        where F: Fn(Event) -> Fu,
-              F: Send + 'static,
-              Fu: Future<Output=bool>,
-              Fu: Send + 'static
-    {
-        let handler = Box::new(move |e: Event| {
-            let fu = handler(e);
-            let b: Box<dyn Future<Output=bool> + Send + 'static> = Box::new(fu);
-            Box::into_pin(b)
-        });
-
-        Listener {
-            name: None,
-            concurrent_mutex: None,
-            handler,
-            priority: Priority::Middle,
-        }
-    }
-
-    pub fn new_always<F, Fu>(handler: F) -> Self
-        where F: Fn(Event) -> Fu,
-              F: Send + 'static,
-              Fu: Future<Output=()>,
-              Fu: Send + 'static
-    {
-        Self::new(
-            move |e: Event| {
-                let fu = handler(e);
-                let b: Box<dyn Future<Output=bool> + Send + 'static> = Box::new(async move {
-                    fu.await;
-                    true
-                });
-                Box::into_pin(b)
-            }
-        )
-    }
-
-    pub fn listening_on<E, F, Fu>(handler: F) -> Self
-        where F: Fn(E) -> Fu,
-              F: Send + 'static,
-              Fu: Future<Output=bool>,
-              Fu: Send + 'static,
-              E: FromEvent
-    {
-        async fn t() -> bool {
-            true
-        }
-
-        Self::new(
-            move |e: Event| {
-                let b: Box<dyn Future<Output=bool> + Send + 'static> = if let Some(e) = E::from_event(e) {
-                    let fu = handler(e);
-                    Box::new(fu)
-                } else { Box::new(t()) };
-
-                Box::into_pin(b)
-            }
-        )
-    }
-
-    pub fn listening_on_always<E, F, Fu>(handler: F) -> Self
-        where F: Fn(E) -> Fu,
-              F: Send + 'static,
-              Fu: Future<Output=()>,
-              Fu: Send + 'static,
-              E: FromEvent
-    {
-        async fn t() -> bool {
-            true
-        }
-
-        Self::new(
-            move |e: Event| {
-                let b: Box<dyn Future<Output=bool> + Send + 'static> = if let Some(e) = E::from_event(e) {
-                    let fu = handler(e);
-                    Box::new(async move {
-                        fu.await;
-                        true
-                    })
-                } else { Box::new(t()) };
-
-                Box::into_pin(b)
-            }
-        )
-    }
-
-    pub fn with_name(mut self, name: impl ToString) -> Self {
-        self.name = Some(name.to_string());
-        self
-    }
-
-    pub fn synchronize(mut self) -> Self {
-        self.concurrent_mutex = None;
-        self
-    }
-
-    pub fn concurrent(mut self) -> Self {
-        self.concurrent_mutex = Some(Mutex::new(()).into());
-        self
-    }
-
-    pub fn set_priority(mut self, priority: Priority) -> Self {
-        self.priority = priority;
-        self
-    }
-
-    pub fn start(self) -> ListenerGuard {
-        let (sigtx, mut sigrx) = oneshot::channel::<()>();
-
-        get_listener_runtime().spawn(async move {
-            get_global_worker().schedule(self).await;
-        });
-
-        ListenerGuard {
-            signal_tx: sigtx,
-        }
-    }
-}
-
 pub struct ListenerGuard {
-    signal_tx: oneshot::Sender<()>,
+    name: Arc<String>,
+    closed: Arc<AtomicBool>,
 }
 
 impl ListenerGuard {
-    pub async fn complete(self) {
-        let _ = self.signal_tx.send(());
+    pub fn name(&self) -> &str {
+        &self.name
     }
+
+    pub fn closed(&self) -> bool {
+        self.closed.load(Ordering::Acquire)
+    }
+}
+
+impl Drop for ListenerGuard {
+    fn drop(&mut self) {
+        self.closed.swap(true, Ordering::Relaxed);
+    }
+}
+
+async fn bool_true() -> bool {
+    true
 }

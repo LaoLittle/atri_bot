@@ -19,6 +19,7 @@ impl From<Event> for FFIEvent {
         fn managed_union_value<T>(value: T) -> ManuallyDrop<Managed> {
             ManuallyDrop::new(Managed::from_value(value))
         }
+
         match e {
             Event::BotOnlineEvent(e) => {
                 t = 0;

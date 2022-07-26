@@ -9,6 +9,7 @@ use crate::plugin::Managed;
 mod bot;
 mod channel;
 pub mod event;
+mod listener;
 
 #[repr(C)]
 pub struct PluginVTable {

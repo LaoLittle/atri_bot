@@ -4,12 +4,12 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use regex::Regex;
-use ricq::msg::elem::{Reply, Text};
-use ricq::msg::MessageChain;
+use ricq::msg::{MessageChain, MessageChainBuilder};
+use ricq::msg::elem::Reply;
 use skia_safe::EncodedImageFormat;
 use tracing::error;
 
-use crate::{Event, get_app, unwrap_result_or_print_err_return};
+use crate::{Event, unwrap_result_or_print_err_return};
 use crate::event::listener::Listener;
 use crate::fun::drawmeme::get_image_or_wait;
 use crate::fun::drawmeme::zero::zero;
@@ -41,18 +41,19 @@ pub fn handler() {
 
                         let mut img = None::<Bytes>;
                         if let Err(_) = get_image_or_wait(&e, &mut img).await {
-                            let mut req = MessageChain::default();
-                            req.push(Text::new("超时未发送".into()));
+                            let mut req = MessageChainBuilder::new();
+                            req.push_str("超时未发送");
 
-                            let mut reply = Reply::default();
+                            let reply = Reply {
+                                time: e.message().time,
+                                reply_seq: e.message().seqs[0],
+                                sender: e.message().from_uin,
+                                elements: msg,
+                            };
 
-                            reply.time = e.message().time;
-                            reply.reply_seq = e.message().seqs[0];
-                            reply.sender = e.message().from_uin;
-                            reply.elements = msg;
-                            req.with_reply(reply);
+                            req.push(reply);
 
-                            e.group().send_message(req).await.ok();
+                            e.group().send_message(req.build()).await.ok();
                             return;
                         };
 

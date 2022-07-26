@@ -138,7 +138,7 @@ impl Display for Bot {
 }
 
 mod imp {
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
 
@@ -192,9 +192,9 @@ mod imp {
                                 error!("{:?}", e);
                                 let d = Device::random();
 
-                                let mut bak = file_p.clone();
-                                bak.pop();
-                                bak.push("device.json.bak");
+                                let mut bak = file_p.as_os_str().to_owned();
+                                bak.push(".bak");
+                                let bak = Path::new(&bak);
                                 if let Err(_) = fs::copy(&file_p, &bak).await { return d; };
 
                                 drop(f); // make sure the file is closed

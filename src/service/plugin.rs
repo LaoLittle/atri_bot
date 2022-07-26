@@ -1,8 +1,9 @@
 use std::{fs, io};
 use std::ffi::OsStr;
 use std::path::PathBuf;
-use std::sync::{OnceLock, RwLock};
+use std::sync::OnceLock;
 
+use dashmap::DashMap;
 use libloading::Library;
 use tracing::{error, info, trace};
 
@@ -12,15 +13,13 @@ static PLUGINS_PATH: &str = "plugins";
 
 #[derive(Default)]
 pub struct PluginManager {
-    plugins: RwLock<Vec<Plugin>>,
+    plugins: DashMap<usize, Plugin>,
 }
 
 static PLUGIN_MANAGER: OnceLock<PluginManager> = OnceLock::new();
 
 pub fn get_plugin_manager() -> &'static PluginManager {
-    PLUGIN_MANAGER.get_or_init(|| {
-        PluginManager::default()
-    })
+    PLUGIN_MANAGER.get_or_init(PluginManager::default)
 }
 
 pub struct Plugin {
@@ -39,13 +38,12 @@ pub fn load_plugins() -> io::Result<()> {
     }
     let dir = fs::read_dir(&buf)?;
 
-    #[allow(unused)]
-        #[cfg(target_os = "macos")]
-        let ext = "dylib";
+    #[cfg(target_os = "macos")]
+    const EXT: &str = "dylib";
     #[cfg(target_os = "windows")]
-        let ext = "dll";
+    const EXT: &str = "dll";
     #[cfg(all(target_os = "unix", not(target_os = "macos")))]
-        let ext = "so";
+    const EXT: &str = "so";
     for entry in dir {
         match entry {
             Ok(entry) => {
@@ -54,7 +52,7 @@ pub fn load_plugins() -> io::Result<()> {
                 buf.push(name);
                 let ext_curr: Vec<&str> = name.split('.').collect();
 
-                if let Some(&ext) = ext_curr.last() {
+                if let Some(&EXT) = ext_curr.last() {
                     info!("正在加载插件: {}", name);
                     let result = load_plugin(&buf);
                     buf.pop();

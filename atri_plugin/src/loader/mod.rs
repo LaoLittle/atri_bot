@@ -1,7 +1,7 @@
 use std::mem::MaybeUninit;
 use ffi::future::FFIFuture;
-use crate::plugin::ffi::event::FFIEvent;
-use crate::plugin::ffi::Managed;
+use crate::loader::ffi::event::FFIEvent;
+use crate::loader::ffi::Managed;
 
 mod ffi;
 

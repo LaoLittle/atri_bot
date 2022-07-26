@@ -1,5 +1,5 @@
 use std::mem::ManuallyDrop;
-use crate::plugin::Managed;
+use crate::loader::Managed;
 
 #[repr(C)]
 pub struct FFIEvent {

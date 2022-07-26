@@ -6,8 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ricq = "0.1.15"
-
 serde = "1"
 serde_json = "1"
 toml = "0"
@@ -36,6 +34,9 @@ features = [
 
 [dependencies.reqwest]
 version = "0"
+
+[dependencies.ricq]
+git = "https://github.com/lz1998/ricq.git"
 
 [profile.release]
 lto = true

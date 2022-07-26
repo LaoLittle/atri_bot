@@ -102,7 +102,7 @@ pub async fn login_bots() -> Result<(), RQError> {
     }
 
     for result in logins {
-        match result.await.unwrap() {
+        match result.await.expect("Login panics!") {
             // todo: optimize
             Ok(_) => {}
             Err(_) => {}

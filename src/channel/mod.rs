@@ -1,5 +1,4 @@
 use std::sync::OnceLock;
-use std::time::Duration;
 
 use async_trait::async_trait;
 use regex::Regex;
@@ -54,10 +53,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 let group = if let Some(g) = bot.find_group(e.inner.group_code) {
                     g
-                } else {
-                    tokio::time::sleep(Duration::from_millis(1000)).await;
-                    bot.find_group(e.inner.group_code).expect("Cannot find group")
-                };
+                } else { return; };
 
                 let filter = get_filter_regex();
 

@@ -1,16 +1,8 @@
-pub mod plugin;
+pub mod loader;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+pub trait Plugin {
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    fn new_listener(&self) {
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
     }
 }

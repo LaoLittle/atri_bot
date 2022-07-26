@@ -46,10 +46,10 @@ impl Write for LogWriter {
         let size: usize;
         {
             let mut stdout = io::stdout().lock();
-            stdout.write(&[13])?;
+            stdout.write_all(&[13])?;
             size = stdout.write(buf)?;
 
-            stdout.write(b">>")?;
+            stdout.write_all(b">>")?;
             stdout.flush()?;
         }
 
@@ -58,7 +58,7 @@ impl Write for LogWriter {
         });
 
         if let Err(e) = f.and_then(|mut f| {
-            f.write(buf)?;
+            f.write_all(buf)?;
             Ok(())
         }) {
             error!("Log写入失败: {}", e);
