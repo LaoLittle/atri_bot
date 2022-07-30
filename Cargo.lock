@@ -63,10 +63,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "atri_ffi"
+version = "0.1.0"
+
+[[package]]
 name = "atri_qq"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "atri_ffi",
  "bytes",
  "crossbeam-deque",
  "dashmap",

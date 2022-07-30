@@ -38,6 +38,9 @@ version = "0"
 [dependencies.ricq]
 git = "https://github.com/lz1998/ricq.git"
 
+[dependencies.atri_ffi]
+path = "atri_ffi"
+
 [profile.release]
 lto = true
 opt-level = 'z'

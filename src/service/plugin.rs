@@ -7,7 +7,9 @@ use dashmap::DashMap;
 use libloading::Library;
 use tracing::{error, info, trace};
 
-use crate::plugin::ffi::{get_plugin_vtable, PluginVTable};
+use atri_ffi::ffi::AtriVTable;
+
+use crate::plugin::ffi::get_plugin_vtable;
 
 static PLUGINS_PATH: &str = "plugins";
 
@@ -80,7 +82,7 @@ fn load_plugin<P: AsRef<OsStr>>(path: P) -> Result<Plugin, libloading::Error> {
     let plugin = unsafe {
         trace!("正在加载插件动态库");
         let lib = Library::new(path)?;
-        let plugin_init = lib.get::<extern fn(*const PluginVTable)>(b"plugin_init")?;
+        let plugin_init = lib.get::<extern fn(*const AtriVTable)>(b"plugin_init")?;
         trace!("正在初始化插件");
         plugin_init(get_plugin_vtable());
 

@@ -1,10 +1,14 @@
 use std::mem::ManuallyDrop;
-use crate::loader::Managed;
+use crate::Managed;
+
+#[repr(C)]
+pub struct AtriVTable {
+
+}
 
 #[repr(C)]
 pub struct FFIEvent {
     t: u8,
-    intercepted: Managed,
     base: EventUnion,
 }
 
@@ -12,5 +16,5 @@ pub struct FFIEvent {
 union EventUnion {
     group_message_event: ManuallyDrop<Managed>,
     bot_online_event: ManuallyDrop<Managed>,
-    unknown: ManuallyDrop<Managed>
+    unknown: ManuallyDrop<Managed>,
 }

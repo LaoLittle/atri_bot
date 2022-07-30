@@ -9,7 +9,6 @@ use tokio::time::error::Elapsed;
 use crate::{Bot, global_receiver, MessageChain};
 use crate::contact::{Contact, HasSubject};
 use crate::contact::group::Group;
-use crate::plugin::Managed;
 
 pub mod listener;
 
@@ -70,10 +69,6 @@ impl<T> EventInner<T> {
 
     pub fn is_intercepted(&self) -> bool {
         self.intercepted.load(Ordering::Relaxed)
-    }
-
-    pub(crate) fn intercept_managed(&self) -> Managed {
-        Managed::from_value(self.intercepted.clone())
     }
 }
 
