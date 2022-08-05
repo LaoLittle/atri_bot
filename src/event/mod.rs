@@ -16,36 +16,46 @@ pub mod listener;
 pub enum Event {
     BotOnlineEvent(BotOnlineEvent),
     GroupMessageEvent(GroupMessageEvent),
+    FriendMessageEvent(FriendMessageEvent),
     Unknown(EventInner<QEvent>),
 }
 
-impl Event {
-    pub fn intercept(&self) {
-        match self {
-            Self::BotOnlineEvent(e) => {
-                e.intercept();
-            }
-            Self::GroupMessageEvent(e) => {
-                e.intercept();
-            }
-            Self::Unknown(e) => {
-                e.intercept();
+macro_rules! event_impl {
+    ($($variant:ident),* ;$name:ident: $ret:ty as $func:expr) => {
+        impl Event {
+            pub fn $name(&self) -> $ret {
+                match self {
+                    $(Self::$variant(e) => {
+                        ($func)(e)
+                    })*
+                }
             }
         }
-    }
+    };
+}
 
-    pub fn is_intercepted(&self) -> bool {
-        match self {
-            Self::BotOnlineEvent(e) => {
-                e.is_intercepted()
-            }
-            Self::GroupMessageEvent(e) => {
-                e.is_intercepted()
-            }
-            Self::Unknown(e) => {
-                e.is_intercepted()
-            }
+macro_rules! event_fun_impl {
+    ($($name:ident: $ret:ty as $func:expr);+ $(;)?) => {
+        $(
+        event_impl! {
+            GroupMessageEvent,
+            FriendMessageEvent,
+            BotOnlineEvent,
+            Unknown;
+            $name: $ret as $func
         }
+        )*
+    };
+}
+
+event_fun_impl! {
+    intercept: () as EventInner::intercept;
+    is_intercepted: bool as EventInner::is_intercepted;
+}
+
+impl FromEvent for Event {
+    fn from_event(e: Event) -> Option<Self> {
+        Some(e)
     }
 }
 
@@ -148,6 +158,18 @@ impl FromEvent for GroupMessageEvent {
     }
 }
 
+pub type FriendMessageEvent = EventInner<imp::FriendMessageEvent>;
+
+impl FriendMessageEvent {}
+
+impl FromEvent for FriendMessageEvent {
+    fn from_event(e: Event) -> Option<Self> {
+        if let Event::FriendMessageEvent(e) = e {
+            Some(e)
+        } else { None }
+    }
+}
+
 pub type BotOnlineEvent = EventInner<imp::BotOnlineEvent>;
 
 impl BotOnlineEvent {
@@ -167,7 +189,7 @@ impl EventInner<QEvent> {
 }
 
 mod imp {
-    use ricq::structs::GroupMessage;
+    use ricq::structs::{FriendMessage, GroupMessage};
 
     use crate::Bot;
     use crate::contact::group::Group;
@@ -179,6 +201,11 @@ mod imp {
     }
 
     #[derive(Debug)]
+    pub struct FriendMessageEvent {
+        pub message: FriendMessage,
+    }
+
+    #[derive(Debug)]
     pub struct BotOnlineEvent {
         pub bot: Bot,
     }
@@ -186,13 +213,14 @@ mod imp {
 
 pub enum MessageEvent {
     Group(GroupMessageEvent),
-    Friend,
+    Friend(FriendMessageEvent),
 }
 
 impl FromEvent for MessageEvent {
     fn from_event(e: Event) -> Option<Self> {
         match e {
             Event::GroupMessageEvent(e) => Some(Self::Group(e)),
+            Event::FriendMessageEvent(e) => Some(Self::Friend(e)),
             _ => None
         }
     }

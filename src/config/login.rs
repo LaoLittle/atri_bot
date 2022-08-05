@@ -45,7 +45,7 @@ impl Protocol {
         }
     }
 
-    pub fn as_version(&self) -> &'static ricq::version::Version {
+    pub fn as_version(&self) -> ricq::version::Version {
         ricq::version::get_version(self.as_rq_protocol())
     }
 }

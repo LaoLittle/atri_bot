@@ -241,7 +241,7 @@ mod imp {
 
             //let addr = SocketAddr::new(Ipv4Addr::new(113, 96, 18, 253).into(), 80);
             let socket = TcpSocket::new_v4()?;
-            let stream = socket.connect(client.get_address()).await?;
+            let stream = socket.connect(client.get_address_list().await[0]).await?;
             //let stream = TcpStream::connect(client.get_address()).await?;
 
             tokio::spawn(async move { client.start(stream).await; });
@@ -268,5 +268,5 @@ mod imp {
 
 pub struct BotConfiguration {
     pub work_dir: Option<PathBuf>,
-    pub version: &'static ricq::version::Version,
+    pub version: ricq::version::Version,
 }

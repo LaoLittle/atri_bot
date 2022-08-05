@@ -23,12 +23,12 @@ pub fn handler() {
 
     let z = zero_reg.clone();
 
-    let guard = Listener::new_always(move |e| {
+    let guard = Listener::listening_on_always(move |e: Event| {
         let zero_reg = z.clone();
         async move {
             match e {
                 Event::GroupMessageEvent(e) => {
-                    let bot = e.group().bot().clone();
+                    let bot = e.bot().clone();
                     let group_id = e.group().id();
 
                     let msg = e.message().elements.clone();

@@ -121,7 +121,7 @@ impl App {
 pub fn app_receiver() {}
 
 pub fn main_handler() {
-    let guard = Listener::new_always(|e| async move {
+    let guard = Listener::listening_on_always(|e: Event| async move {
         match e {
             Event::GroupMessageEvent(e) => {
                 let s = e.message().elements.to_string();
@@ -132,7 +132,7 @@ pub fn main_handler() {
 
                         let mut s = String::from("在线的萝卜子\n");
                         for bot in bots.iter() {
-                            s.push_str(format!("{0}: {1}", bot.client().account_info.read().await.nickname, bot.client().uin().await).as_str());
+                            s.push_str(&format!("{0}: {1}", bot.client().account_info.read().await.nickname, bot.client().uin().await));
                             s.push('\n');
                         }
                         s.pop();
