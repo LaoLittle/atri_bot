@@ -119,23 +119,24 @@ impl GroupMessageEvent {
     {
         tokio::time::timeout(timeout, async move {
             let (tx, mut rx) = tokio::sync::mpsc::channel(5);
-            let id = self.group().id();
+            let group_id = self.group().id();
             let sender = self.message().from_uin;
 
-            let r = tx.clone(); // to make sure the rx receive
-            Listener::listening_on_always(move |e: GroupMessageEvent|{
-                let tx = r.clone();
+            let guard = Listener::listening_on(move |e: GroupMessageEvent|{
+                let tx = tx.clone();
                 async move {
-                    if id != e.group().id() { return; }
-                    if sender != e.message().from_uin { return; }
+                    if group_id != e.group().id() { return true; }
+                    if sender != e.message().from_uin { return true; }
 
                     tx.send(e).await.unwrap();
+                    false
                 }
             }).start();
 
             while let Some(e) = rx.recv().await {
                 if !filter(&e) { continue; }
 
+                drop(guard);
                 return e;
             }
 
