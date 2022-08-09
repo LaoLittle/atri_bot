@@ -3,7 +3,7 @@ use crate::Managed;
 
 #[repr(C)]
 pub struct AtriVTable {
-
+    
 }
 
 #[repr(C)]

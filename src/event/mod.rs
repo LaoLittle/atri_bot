@@ -4,9 +4,10 @@ use std::time::Duration;
 
 use ricq::handler::QEvent;
 use ricq::structs::GroupMessage;
+
 use tokio::time::error::Elapsed;
 
-use crate::{Bot, global_receiver, MessageChain};
+use crate::{Bot, Listener, MessageChain};
 use crate::contact::{Contact, HasSubject};
 use crate::contact::group::Group;
 
@@ -117,15 +118,24 @@ impl GroupMessageEvent {
         where F: Fn(&GroupMessageEvent) -> bool,
     {
         tokio::time::timeout(timeout, async move {
-            let mut rx = global_receiver();
-            while let Ok(e) = rx.recv().await {
-                if let Event::GroupMessageEvent(e) = e {
-                    if self.group().id() != e.group().id() { continue; }
-                    if self.message().from_uin != e.message().from_uin { continue; }
+            let (tx, mut rx) = tokio::sync::mpsc::channel(5);
+            let id = self.group().id();
+            let sender = self.message().from_uin;
 
-                    if !filter(&e) { continue; }
-                    return e;
+            Listener::listening_on_always(move |e: GroupMessageEvent|{
+                let tx = tx.clone();
+                async move {
+                    if id != e.group().id() { return; }
+                    if sender != e.message().from_uin { return; }
+
+                    tx.send(e).await.unwrap();
                 }
+            }).start();
+
+            while let Some(e) = rx.recv().await {
+                if !filter(&e) { continue; }
+
+                return e;
             }
 
             unreachable!()
