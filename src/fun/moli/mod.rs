@@ -4,6 +4,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use rand::Rng;
 
 
 use ricq::msg::elem::{Reply, RQElem};
@@ -111,7 +112,14 @@ pub fn moli_listener() -> ListenerGuard {
             for _ in 0..config.reply_times {
                 e = if let Ok(e) = e.next_event(Duration::from_secs(10), |e| e.message().from_uin == sender).await {
                     e
-                } else { return; };
+                } else {
+                    let mut msg = MessageChainBuilder::new();
+                    let random = rand::thread_rng().gen_range(0..config.timeout_reply.len());
+                    msg.push_str(&config.timeout_reply[random]);
+                    let _ = e.group().send_message(msg.build()).await;
+
+                    return;
+                };
                 handle_message(&e, &config).await.unwrap();
             }
         }
