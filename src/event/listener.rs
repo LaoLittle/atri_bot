@@ -27,6 +27,7 @@ impl Listener {
         let handler = Box::new(move |e: Event| {
             let fu = handler(e);
             let b: Box<dyn Future<Output=bool> + Send + 'static> = Box::new(fu);
+            
             Box::into_pin(b)
         });
 
@@ -52,6 +53,7 @@ impl Listener {
                     fu.await;
                     true
                 });
+                
                 Box::into_pin(b)
             }
         )
@@ -90,7 +92,7 @@ impl Listener {
                     Box::new(async move {
                         fu.await;
                     })
-                } else { Box::new(async {}) };
+                } else { Box::new(nop()) };
 
                 Box::into_pin(b)
             }
@@ -119,6 +121,7 @@ impl ListenerBuilder {
             closed,
             priority,
         } = self;
+
         let name = Arc::new(name.unwrap_or_else(|| String::from("Unnamed-Listener")));
         let arc_name = name.clone();
         let arc_closed = closed.clone();
@@ -202,3 +205,5 @@ impl Drop for ListenerGuard {
 async fn bool_true() -> bool {
     true
 }
+
+async fn nop() {}

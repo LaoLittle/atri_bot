@@ -76,10 +76,19 @@ impl Bot {
         let infos = self.client().get_group_list().await?;
         self.0.group_list.clear();
         for info in infos {
+            let owner = info.owner_uin;
+            let code = info.code;
+            let group = Group::from(self.clone(), info);
+            let members = self.client().get_group_member_list(group.id(), owner).await?;
+            for member in members {
+                group.insert_member(member);
+            }
+
             self.0.group_list.insert(
-                info.code,
-                Group::from(self.clone(), info),
+                code,
+                group,
             );
+
         }
 
         Ok(())

@@ -9,10 +9,11 @@ use dashmap::DashMap;
 use ricq::msg::elem::Text;
 use ricq::msg::MessageChain;
 use ricq::structs::GroupMemberInfo;
+
 use tokio::runtime;
 use tokio::runtime::Runtime;
 
-use crate::bot::Bot;
+use crate::bot::{Bot};
 use crate::channel::global_receiver;
 use crate::event::Event;
 use crate::event::listener::Listener;
@@ -121,6 +122,8 @@ impl App {
 pub fn app_receiver() {}
 
 pub fn main_handler() {
+    
+    
     let guard = Listener::listening_on_always(|e: Event| async move {
         match e {
             Event::GroupMessageEvent(e) => {

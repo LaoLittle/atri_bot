@@ -32,24 +32,32 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
         let bot_id: i64;
         let bot: Bot;
 
-        let _event_: Event;
-        fn get_bot(id: i64) -> Bot {
-            get_app().bots.get(&id).expect("Cannot find bot").clone()
+        let self_event: Event;
+        fn get_bot(id: i64) -> Option<Bot> {
+            get_app().bots.get(&id).map(|b| b.clone())
         }
 
         match event {
             QEvent::Login(id) => {
                 bot_id = id;
-                bot = get_bot(bot_id);
+                bot = if let Some(b) = get_bot(bot_id) { b } else { return; };
 
                 let base = BotOnlineEvent::from(bot);
                 let inner = Event::BotOnlineEvent(base);
-                _event_ = inner.into();
+                self_event = inner.into();
             }
             QEvent::GroupMessage(e) => {
+                static FILTER_REGEX: OnceLock<Regex> = OnceLock::new();
+
+                fn get_filter_regex() -> &'static Regex {
+                    FILTER_REGEX.get_or_init(|| {
+                        Regex::new("<[$&].+>").expect("Cannot parse regex")
+                    })
+                }
+
                 bot_id = e.client.uin().await;
                 if bot_id == e.inner.from_uin { return; }
-                bot = get_bot(bot_id);
+                bot = if let Some(b) = get_bot(bot_id) { b } else { return; };
 
                 let group = if let Some(g) = bot.find_group(e.inner.group_code) {
                     g
@@ -57,8 +65,9 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 let filter = get_filter_regex();
 
-                info!("{group}{0} to {bot}: {1}",
+                info!("群 {}({}) >> {bot}: {}",
                     filter.replace_all(group.name(), ""),
+                    group.id(),
                     e.inner.elements,
                 );
 
@@ -66,26 +75,31 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     group,
                     e,
                 );
-                _event_ = Event::GroupMessageEvent(base);
+                self_event = Event::GroupMessageEvent(base);
+            }
+            QEvent::FriendMessage(e) => {
+                bot_id = e.client.uin().await;
+                if bot_id == e.inner.from_uin { return; }
+                bot = if let Some(b) = get_bot(bot_id) { b } else { return; };
+
+                info!("好友 {}({}) >> {bot}: {}",
+                    e.inner.from_uin,
+                    e.inner.from_nick,
+                    e.inner.elements,
+                );
+
+                self_event = Event::Unknown(EventInner::<QEvent>::from(QEvent::FriendMessage(e)))
             }
             or => {
-                _event_ = Event::Unknown(EventInner::<QEvent>::from(or));
+                self_event = Event::Unknown(EventInner::<QEvent>::from(or));
             }
         }
 
-        let e = _event_.clone();
+        let e = self_event.clone();
         get_listener_runtime().spawn(async move {
             get_global_worker().handle(&e).await;
         });
 
-        let _ = global_sender().send(_event_);
+        let _ = global_sender().send(self_event);
     }
-}
-
-static FILTER_REGEX: OnceLock<Regex> = OnceLock::new();
-
-fn get_filter_regex() -> &'static Regex {
-    FILTER_REGEX.get_or_init(|| {
-        Regex::new("<[$&].+>").expect("Cannot parse regex")
-    })
 }
