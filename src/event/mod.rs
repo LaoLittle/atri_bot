@@ -122,8 +122,9 @@ impl GroupMessageEvent {
             let id = self.group().id();
             let sender = self.message().from_uin;
 
+            let r = tx.clone(); // to make sure the rx receive
             Listener::listening_on_always(move |e: GroupMessageEvent|{
-                let tx = tx.clone();
+                let tx = r.clone();
                 async move {
                     if id != e.group().id() { return; }
                     if sender != e.message().from_uin { return; }
