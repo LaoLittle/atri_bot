@@ -49,7 +49,7 @@ pub fn moli_listener() -> ListenerGuard {
             async fn handle_message(e: &GroupMessageEvent, config: &MoliConfig) -> Result<(), Box<dyn Error>> {
                 let msg = MoliMessage::from_group_message(
                     e.message().clone(),
-                    e.group().find_member(e.message().from_uin).expect("Cannot find member").card_name.clone()
+                    e.group().find_member(e.message().from_uin).await.expect("Cannot find member").card_name.clone()
                 );
 
                 let json = serde_json::to_string(&msg)?;

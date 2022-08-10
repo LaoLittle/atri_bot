@@ -36,8 +36,17 @@ impl Group {
         &self.0.info.name
     }
     
-    pub fn find_member(&self, id: i64) -> Option<Arc<GroupMemberInfo>> {
-        self.0.members.get(&id).map(|m| m.clone())
+    pub async fn find_member(&self, id: i64) -> Option<Arc<GroupMemberInfo>> {
+        if let Some(info) = self.0.members.get(&id) {
+            return Some(info.clone());
+        }
+
+        let result = self.bot().client().get_group_member_info(self.id(), id).await;
+        if let Ok(info) = result {
+            let arc = Arc::new(info);
+            self.0.members.insert(id, arc.clone());
+            Some(arc)
+        } else { None }
     }
     
     pub(crate) fn insert_member(&self, info: GroupMemberInfo) {

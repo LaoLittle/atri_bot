@@ -76,19 +76,15 @@ impl Bot {
         let infos = self.client().get_group_list().await?;
         self.0.group_list.clear();
         for info in infos {
-            let owner = info.owner_uin;
             let code = info.code;
             let group = Group::from(self.clone(), info);
-            let members = self.client().get_group_member_list(group.id(), owner).await?;
-            for member in members {
-                group.insert_member(member);
+
+            if let None = self.0.group_list.get(&code) {
+                self.0.group_list.insert(
+                    code,
+                    group,
+                );
             }
-
-            self.0.group_list.insert(
-                code,
-                group,
-            );
-
         }
 
         Ok(())
@@ -117,8 +113,26 @@ impl Bot {
         self.0.work_dir.clone()
     }
 
-    pub fn find_group(&self, id: i64) -> Option<Group> {
-        self.0.group_list.get(&id).map(|g| g.clone())
+    pub async fn find_group(&self, id: i64) -> Option<Group> {
+        if let Some(g) = self.0.group_list.get(&id) {
+            return Some(g.clone());
+        }
+
+        let result = self.client().get_group_info(id).await;
+
+        match result {
+            Ok(info) => {
+                if let Some(info) = info {
+                    let group = Group::from(self.clone(), info);
+                    self.0.group_list.insert(id, group.clone());
+                    Some(group)
+                } else { None }
+            }
+            Err(e) => {
+                error!("获取群({})信息时发生意料之外的错误: {:?}", id, e);
+                None
+            }
+        }
     }
 
     pub(crate) fn client(&self) -> &Client {

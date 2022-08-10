@@ -59,9 +59,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 if bot_id == e.inner.from_uin { return; }
                 bot = if let Some(b) = get_bot(bot_id) { b } else { return; };
 
-                let group = if let Some(g) = bot.find_group(e.inner.group_code) {
-                    g
-                } else { return; };
+                let group = bot.find_group(e.inner.group_code).await.unwrap();
 
                 let filter = get_filter_regex();
 
