@@ -143,8 +143,6 @@ impl ListenerBuilder {
             priority,
         };
 
-        println!("Builded");
-
         get_listener_runtime().spawn(get_global_worker().schedule(listener));
 
         ListenerGuard {
