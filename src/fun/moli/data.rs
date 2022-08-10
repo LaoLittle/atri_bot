@@ -12,7 +12,7 @@ pub struct MoliMessage {
     pub from_name: String,
     pub to: i64,
     #[serde(rename = "toName")]
-    pub to_name: String
+    pub to_name: String,
 }
 
 impl MoliMessage {
@@ -33,7 +33,7 @@ impl MoliMessage {
             from: msg.from_uin,
             from_name: sender_name,
             to: msg.group_code,
-            to_name: msg.group_name
+            to_name: msg.group_name,
         }
     }
 }

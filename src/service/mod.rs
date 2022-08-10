@@ -1,21 +1,19 @@
-
 use std::error::Error;
 use std::fs::File;
 
-
-use std::{fs, io, mem};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
+use std::{fs, io, mem};
 
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
-pub mod login;
-pub mod plugin;
-pub mod log;
 pub mod command;
 pub mod listeners;
+pub mod log;
+pub mod login;
+pub mod plugin;
 
 fn get_service_path() -> &'static PathBuf {
     static PATH: OnceLock<PathBuf> = OnceLock::new();
@@ -40,12 +38,14 @@ impl Service {
         Self {
             name,
             path: p,
-            handler: Box::new(())
+            handler: Box::new(()),
         }
     }
 
-    pub fn with_path(&mut self,mut path: PathBuf) {
-        if !path.is_dir() { fs::create_dir(&path).unwrap(); }
+    pub fn with_path(&mut self, mut path: PathBuf) {
+        if !path.is_dir() {
+            fs::create_dir(&path).unwrap();
+        }
         path.push(format!("{}.toml", self.name()));
         self.path = path;
     }
@@ -56,16 +56,18 @@ impl Service {
         self.handler = handler;
         self
     }
-    
+
     pub fn name(&self) -> &str {
         &self.name
     }
 
     pub fn read_config<T>(&self) -> T
-    where for<'a> T: Serialize + Deserialize<'a> + Default
+    where
+        for<'a> T: Serialize + Deserialize<'a> + Default,
     {
         fn _read_config<T>(path: &Path) -> Result<T, Box<dyn Error>>
-            where for<'a> T: Deserialize<'a> + Default
+        where
+            for<'a> T: Deserialize<'a> + Default,
         {
             let mut f = fs::OpenOptions::new()
                 .create(true)
@@ -87,7 +89,8 @@ impl Service {
 
                 let data = T::default();
                 if let Ok(mut f) = File::create(&self.path) {
-                    let s = toml::to_string_pretty(&data).expect(&format!("Cannot serialize service data: {}", self.name));
+                    let s = toml::to_string_pretty(&data)
+                        .expect(&format!("Cannot serialize service data: {}", self.name));
                     let _ = f.write_all(s.as_bytes());
                 }
 
@@ -97,10 +100,12 @@ impl Service {
     }
 
     pub fn write_config<T>(&self, data: &T)
-    where T: Serialize
+    where
+        T: Serialize,
     {
         fn _write_config<T>(path: &Path, data: &T) -> io::Result<()>
-        where T: Serialize
+        where
+            T: Serialize,
         {
             let mut f = File::create(path)?;
             let s = toml::to_string_pretty(data).expect("Cannot serialize data");

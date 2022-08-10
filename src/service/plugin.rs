@@ -1,7 +1,7 @@
-use std::{fs, io};
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::sync::OnceLock;
+use std::{fs, io};
 
 use dashmap::DashMap;
 use libloading::Library;
@@ -67,7 +67,9 @@ pub fn load_plugins() -> io::Result<()> {
                             continue;
                         }
                     };
-                } else { continue; }
+                } else {
+                    continue;
+                }
             }
             Err(e) => {
                 error!("{:?}", e);
@@ -82,13 +84,11 @@ fn load_plugin<P: AsRef<OsStr>>(path: P) -> Result<Plugin, libloading::Error> {
     let plugin = unsafe {
         trace!("正在加载插件动态库");
         let lib = Library::new(path)?;
-        let plugin_init = lib.get::<extern fn(*const AtriVTable)>(b"plugin_init")?;
+        let plugin_init = lib.get::<extern "C" fn(*const AtriVTable)>(b"plugin_init")?;
         trace!("正在初始化插件");
         plugin_init(get_plugin_vtable());
 
-        Plugin {
-            lib,
-        }
+        Plugin { lib }
     };
 
     Ok(plugin)

@@ -4,15 +4,15 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use regex::Regex;
-use ricq::msg::elem::{Reply, RQElem, Text};
+use ricq::msg::elem::{RQElem, Reply, Text};
 use ricq::msg::{MessageChain, MessageChainBuilder};
 use skia_safe::{Bitmap, EncodedImageFormat};
 use tokio::time::error::Elapsed;
 
-use crate::{get_app, Listener, unwrap_result_or_print_err_return};
-use crate::event::GroupMessageEvent;
 use crate::event::listener::ListenerGuard;
+use crate::event::GroupMessageEvent;
 use crate::fun::drawmeme::zero::zero;
+use crate::{get_app, unwrap_result_or_print_err_return, Listener};
 
 pub mod zero;
 
@@ -26,7 +26,7 @@ pub enum MemeArg {
 }
 
 pub enum MemeError {
-    Other(String)
+    Other(String),
 }
 
 pub fn drawmeme_listener() -> ListenerGuard {
@@ -47,7 +47,9 @@ pub fn drawmeme_listener() -> ListenerGuard {
 
             if let Some(cap) = find {
                 let num = unwrap_result_or_print_err_return!(u8::from_str(&cap[1]));
-                if num > 100 { return; }
+                if num > 100 {
+                    return;
+                }
 
                 let mut img = None::<Bytes>;
                 if get_image_or_wait(&e, &mut img).await.is_err() {
@@ -56,31 +58,36 @@ pub fn drawmeme_listener() -> ListenerGuard {
 
                 let zero = if let Some(img) = zero(num, &img.expect("Cannot be none")) {
                     img
-                } else { return; };
+                } else {
+                    return;
+                };
 
                 let mut chain = MessageChain::default();
-                let vec: Vec<u8> = zero.encode_to_data(EncodedImageFormat::PNG).expect("Cannot encode image").to_vec();
+                let vec: Vec<u8> = zero
+                    .encode_to_data(EncodedImageFormat::PNG)
+                    .expect("Cannot encode image")
+                    .to_vec();
                 let image = unwrap_result_or_print_err_return!(e.group().upload_image(vec).await);
                 chain.push(image);
                 let _ = e.group().send_message(chain).await;
             }
         }
     })
-        .with_name("DrawMeme")
-        .start()
+    .with_name("DrawMeme")
+    .start()
 }
 
-pub async fn get_image_or_wait(event: &GroupMessageEvent, img: &mut Option<Bytes>) -> Result<(), Elapsed> {
+pub async fn get_image_or_wait(
+    event: &GroupMessageEvent,
+    img: &mut Option<Bytes>,
+) -> Result<(), Elapsed> {
     let msg = event.message().elements.clone();
     async fn get_img(msg: MessageChain, img: &mut Option<Bytes>) {
         for elem in msg {
             if let RQElem::GroupImage(i) = elem {
                 let resp = unwrap_result_or_print_err_return!(
-                get_app().http_client()
-                .get(i.url())
-                .send()
-                .await
-            );
+                    get_app().http_client().get(i.url()).send().await
+                );
 
                 *img = Some(unwrap_result_or_print_err_return!(resp.bytes().await));
                 break;
@@ -96,9 +103,8 @@ pub async fn get_image_or_wait(event: &GroupMessageEvent, img: &mut Option<Bytes
         event.group().send_message(req).await.ok();
     }
 
-    let m = match event.next_message(
-        Duration::from_secs(30),
-        |m| {
+    let m = match event
+        .next_message(Duration::from_secs(30), |m| {
             let m = m.clone();
 
             for elem in m {
@@ -108,7 +114,8 @@ pub async fn get_image_or_wait(event: &GroupMessageEvent, img: &mut Option<Bytes
             }
             false
         })
-        .await {
+        .await
+    {
         Ok(m) => m,
         Err(e) => {
             let mut req = MessageChainBuilder::new();
@@ -124,7 +131,7 @@ pub async fn get_image_or_wait(event: &GroupMessageEvent, img: &mut Option<Bytes
             req.push(reply);
 
             event.group().send_message(req.build()).await.ok();
-            return Err(e)
+            return Err(e);
         }
     };
 

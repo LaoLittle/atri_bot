@@ -6,13 +6,13 @@ use std::mem;
 use tokio::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-use atri_qq::{fun, get_app, get_listener_runtime, get_runtime, main_handler};
-use atri_qq::event::GroupMessageEvent;
 use atri_qq::event::listener::{Listener, Priority};
+use atri_qq::event::GroupMessageEvent;
 use atri_qq::service::listeners::get_global_worker;
 use atri_qq::service::log::init_logger;
 use atri_qq::service::login::login_bots;
 use atri_qq::service::plugin::load_plugins;
+use atri_qq::{fun, get_app, get_listener_runtime, get_runtime, main_handler};
 
 type MainResult = Result<(), Box<dyn Error>>;
 
@@ -28,7 +28,9 @@ fn main() -> MainResult {
         if !get_app().check_group_bot(e.group().bot().id(), e.group().id()) {
             e.intercept();
         }
-    }).set_priority(Priority::Top).start();
+    })
+    .set_priority(Priority::Top)
+    .start();
     mem::forget(guard);
 
     main_handler();
@@ -64,8 +66,7 @@ async fn loop_cli() -> MainResult {
                 // nothing to do
             }
             "help" | "?" => {
-                static HELP_INFO: &str =
-                    "\
+                static HELP_INFO: &str = "\
 help: Show this info
 exit: Exit this program
 ";
@@ -76,7 +77,10 @@ exit: Exit this program
                 break;
             }
             _ => {
-                println!("Unknown command '{}', use 'help' to show the help info", cmd);
+                println!(
+                    "Unknown command '{}', use 'help' to show the help info",
+                    cmd
+                );
             }
         }
         stdout.write_all(b">>").await?;

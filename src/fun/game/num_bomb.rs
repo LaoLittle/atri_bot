@@ -1,5 +1,5 @@
-use rand::{Rng, RngCore, thread_rng};
 use rand::rngs::ThreadRng;
+use rand::{thread_rng, Rng, RngCore};
 
 pub struct NumBomb {
     num: u16,
@@ -14,10 +14,6 @@ impl NumBomb {
         let end = rng.gen_range(0..u16::MAX);
         let num = rng.gen_range(start..=end);
 
-        Self {
-            num,
-            start,
-            end,
-        }
+        Self { num, start, end }
     }
 }

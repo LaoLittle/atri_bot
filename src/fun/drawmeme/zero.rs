@@ -1,5 +1,7 @@
-use skia_safe::{Bitmap, BlurStyle, Color, Data, Font, Image, MaskFilter, Paint, Surface, TextBlob};
 use skia_safe::paint::Style;
+use skia_safe::{
+    Bitmap, BlurStyle, Color, Data, Font, Image, MaskFilter, Paint, Surface, TextBlob,
+};
 
 use crate::data::font::get_dir_font;
 use crate::fun::drawmeme::{Meme, MemeArg};
@@ -45,11 +47,16 @@ pub fn zero(num: u8, img: &[u8]) -> Option<Image> {
         .set_mask_filter(filter);
     canvas.draw_circle((w21, h21), radius, &paint);
 
-    paint
-        .set_style(Style::Fill)
-        .set_mask_filter(None);
+    paint.set_style(Style::Fill).set_mask_filter(None);
     let text_bounds = text.bounds();
-    canvas.draw_text_blob(&text, (w21 - (text_bounds.width() / 4.0), h21 + (text_bounds.height() / 4.0)), &paint);
+    canvas.draw_text_blob(
+        &text,
+        (
+            w21 - (text_bounds.width() / 4.0),
+            h21 + (text_bounds.height() / 4.0),
+        ),
+        &paint,
+    );
 
     Some(surface.image_snapshot())
 }

@@ -1,10 +1,10 @@
+use dashmap::DashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
-use dashmap::DashMap;
 
 use ricq::msg::elem::GroupImage;
-use ricq::RQResult;
 use ricq::structs::{GroupInfo, MessageReceipt};
+use ricq::RQResult;
 use tracing::error;
 
 use crate::{Bot, GroupMemberInfo, MessageChain};
@@ -18,7 +18,7 @@ impl Group {
             id: info.code,
             bot,
             info,
-            members: DashMap::new()
+            members: DashMap::new(),
         };
 
         Self(Arc::new(imp))
@@ -35,32 +35,39 @@ impl Group {
     pub fn name(&self) -> &str {
         &self.0.info.name
     }
-    
+
     pub async fn find_member(&self, id: i64) -> Option<Arc<GroupMemberInfo>> {
         if let Some(info) = self.0.members.get(&id) {
             return Some(info.clone());
         }
 
-        let result = self.bot().client().get_group_member_info(self.id(), id).await;
+        let result = self
+            .bot()
+            .client()
+            .get_group_member_info(self.id(), id)
+            .await;
         if let Ok(info) = result {
             let arc = Arc::new(info);
             self.0.members.insert(id, arc.clone());
             Some(arc)
-        } else { None }
+        } else {
+            None
+        }
     }
-    
+
     pub(crate) fn insert_member(&self, info: GroupMemberInfo) {
         let arc = Arc::new(info);
-        
+
         self.0.members.insert(arc.uin, arc);
     }
 
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
-        let result = self.bot().client().send_group_message(
-            self.id(),
-            chain,
-        ).await;
-        
+        let result = self
+            .bot()
+            .client()
+            .send_group_message(self.id(), chain)
+            .await;
+
         if let Err(ref err) = result {
             error!(
                 "{}发送信息失败, 目标群: {}({}), {:?}",
@@ -70,15 +77,16 @@ impl Group {
                 err
             )
         }
-        
+
         result
     }
 
     pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<GroupImage> {
-        let result = self.bot().client().upload_group_image(
-            self.id(),
-            image,
-        ).await;
+        let result = self
+            .bot()
+            .client()
+            .upload_group_image(self.id(), image)
+            .await;
 
         if let Err(ref err) = result {
             error!(
@@ -101,9 +109,9 @@ impl Display for Group {
 }
 
 mod imp {
-    use std::sync::Arc;
     use dashmap::DashMap;
     use ricq::structs::GroupInfo;
+    use std::sync::Arc;
 
     use crate::{Bot, GroupMemberInfo};
 
@@ -112,7 +120,7 @@ mod imp {
         pub id: i64,
         pub bot: Bot,
         pub info: GroupInfo,
-        pub members: DashMap<i64, Arc<GroupMemberInfo>>
+        pub members: DashMap<i64, Arc<GroupMemberInfo>>,
     }
 
     pub struct NamedMember;

@@ -1,19 +1,18 @@
 mod data;
 
+use rand::Rng;
 use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use rand::Rng;
 
-
-use ricq::msg::elem::{Reply, RQElem};
+use crate::event::listener::ListenerGuard;
+use crate::event::GroupMessageEvent;
+use crate::{get_app, Listener};
+use ricq::msg::elem::{RQElem, Reply};
 use ricq::msg::MessageChainBuilder;
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
-use crate::event::GroupMessageEvent;
-use crate::event::listener::ListenerGuard;
-use crate::{get_app, Listener};
 
 use crate::fun::moli::data::{MoliMessage, MoliResponse};
 use crate::service::Service;
@@ -44,12 +43,22 @@ pub fn moli_listener() -> ListenerGuard {
                 false
             };
 
-            if !f() { return; }
+            if !f() {
+                return;
+            }
 
-            async fn handle_message(e: &GroupMessageEvent, config: &MoliConfig) -> Result<(), Box<dyn Error>> {
+            async fn handle_message(
+                e: &GroupMessageEvent,
+                config: &MoliConfig,
+            ) -> Result<(), Box<dyn Error>> {
                 let msg = MoliMessage::from_group_message(
                     e.message().clone(),
-                    e.group().find_member(e.message().from_uin).await.expect("Cannot find member").card_name.clone()
+                    e.group()
+                        .find_member(e.message().from_uin)
+                        .await
+                        .expect("Cannot find member")
+                        .card_name
+                        .clone(),
                 );
 
                 let json = serde_json::to_string(&msg)?;
@@ -60,31 +69,36 @@ pub fn moli_listener() -> ListenerGuard {
                     .header("Api-Secret", &config.api_secret)
                     .header("Content-Type", "application/json;charset=UTF-8")
                     .body(json)
-                    .send().await?;
+                    .send()
+                    .await?;
 
                 let resp: MoliResponse = serde_json::from_slice(&resp.bytes().await?)?;
 
-                if config.do_print_results_on_console { info!("Molly: 服务器返回数据: {:?}", resp); }
+                if config.do_print_results_on_console {
+                    info!("Molly: 服务器返回数据: {:?}", resp);
+                }
 
                 if resp.code != "00000" {
-                    error!("Molly: 出现异常: code={} message={}",resp.code, resp.message);
-                    return Ok(())
+                    error!(
+                        "Molly: 出现异常: code={} message={}",
+                        resp.code, resp.message
+                    );
+                    return Ok(());
                 }
 
                 let mut msg = MessageChainBuilder::new();
 
                 for dat in resp.data {
                     match dat.typed {
-                        1 => { msg.push_str(&dat.content); },
+                        1 => {
+                            msg.push_str(&dat.content);
+                        }
                         2 => {
                             let img = String::from("https://files.molicloud.com/") + &dat.content;
-                            let img = get_app()
-                                .http_client()
-                                .get(img)
-                                .send().await?;
+                            let img = get_app().http_client().get(img).send().await?;
 
                             msg.push(e.group().upload_image(img.bytes().await?.to_vec()).await?);
-                        },
+                        }
                         _ => {}
                     };
                 }
@@ -94,7 +108,7 @@ pub fn moli_listener() -> ListenerGuard {
                         reply_seq: e.message().seqs[0],
                         sender: e.message().from_uin,
                         time: e.message().time,
-                        elements: e.message().elements.clone()
+                        elements: e.message().elements.clone(),
                     };
 
                     msg.push(r);
@@ -110,7 +124,10 @@ pub fn moli_listener() -> ListenerGuard {
             let mut e = e;
             handle_message(&e, &config).await.unwrap();
             for _ in 0..config.reply_times {
-                e = if let Ok(e) = e.next_event(Duration::from_secs(10), |e| e.message().from_uin == sender).await {
+                e = if let Ok(e) = e
+                    .next_event(Duration::from_secs(10), |e| e.message().from_uin == sender)
+                    .await
+                {
                     e
                 } else {
                     let mut msg = MessageChainBuilder::new();
@@ -124,8 +141,8 @@ pub fn moli_listener() -> ListenerGuard {
             }
         }
     })
-        .with_name("Moli-Chat")
-        .start()
+    .with_name("Moli-Chat")
+    .start()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -149,8 +166,21 @@ impl Default for MoliConfig {
             reply_times: 0,
             do_quote_reply: false,
             do_print_results_on_console: false,
-            default_reply: vec!["？".into(), "怎么".into(), "怎么了".into(), "什么？".into(), "在".into(), "嗯？".into()],
-            timeout_reply: vec!["没事我就溜了".into(), "emmmmm".into(), "......".into(), "溜了".into(), "？".into()],
+            default_reply: vec![
+                "？".into(),
+                "怎么".into(),
+                "怎么了".into(),
+                "什么？".into(),
+                "在".into(),
+                "嗯？".into(),
+            ],
+            timeout_reply: vec![
+                "没事我就溜了".into(),
+                "emmmmm".into(),
+                "......".into(),
+                "溜了".into(),
+                "？".into(),
+            ],
         }
     }
 }

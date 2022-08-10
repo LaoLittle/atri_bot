@@ -13,22 +13,22 @@ use ricq::structs::GroupMemberInfo;
 use tokio::runtime;
 use tokio::runtime::Runtime;
 
-use crate::bot::{Bot};
+use crate::bot::Bot;
 use crate::channel::global_receiver;
-use crate::event::Event;
 use crate::event::listener::Listener;
+use crate::event::Event;
 
 pub mod bot;
 pub mod channel;
 pub mod config;
 pub mod contact;
+pub mod data;
 pub mod event;
 pub mod fun;
-pub mod service;
 pub mod macros;
-pub mod data;
-pub mod plugin;
 pub mod message;
+pub mod plugin;
+pub mod service;
 
 static APP: OnceLock<App> = OnceLock::new();
 
@@ -39,24 +39,26 @@ pub fn get_app() -> &'static App {
 static ASYNC_RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
 pub fn get_runtime() -> &'static Runtime {
-    ASYNC_RUNTIME.get_or_init(
-        || runtime::Builder::new_multi_thread()
+    ASYNC_RUNTIME.get_or_init(|| {
+        runtime::Builder::new_multi_thread()
             .thread_name("GlobalRuntime")
             .enable_all()
-            .build().unwrap()
-    )
+            .build()
+            .unwrap()
+    })
 }
 
 static LISTENER_RUNTIME: OnceLock<Runtime> = OnceLock::new();
 
 pub fn get_listener_runtime() -> &'static Runtime {
-    LISTENER_RUNTIME.get_or_init(
-        || runtime::Builder::new_multi_thread()
+    LISTENER_RUNTIME.get_or_init(|| {
+        runtime::Builder::new_multi_thread()
             .worker_threads(8)
             .thread_name("Listeners")
             .enable_all()
-            .build().unwrap()
-    )
+            .build()
+            .unwrap()
+    })
 }
 
 pub struct App {
@@ -98,7 +100,9 @@ impl App {
         let group_bot = self.group_bot(group_id);
 
         if let Some(id) = group_bot {
-            if id != bot_id { return false; }
+            if id != bot_id {
+                return false;
+            }
         } else {
             get_app().set_group_bot(group_id, bot_id);
         }
@@ -122,8 +126,6 @@ impl App {
 pub fn app_receiver() {}
 
 pub fn main_handler() {
-    
-    
     let guard = Listener::listening_on_always(|e: Event| async move {
         match e {
             Event::GroupMessageEvent(e) => {
@@ -135,7 +137,11 @@ pub fn main_handler() {
 
                         let mut s = String::from("在线的萝卜子\n");
                         for bot in bots.iter() {
-                            s.push_str(&format!("{0}: {1}", bot.client().account_info.read().await.nickname, bot.client().uin().await));
+                            s.push_str(&format!(
+                                "{0}: {1}",
+                                bot.client().account_info.read().await.nickname,
+                                bot.client().uin().await
+                            ));
                             s.push('\n');
                         }
                         s.pop();
@@ -150,7 +156,7 @@ pub fn main_handler() {
             _ => {}
         }
     })
-        .start();
+    .start();
 
     mem::forget(guard);
 }

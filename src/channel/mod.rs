@@ -6,9 +6,9 @@ use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tracing::info;
 
-use crate::{Bot, get_app, get_listener_runtime};
 use crate::event::{BotOnlineEvent, Event, EventInner, GroupMessageEvent};
 use crate::service::listeners::get_global_worker;
+use crate::{get_app, get_listener_runtime, Bot};
 
 static GLOBAL_EVENT_CHANNEL: OnceLock<Sender<Event>> = OnceLock::<Sender<Event>>::new();
 
@@ -40,7 +40,11 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
         match event {
             QEvent::Login(id) => {
                 bot_id = id;
-                bot = if let Some(b) = get_bot(bot_id) { b } else { return; };
+                bot = if let Some(b) = get_bot(bot_id) {
+                    b
+                } else {
+                    return;
+                };
 
                 let base = BotOnlineEvent::from(bot);
                 let inner = Event::BotOnlineEvent(base);
@@ -50,40 +54,47 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 static FILTER_REGEX: OnceLock<Regex> = OnceLock::new();
 
                 fn get_filter_regex() -> &'static Regex {
-                    FILTER_REGEX.get_or_init(|| {
-                        Regex::new("<[$&].+>").expect("Cannot parse regex")
-                    })
+                    FILTER_REGEX.get_or_init(|| Regex::new("<[$&].+>").expect("Cannot parse regex"))
                 }
 
                 bot_id = e.client.uin().await;
-                if bot_id == e.inner.from_uin { return; }
-                bot = if let Some(b) = get_bot(bot_id) { b } else { return; };
+                if bot_id == e.inner.from_uin {
+                    return;
+                }
+                bot = if let Some(b) = get_bot(bot_id) {
+                    b
+                } else {
+                    return;
+                };
 
                 let group = bot.find_group(e.inner.group_code).await.unwrap();
 
                 let filter = get_filter_regex();
 
-                info!("群 {}({}) >> {bot}: {}",
+                info!(
+                    "群 {}({}) >> {bot}: {}",
                     filter.replace_all(group.name(), ""),
                     group.id(),
                     e.inner.elements,
                 );
 
-                let base = GroupMessageEvent::from(
-                    group,
-                    e,
-                );
+                let base = GroupMessageEvent::from(group, e);
                 self_event = Event::GroupMessageEvent(base);
             }
             QEvent::FriendMessage(e) => {
                 bot_id = e.client.uin().await;
-                if bot_id == e.inner.from_uin { return; }
-                bot = if let Some(b) = get_bot(bot_id) { b } else { return; };
+                if bot_id == e.inner.from_uin {
+                    return;
+                }
+                bot = if let Some(b) = get_bot(bot_id) {
+                    b
+                } else {
+                    return;
+                };
 
-                info!("好友 {}({}) >> {bot}: {}",
-                    e.inner.from_uin,
-                    e.inner.from_nick,
-                    e.inner.elements,
+                info!(
+                    "好友 {}({}) >> {bot}: {}",
+                    e.inner.from_uin, e.inner.from_nick, e.inner.elements,
                 );
 
                 self_event = Event::Unknown(EventInner::<QEvent>::from(QEvent::FriendMessage(e)))

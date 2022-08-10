@@ -1,14 +1,14 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
-use ricq::{Client, LoginResponse, RQError, RQResult};
 use ricq::client::Token;
 use ricq::ext::common::after_login;
 use ricq::structs::AccountInfo;
-use tokio::{fs, io};
+use ricq::{Client, LoginResponse, RQError, RQResult};
 use tokio::io::AsyncReadExt;
+use tokio::{fs, io};
 use tracing::error;
 
 use crate::contact::group::Group;
@@ -41,7 +41,9 @@ impl Bot {
             if let LoginResponse::Success(..) = resp {
                 after_login(&self.0.client).await;
                 let client = self.0.client.clone();
-                tokio::spawn(async move { client.do_heartbeat().await; });
+                tokio::spawn(async move {
+                    client.do_heartbeat().await;
+                });
 
                 self.0.enable.swap(true, Ordering::Relaxed);
             } else {
@@ -80,10 +82,7 @@ impl Bot {
             let group = Group::from(self.clone(), info);
 
             if let None = self.0.group_list.get(&code) {
-                self.0.group_list.insert(
-                    code,
-                    group,
-                );
+                self.0.group_list.insert(code, group);
             }
         }
 
@@ -94,10 +93,7 @@ impl Bot {
         let info = self.client().get_group_info(group_id).await?;
         if let Some(info) = info {
             let g = Group::from(self.clone(), info);
-            self.0.group_list.insert(
-                group_id,
-                g,
-            );
+            self.0.group_list.insert(group_id, g);
         } else {
             self.0.group_list.remove(&group_id);
         }
@@ -126,7 +122,9 @@ impl Bot {
                     let group = Group::from(self.clone(), info);
                     self.0.group_list.insert(id, group.clone());
                     Some(group)
-                } else { None }
+                } else {
+                    None
+                }
             }
             Err(e) => {
                 error!("获取群({})信息时发生意料之外的错误: {:?}", id, e);
@@ -148,9 +146,7 @@ impl PartialEq for Bot {
 
 impl Debug for Bot {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Bot")
-            .field("id", &self.id())
-            .finish()
+        f.debug_struct("Bot").field("id", &self.id()).finish()
     }
 }
 
@@ -162,17 +158,17 @@ impl Display for Bot {
 
 mod imp {
     use std::path::{Path, PathBuf};
-    use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
 
     use dashmap::DashMap;
-    use ricq::Client;
     use ricq::device::Device;
     use ricq::structs::AccountInfo;
-    use tokio::{fs, io};
+    use ricq::Client;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     use tokio::net::TcpSocket;
     use tokio::task::yield_now;
+    use tokio::{fs, io};
     use tracing::error;
 
     use crate::bot::BotConfiguration;
@@ -198,56 +194,65 @@ mod imp {
                 work_dir.push(id.to_string());
             };
 
-            if !work_dir.is_dir() { fs::create_dir_all(&work_dir).await.expect("Cannot create work dir"); }
+            if !work_dir.is_dir() {
+                fs::create_dir_all(&work_dir)
+                    .await
+                    .expect("Cannot create work dir");
+            }
 
             let mut file_p = work_dir.clone();
             file_p.push("device.json");
             let device: Device = if file_p.is_file() {
-                if let Ok(fu) = fs::File::open(&file_p)
-                    .await
-                    .map(|mut f| async move {
-                        let mut str = String::new();
-                        f.read_to_string(&mut str).await.expect("Cannot read file");
+                if let Ok(fu) = fs::File::open(&file_p).await.map(|mut f| async move {
+                    let mut str = String::new();
+                    f.read_to_string(&mut str).await.expect("Cannot read file");
 
-                        match serde_json::from_str(&str) {
-                            Ok(d) => d,
-                            Err(e) => {
-                                error!("{:?}", e);
-                                let d = Device::random();
+                    match serde_json::from_str(&str) {
+                        Ok(d) => d,
+                        Err(e) => {
+                            error!("{:?}", e);
+                            let d = Device::random();
 
-                                let mut bak = file_p.as_os_str().to_owned();
-                                bak.push(".bak");
-                                let bak = Path::new(&bak);
-                                if let Err(_) = fs::copy(&file_p, &bak).await { return d; };
+                            let mut bak = file_p.as_os_str().to_owned();
+                            bak.push(".bak");
+                            let bak = Path::new(&bak);
+                            if let Err(_) = fs::copy(&file_p, &bak).await {
+                                return d;
+                            };
 
-                                drop(f); // make sure the file is closed
-                                if let Ok(mut f) = fs::File::create(file_p).await {
-                                    let s = serde_json::to_string_pretty(&d).expect("Cannot serialize device info");
+                            drop(f); // make sure the file is closed
+                            if let Ok(mut f) = fs::File::create(file_p).await {
+                                let s = serde_json::to_string_pretty(&d)
+                                    .expect("Cannot serialize device info");
 
-                                    f.write_all(s.as_bytes()).await.expect("Cannot write device info to file");
-                                };
+                                f.write_all(s.as_bytes())
+                                    .await
+                                    .expect("Cannot write device info to file");
+                            };
 
-                                d
-                            }
+                            d
                         }
-                    }) { fu.await } else { Device::random() }
+                    }
+                }) {
+                    fu.await
+                } else {
+                    Device::random()
+                }
             } else {
                 let d = Device::random();
 
                 if let Ok(mut f) = fs::File::create(&file_p).await {
                     let s = serde_json::to_string_pretty(&d).unwrap();
 
-                    f.write_all(s.as_bytes()).await.expect("Cannot write device info to file")
+                    f.write_all(s.as_bytes())
+                        .await
+                        .expect("Cannot write device info to file")
                 }
 
                 d
             };
 
-            let client = Client::new(
-                device,
-                conf.version,
-                GlobalEventBroadcastHandler,
-            );
+            let client = Client::new(device, conf.version, GlobalEventBroadcastHandler);
             let client = Arc::new(client);
 
             Self {
@@ -267,7 +272,9 @@ mod imp {
             let stream = socket.connect(client.get_address_list().await[0]).await?;
             //let stream = TcpStream::connect(client.get_address()).await?;
 
-            tokio::spawn(async move { client.start(stream).await; });
+            tokio::spawn(async move {
+                client.start(stream).await;
+            });
             yield_now().await;
 
             Ok(())

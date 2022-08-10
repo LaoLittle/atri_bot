@@ -1,15 +1,17 @@
-use std::{fs, io};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::{fs, io};
 
 use tracing::{error, Level};
 use tracing_subscriber::fmt::time::{OffsetTime, UtcTime};
 use tracing_subscriber::FmtSubscriber;
 
 pub fn init_logger() {
-    let time_format = time::format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second]").expect("Unknown time formatting");
+    let time_format =
+        time::format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second]")
+            .expect("Unknown time formatting");
 
     let builder = FmtSubscriber::builder()
         .with_max_level(Level::DEBUG)
@@ -33,9 +35,7 @@ impl Default for LogWriter {
     fn default() -> Self {
         let path = get_latest_log_file();
 
-        Self {
-            output: path
-        }
+        Self { output: path }
     }
 }
 
@@ -53,9 +53,7 @@ impl Write for LogWriter {
             stdout.flush()?;
         }
 
-        let f = LOG_FILE_OPENED.get_or_try_init(|| {
-            File::create(self.output)
-        });
+        let f = LOG_FILE_OPENED.get_or_try_init(|| File::create(self.output));
 
         if let Err(e) = f.and_then(|mut f| {
             f.write_all(buf)?;
@@ -82,31 +80,33 @@ pub fn log_dir_buf() -> PathBuf {
 static LOG_FILE: OnceLock<PathBuf> = OnceLock::new();
 
 fn get_latest_log_file() -> &'static Path {
-    LOG_FILE.get_or_init(|| {
-        let mut buf = log_dir_buf();
-        let _ = fs::create_dir_all(&buf);
-        buf.push("latest.log");
+    LOG_FILE
+        .get_or_init(|| {
+            let mut buf = log_dir_buf();
+            let _ = fs::create_dir_all(&buf);
+            buf.push("latest.log");
 
-        if buf.is_file() {
-            let mut dir = log_dir_buf();
+            if buf.is_file() {
+                let mut dir = log_dir_buf();
 
-            let mut i = 1;
+                let mut i = 1;
 
-            fn push_buf(buf: &mut PathBuf, i: u32) {
-                buf.push(format!("log-{}.log", i));
-            }
+                fn push_buf(buf: &mut PathBuf, i: u32) {
+                    buf.push(format!("log-{}.log", i));
+                }
 
-            push_buf(&mut dir, i);
-
-            while dir.is_file() {
-                i += 1;
-                dir.pop();
                 push_buf(&mut dir, i);
+
+                while dir.is_file() {
+                    i += 1;
+                    dir.pop();
+                    push_buf(&mut dir, i);
+                }
+
+                let _ = fs::copy(&buf, &dir);
             }
 
-            let _ = fs::copy(&buf, &dir);
-        }
-
-        buf
-    }).as_path()
+            buf
+        })
+        .as_path()
 }

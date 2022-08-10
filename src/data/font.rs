@@ -23,9 +23,7 @@ pub fn get_dir_font(name: &String) -> Option<Typeface> {
     });
 
     {
-        let read = fonts
-            .read()
-            .expect("Cannot read fonts");
+        let read = fonts.read().expect("Cannot read fonts");
         if let Some(f) = read.get(name) {
             return Some(f.clone());
         }

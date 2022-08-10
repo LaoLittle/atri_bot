@@ -41,7 +41,7 @@ impl Protocol {
             Self::AndroidPhone => Protocol::AndroidPhone,
             Self::AndroidWatch => Protocol::AndroidWatch,
             Self::MacOS => Protocol::MacOS,
-            Self::QiDian => Protocol::QiDian
+            Self::QiDian => Protocol::QiDian,
         }
     }
 

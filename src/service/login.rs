@@ -2,19 +2,21 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use rand::{Rng, thread_rng};
+use rand::{thread_rng, Rng};
 use ricq::{LoginResponse, RQError};
 use tokio::fs;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tracing::{error, info, warn};
 
-use crate::{Bot, config, get_app};
 use crate::bot::BotConfiguration;
 use crate::config::login::LoginConfig;
+use crate::{config, get_app, Bot};
 
 pub async fn login_bots() -> Result<(), RQError> {
     let mut login_conf_dir = config::service_config_dir_buf();
-    if !login_conf_dir.is_dir() { fs::create_dir_all(&login_conf_dir).await?; }
+    if !login_conf_dir.is_dir() {
+        fs::create_dir_all(&login_conf_dir).await?;
+    }
     login_conf_dir.push("login.toml");
 
     let login_conf = {
@@ -32,9 +34,7 @@ pub async fn login_bots() -> Result<(), RQError> {
             f.read_to_string(&mut s).await?;
 
             match toml::from_str(&s) {
-                Ok(conf) => {
-                    conf
-                }
+                Ok(conf) => conf,
                 Err(e) => {
                     error!("读取登陆配置文件失败: {}", e);
 
@@ -51,13 +51,17 @@ pub async fn login_bots() -> Result<(), RQError> {
     };
 
     let mut bots_path = config::bots_dir_buf();
-    if !bots_path.is_dir() { fs::create_dir(&bots_path).await?; }
+    if !bots_path.is_dir() {
+        fs::create_dir(&bots_path).await?;
+    }
 
     bots_path.push("0");
 
     let mut logins = vec![];
     for bot in login_conf.bots {
-        if !bot.auto_login { continue; }
+        if !bot.auto_login {
+            continue;
+        }
 
         let account = bot.account;
         let pwd = bot.password;
@@ -78,9 +82,14 @@ pub async fn login_bots() -> Result<(), RQError> {
                 &pwd,
                 BotConfiguration {
                     work_dir: None,
-                    version: bot.protocol.unwrap_or(login_conf.default_protocol).as_version(),
+                    version: bot
+                        .protocol
+                        .unwrap_or(login_conf.default_protocol)
+                        .as_version(),
                 },
-            ).await {
+            )
+            .await
+            {
                 Ok(bot) => {
                     if let Err(e) = bot.refresh_group_list().await {
                         warn!("{}刷新群列表失败: {:?}", bot, e);
@@ -95,9 +104,7 @@ pub async fn login_bots() -> Result<(), RQError> {
         });
         logins.push(handle);
 
-        let random = {
-            thread_rng().gen_range(0..44) as f32 / 11.2f32
-        };
+        let random = { thread_rng().gen_range(0..44) as f32 / 11.2f32 };
         tokio::time::sleep(Duration::from_secs_f32(random)).await;
     }
 
@@ -112,11 +119,12 @@ pub async fn login_bots() -> Result<(), RQError> {
     Ok(())
 }
 
-async fn login_bot(account: i64, password: &Option<String>, conf: BotConfiguration) -> Result<Bot, RQError> {
-    let bot = Bot::new(
-        account,
-        conf,
-    ).await;
+async fn login_bot(
+    account: i64,
+    password: &Option<String>,
+    conf: BotConfiguration,
+) -> Result<Bot, RQError> {
+    let bot = Bot::new(account, conf).await;
     get_app().add_bot(bot.clone());
     bot.start().await?;
 
@@ -145,7 +153,8 @@ async fn login_bot(account: i64, password: &Option<String>, conf: BotConfigurati
 
                             if let Ok(mut f) = fs::File::create(&dir).await {
                                 let token = bot.client().gen_token().await;
-                                let s = serde_json::to_string_pretty(&token).expect("Cannot serialize token");
+                                let s = serde_json::to_string_pretty(&token)
+                                    .expect("Cannot serialize token");
                                 let _ = f.write_all(s.as_bytes()).await;
                             }
 

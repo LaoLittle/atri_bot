@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use ricq::handler::QEvent;
@@ -7,9 +7,9 @@ use ricq::structs::GroupMessage;
 
 use tokio::time::error::Elapsed;
 
-use crate::{Bot, Listener, MessageChain};
-use crate::contact::{Contact, HasSubject};
 use crate::contact::group::Group;
+use crate::contact::{Contact, HasSubject};
+use crate::{Bot, Listener, MessageChain};
 
 pub mod listener;
 
@@ -114,43 +114,58 @@ impl GroupMessageEvent {
         &self.event.message
     }
 
-    pub async fn next_event<F>(&self, timeout: Duration, filter: F) -> Result<GroupMessageEvent, Elapsed>
-        where F: Fn(&GroupMessageEvent) -> bool,
+    pub async fn next_event<F>(
+        &self,
+        timeout: Duration,
+        filter: F,
+    ) -> Result<GroupMessageEvent, Elapsed>
+    where
+        F: Fn(&GroupMessageEvent) -> bool,
     {
         tokio::time::timeout(timeout, async move {
             let (tx, mut rx) = tokio::sync::mpsc::channel(5);
             let group_id = self.group().id();
             let sender = self.message().from_uin;
 
-            let guard = Listener::listening_on(move |e: GroupMessageEvent|{
+            let guard = Listener::listening_on(move |e: GroupMessageEvent| {
                 let tx = tx.clone();
                 async move {
-                    if group_id != e.group().id() { return true; }
-                    if sender != e.message().from_uin { return true; }
+                    if group_id != e.group().id() {
+                        return true;
+                    }
+                    if sender != e.message().from_uin {
+                        return true;
+                    }
 
                     tx.send(e).await.unwrap();
                     false
                 }
-            }).start();
+            })
+            .start();
 
             while let Some(e) = rx.recv().await {
-                if !filter(&e) { continue; }
+                if !filter(&e) {
+                    continue;
+                }
 
                 drop(guard);
                 return e;
             }
 
             unreachable!()
-        }).await
+        })
+        .await
     }
 
-    pub async fn next_message<F>(&self, timeout: Duration, filter: F) -> Result<MessageChain, Elapsed>
-        where F: Fn(&MessageChain) -> bool,
+    pub async fn next_message<F>(
+        &self,
+        timeout: Duration,
+        filter: F,
+    ) -> Result<MessageChain, Elapsed>
+    where
+        F: Fn(&MessageChain) -> bool,
     {
-        self.next_event(
-            timeout,
-            |e| filter(&e.message().elements),
-        )
+        self.next_event(timeout, |e| filter(&e.message().elements))
             .await
             .map(|e| e.message().elements.clone())
     }
@@ -166,7 +181,9 @@ impl FromEvent for GroupMessageEvent {
     fn from_event(e: Event) -> Option<Self> {
         if let Event::GroupMessageEvent(e) = e {
             Some(e)
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 
@@ -178,7 +195,9 @@ impl FromEvent for FriendMessageEvent {
     fn from_event(e: Event) -> Option<Self> {
         if let Event::FriendMessageEvent(e) = e {
             Some(e)
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 
@@ -186,11 +205,7 @@ pub type BotOnlineEvent = EventInner<imp::BotOnlineEvent>;
 
 impl BotOnlineEvent {
     pub fn from(bot: Bot) -> Self {
-        Self::new(
-            imp::BotOnlineEvent {
-                bot
-            }
-        )
+        Self::new(imp::BotOnlineEvent { bot })
     }
 }
 
@@ -203,8 +218,8 @@ impl EventInner<QEvent> {
 mod imp {
     use ricq::structs::{FriendMessage, GroupMessage};
 
-    use crate::Bot;
     use crate::contact::group::Group;
+    use crate::Bot;
 
     #[derive(Debug)]
     pub struct GroupMessageEvent {
@@ -233,7 +248,7 @@ impl FromEvent for MessageEvent {
         match e {
             Event::GroupMessageEvent(e) => Some(Self::Group(e)),
             Event::FriendMessageEvent(e) => Some(Self::Friend(e)),
-            _ => None
+            _ => None,
         }
     }
 }

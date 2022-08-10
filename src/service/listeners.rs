@@ -1,6 +1,6 @@
 use std::collections::LinkedList;
-use std::sync::{Arc, OnceLock};
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, OnceLock};
 
 use tokio::sync::{Mutex, RwLock};
 
@@ -65,15 +65,16 @@ impl ListenerWorker {
                 let _ = handle.await;
             }
 
-            if event.is_intercepted() { break; }
+            if event.is_intercepted() {
+                break;
+            }
         }
     }
 
     pub async fn start(&self) {
         let mut lock = self.listener_rx.lock().await;
 
-        'add:
-        while let Some(l) = lock.recv().await {
+        'add: while let Some(l) = lock.recv().await {
             let list = &self.listeners[l.priority as usize];
 
             for opt in list {
@@ -87,7 +88,7 @@ impl ListenerWorker {
             }
 
             #[allow(clippy::cast_ref_to_mut)]
-                let list = unsafe { &mut *(list as *const _ as *mut LimitedListeners) };
+            let list = unsafe { &mut *(list as *const _ as *mut LimitedListeners) };
             list.push_back(Arc::new(RwLock::new(Some(l))));
         }
     }
