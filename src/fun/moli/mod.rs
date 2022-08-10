@@ -1,5 +1,6 @@
 mod data;
 
+use dashmap::DashSet;
 use rand::Rng;
 use std::error::Error;
 use std::path::PathBuf;
@@ -27,10 +28,17 @@ pub fn moli_listener() -> ListenerGuard {
     let config: MoliConfig = serivce.read_config();
     let cfg = Arc::new(config);
 
+    let set = DashSet::<i64>::new();
+    let set = Arc::new(set);
+
     Listener::listening_on_always(move |e: GroupMessageEvent| {
         let config = cfg.clone();
 
+        let set = set.clone();
         async move {
+            if set.contains(&e.message().from_uin) {
+                return;
+            }
             let f = || {
                 let msg = e.message().clone();
                 for elem in msg.elements {
@@ -120,9 +128,14 @@ pub fn moli_listener() -> ListenerGuard {
             }
 
             let sender = e.message().from_uin;
+            set.insert(sender);
 
             let mut e = e;
-            handle_message(&e, &config).await.unwrap();
+
+            if let Err(e) = handle_message(&e, &config).await {
+                error!("Moli: Error on handle message {}", e);
+            }
+
             for _ in 0..config.reply_times {
                 e = if let Ok(e) = e
                     .next_event(Duration::from_secs(10), |e| e.message().from_uin == sender)
@@ -135,10 +148,15 @@ pub fn moli_listener() -> ListenerGuard {
                     msg.push_str(&config.timeout_reply[random]);
                     let _ = e.group().send_message(msg.build()).await;
 
+                    set.remove(&sender);
                     return;
                 };
-                handle_message(&e, &config).await.unwrap();
+
+                if let Err(e) = handle_message(&e, &config).await {
+                    error!("Moli: Error on handle message {}", e);
+                }
             }
+            set.remove(&sender);
         }
     })
     .with_name("Moli-Chat")

@@ -55,12 +55,6 @@ impl Group {
         }
     }
 
-    pub(crate) fn insert_member(&self, info: GroupMemberInfo) {
-        let arc = Arc::new(info);
-
-        self.0.members.insert(arc.uin, arc);
-    }
-
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
         let result = self
             .bot()
