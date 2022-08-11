@@ -93,34 +93,3 @@ exit: Exit this program
 
     Ok(())
 }
-
-#[test]
-fn yes() {
-    let rt = runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-
-    rt.block_on(async {
-        let bot = Bot::new(
-            1405685121,
-            BotConfiguration {
-                work_dir: None,
-                version: version::IPAD,
-            },
-        )
-        .await;
-
-        bot.start().await.unwrap();
-
-        bot.try_login().await.unwrap();
-
-        let g = bot.find_group(819281715).await.unwrap();
-
-        let mut chain = MessageChainBuilder::new();
-        chain.push_str("你是0我是1");
-        for _ in 0..5 {
-            let _ = g.send_message(chain.clone().build()).await;
-        }
-    });
-}
