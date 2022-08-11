@@ -65,8 +65,8 @@ pub fn moli_listener() -> ListenerGuard {
                         .find_member(e.message().from_uin)
                         .await
                         .expect("Cannot find member")
-                        .card_name
-                        .clone(),
+                        .card_name()
+                        .into(),
                 );
 
                 let json = serde_json::to_string(&msg)?;

@@ -13,7 +13,7 @@ use crate::{Bot, Listener, MessageChain};
 
 pub mod listener;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Event {
     BotOnlineEvent(BotOnlineEvent),
     GroupMessageEvent(GroupMessageEvent),
@@ -137,7 +137,7 @@ impl GroupMessageEvent {
                         return true;
                     }
 
-                    tx.send(e).await.unwrap();
+                    tx.send(e).await.unwrap_or_else(|_| unreachable!());
                     false
                 }
             })
@@ -221,18 +221,15 @@ mod imp {
     use crate::contact::group::Group;
     use crate::Bot;
 
-    #[derive(Debug)]
     pub struct GroupMessageEvent {
         pub group: Group,
         pub message: GroupMessage,
     }
 
-    #[derive(Debug)]
     pub struct FriendMessageEvent {
         pub message: FriendMessage,
     }
 
-    #[derive(Debug)]
     pub struct BotOnlineEvent {
         pub bot: Bot,
     }

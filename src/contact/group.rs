@@ -7,9 +7,10 @@ use ricq::structs::{GroupInfo, MessageReceipt};
 use ricq::RQResult;
 use tracing::error;
 
+use crate::contact::member::NamedMember;
 use crate::{Bot, GroupMemberInfo, MessageChain};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Group(Arc<imp::Group>);
 
 impl Group {
@@ -36,9 +37,9 @@ impl Group {
         &self.0.info.name
     }
 
-    pub async fn find_member(&self, id: i64) -> Option<Arc<GroupMemberInfo>> {
-        if let Some(info) = self.0.members.get(&id) {
-            return Some(info.clone());
+    pub async fn find_member(&self, id: i64) -> Option<NamedMember> {
+        if let Some(member) = self.0.members.get(&id) {
+            return Some(member.clone());
         }
 
         let result = self
@@ -47,9 +48,9 @@ impl Group {
             .get_group_member_info(self.id(), id)
             .await;
         if let Ok(info) = result {
-            let arc = Arc::new(info);
-            self.0.members.insert(id, arc.clone());
-            Some(arc)
+            let member = NamedMember::from(self.clone(), info);
+            self.0.members.insert(id, member.clone());
+            Some(member)
         } else {
             None
         }
@@ -94,6 +95,10 @@ impl Group {
 
         result
     }
+
+    pub async fn quit(&self) {
+        let _ = self.bot().client().group_quit(self.id()).await;
+    }
 }
 
 impl Display for Group {
@@ -107,17 +112,13 @@ mod imp {
     use ricq::structs::GroupInfo;
     use std::sync::Arc;
 
+    use crate::contact::member::NamedMember;
     use crate::{Bot, GroupMemberInfo};
 
-    #[derive(Debug)]
     pub struct Group {
         pub id: i64,
         pub bot: Bot,
         pub info: GroupInfo,
-        pub members: DashMap<i64, Arc<GroupMemberInfo>>,
+        pub members: DashMap<i64, NamedMember>,
     }
-
-    pub struct NamedMember;
-
-    pub struct AnonymousMember;
 }

@@ -1,11 +1,15 @@
 extern crate core;
 
+use ricq::msg::{MessageChain, MessageChainBuilder};
+use ricq::version;
+use ricq::version::Version;
 use std::error::Error;
 use std::mem;
 
-use tokio::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::{io, runtime};
 
+use atri_qq::bot::{Bot, BotConfiguration};
 use atri_qq::event::listener::{Listener, Priority};
 use atri_qq::event::GroupMessageEvent;
 use atri_qq::service::listeners::get_global_worker;
@@ -88,4 +92,35 @@ exit: Exit this program
     }
 
     Ok(())
+}
+
+#[test]
+fn yes() {
+    let rt = runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    rt.block_on(async {
+        let bot = Bot::new(
+            1405685121,
+            BotConfiguration {
+                work_dir: None,
+                version: version::IPAD,
+            },
+        )
+        .await;
+
+        bot.start().await.unwrap();
+
+        bot.try_login().await.unwrap();
+
+        let g = bot.find_group(819281715).await.unwrap();
+
+        let mut chain = MessageChainBuilder::new();
+        chain.push_str("你是0我是1");
+        for _ in 0..5 {
+            let _ = g.send_message(chain.clone().build()).await;
+        }
+    });
 }
