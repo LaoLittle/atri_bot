@@ -1,12 +1,10 @@
 extern crate core;
 
-
 use std::error::Error;
 use std::mem;
 
+use tokio::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::{io};
-
 
 use atri_qq::event::listener::{Listener, Priority};
 use atri_qq::event::GroupMessageEvent;
