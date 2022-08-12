@@ -15,16 +15,18 @@ use atri_qq::event::GroupMessageEvent;
 use atri_qq::service::listeners::get_global_worker;
 use atri_qq::service::log::init_logger;
 use atri_qq::service::login::login_bots;
-use atri_qq::service::plugin::load_plugins;
-use atri_qq::{fun, get_app, get_listener_runtime, get_runtime, main_handler};
+use atri_qq::{fun, get_app, get_listener_runtime, get_runtime, main_handler, Atri};
 
 type MainResult = Result<(), Box<dyn Error>>;
 
 fn main() -> MainResult {
+    let atri = Atri::new();
+
     init_logger();
 
     get_listener_runtime().spawn(get_global_worker().start());
-    load_plugins()?;
+
+    atri.load_plugins()?;
 
     let runtime = get_runtime();
 
@@ -92,4 +94,35 @@ exit: Exit this program
     }
 
     Ok(())
+}
+
+#[test]
+fn yes() {
+    let rt = runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+
+    rt.block_on(async {
+        let bot = Bot::new(
+            1405685121,
+            BotConfiguration {
+                work_dir: None,
+                version: version::IPAD,
+            },
+        )
+        .await;
+
+        bot.start().await.unwrap();
+
+        bot.try_login().await.unwrap();
+
+        let g = bot.find_group(819281715).await.unwrap();
+
+        let mut chain = MessageChainBuilder::new();
+        chain.push_str("你是0我是1");
+        for _ in 0..5 {
+            let _ = g.send_message(chain.clone().build()).await;
+        }
+    });
 }

@@ -15,6 +15,22 @@ pub struct ListenerWorker {
 }
 
 impl ListenerWorker {
+    pub fn new() -> Self {
+        let mut listeners = vec![];
+
+        for _ in 0..5 {
+            listeners.push(LinkedList::new())
+        }
+
+        let (tx, rx) = tokio::sync::mpsc::channel(61);
+
+        ListenerWorker {
+            listeners,
+            listener_rx: rx.into(),
+            listener_tx: tx,
+        }
+    }
+
     pub async fn schedule(&self, listener: Listener) {
         let arc = Arc::new(listener);
         let _ = self.listener_tx.send(arc).await;
@@ -96,19 +112,5 @@ impl ListenerWorker {
 
 pub fn get_global_worker() -> &'static ListenerWorker {
     static WORKER: OnceLock<ListenerWorker> = OnceLock::new();
-    WORKER.get_or_init(|| {
-        let mut listeners = vec![];
-
-        for _ in 0..5 {
-            listeners.push(LinkedList::new())
-        }
-
-        let (tx, rx) = tokio::sync::mpsc::channel(61);
-
-        ListenerWorker {
-            listeners,
-            listener_rx: rx.into(),
-            listener_tx: tx,
-        }
-    })
+    WORKER.get_or_init(|| ListenerWorker::new())
 }

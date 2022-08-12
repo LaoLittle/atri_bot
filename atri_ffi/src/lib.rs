@@ -1,3 +1,4 @@
+use std::mem;
 use std::mem::ManuallyDrop;
 use std::ptr::null_mut;
 
@@ -11,6 +12,9 @@ pub struct Managed {
     pointer: *mut (),
     vtable: ManagedVTable,
 }
+
+unsafe impl Send for Managed {}
+unsafe impl Sync for Managed {}
 
 #[repr(C)]
 struct ManagedVTable {
@@ -53,6 +57,12 @@ impl Managed {
 
     pub fn as_ptr(&self) -> *const () {
         self.pointer
+    }
+
+    pub fn into_value<T>(self) -> T {
+        let ptr = self.pointer;
+        mem::forget(self);
+        *unsafe { Box::from_raw(ptr as _) }
     }
 }
 

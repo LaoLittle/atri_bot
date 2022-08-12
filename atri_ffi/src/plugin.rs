@@ -13,6 +13,10 @@ impl PluginInstance {
             vtb
         }
     }
+    
+    pub fn enable(&self) {
+        (self.vtb.enable)(self.instance.pointer)
+    }
 }
 
 #[repr(C)]

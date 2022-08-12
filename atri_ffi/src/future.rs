@@ -54,7 +54,6 @@ extern fn poll_future<T, F>(f: *mut (), cx: *mut ()) -> FFIPoll<T>
     let poll = pin.poll(cx);
     match poll {
         Poll::Ready(value) => {
-            drop(unsafe { Box::from_raw(f.cast::<F>()) });
             FFIPoll {
                 ready: true,
                 value: MaybeUninit::new(value),

@@ -14,9 +14,11 @@ use tokio::runtime;
 use tokio::runtime::Runtime;
 
 use crate::bot::Bot;
-use crate::channel::global_receiver;
+
 use crate::event::listener::Listener;
 use crate::event::Event;
+use crate::service::listeners::ListenerWorker;
+use crate::service::plugin::PluginManager;
 
 pub mod bot;
 pub mod channel;
@@ -29,6 +31,43 @@ pub mod macros;
 pub mod message;
 pub mod plugin;
 pub mod service;
+
+pub struct Atri {
+    global_runtime: Runtime,
+    listener_runtime: Runtime,
+    listener_worker: ListenerWorker,
+    plugin_manager: PluginManager,
+}
+
+impl Atri {
+    pub fn new() -> Self {
+        let global_runtime = runtime::Builder::new_multi_thread()
+            .thread_name("GlobalRuntime")
+            .enable_all()
+            .build()
+            .unwrap();
+
+        let listener_runtime = runtime::Builder::new_multi_thread()
+            .worker_threads(8)
+            .thread_name("Listeners")
+            .enable_all()
+            .build()
+            .unwrap();
+
+        let listener_worker = ListenerWorker::new();
+
+        Self {
+            global_runtime,
+            listener_runtime,
+            listener_worker,
+            plugin_manager: PluginManager::new(),
+        }
+    }
+
+    pub fn plugin_manager(&self) -> &PluginManager {
+        &self.plugin_manager
+    }
+}
 
 static APP: OnceLock<App> = OnceLock::new();
 
