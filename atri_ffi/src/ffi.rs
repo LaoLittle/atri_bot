@@ -6,12 +6,16 @@ use crate::future::FFIFuture;
 use crate::Managed;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use crate::closure::FFIFn;
 
 #[repr(C)]
 pub struct AtriVTable {
-    pub plugin_manager_spawn:
-        extern "C" fn(manager: *const (), FFIFuture<Managed>) -> FFIFuture<Managed>,
-    pub plugin_manager_block_on: extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
+    pub plugin_manager_spawn: 
+    extern "C" fn(manager: *const (), FFIFuture<Managed>) -> FFIFuture<Managed>,
+    pub plugin_manager_block_on: 
+    extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
+    pub new_listener:
+    extern "C" fn(FFIFn<FFIFuture<bool>, FFIEvent>) -> Managed,
 }
 
 #[repr(C)]
@@ -52,12 +56,16 @@ impl<T> Future for JoinHandle<T> {
 #[repr(C)]
 pub struct FFIEvent {
     t: u8,
-    base: EventUnion,
+    base: Managed,
 }
 
-#[repr(C)]
-union EventUnion {
-    group_message_event: ManuallyDrop<Managed>,
-    bot_online_event: ManuallyDrop<Managed>,
-    unknown: ManuallyDrop<Managed>,
+impl FFIEvent {
+
+
+    pub fn from(t: u8, e: Managed) -> Self {
+        Self {
+            t,
+            base: e
+        }
+    }
 }

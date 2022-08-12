@@ -6,6 +6,7 @@ pub mod error;
 pub mod ffi;
 pub mod future;
 pub mod plugin;
+pub mod closure;
 
 #[repr(C)]
 pub struct Managed {

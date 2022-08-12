@@ -1,3 +1,4 @@
+use std::mem::ManuallyDrop;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -6,6 +7,8 @@ use ricq::handler::QEvent;
 use ricq::structs::GroupMessage;
 
 use tokio::time::error::Elapsed;
+use atri_ffi::ffi::{FFIEvent};
+use atri_ffi::Managed;
 
 use crate::contact::group::Group;
 use crate::contact::{Contact, HasSubject};
@@ -19,6 +22,19 @@ pub enum Event {
     GroupMessageEvent(GroupMessageEvent),
     FriendMessageEvent(FriendMessageEvent),
     Unknown(EventInner<QEvent>),
+}
+
+impl Event {
+    pub fn into_ffi(self) -> FFIEvent {
+        let (t,e) = match self {
+            Event::BotOnlineEvent(e) => (0,Managed::from_value(e)),
+            Event::GroupMessageEvent(e) => (1,Managed::from_value(e)),
+            Event::FriendMessageEvent(e) => (2,Managed::from_value(e)),
+            Event::Unknown(e) =>(255,Managed::from_value(e)),
+        };
+
+        FFIEvent::from(t,e)
+    }
 }
 
 macro_rules! event_impl {
