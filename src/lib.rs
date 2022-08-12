@@ -1,7 +1,5 @@
 #![feature(once_cell)]
 
-extern crate core;
-
 use std::mem;
 use std::sync::{Arc, OnceLock};
 
