@@ -10,7 +10,7 @@ use tokio::runtime;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace};
 
-use atri_ffi::ffi::AtriVTable;
+use atri_ffi::ffi::{AtriManager};
 use atri_ffi::plugin::PluginInstance;
 
 use crate::plugin::ffi::get_plugin_vtable;
@@ -58,6 +58,18 @@ impl Plugin {
             _ => return false,
         }
         self.instance.enable();
+        true
+    }
+
+    pub fn disable(&self) -> bool {
+        match self
+            .enabled
+            .compare_exchange(true, false, Ordering::Acquire, Ordering::Relaxed)
+        {
+            Ok(true) => {}
+            _ => return false,
+        }
+        self.instance.disable();
         true
     }
 }
@@ -117,9 +129,12 @@ impl super::super::Atri {
         let plugin = unsafe {
             trace!("正在加载插件动态库");
             let lib = Library::new(path)?;
-            let plugin_init = lib.get::<extern "C" fn(*const AtriVTable)>(b"plugin_init")?;
+            let plugin_init = lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")?;
             trace!("正在初始化插件");
-            plugin_init(get_plugin_vtable());
+            plugin_init(AtriManager {
+                manager_ptr: &self.plugin_manager as *const PluginManager as _,
+                vtb: get_plugin_vtable(),
+            });
 
             let on_init = lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")?;
             let instance = on_init();

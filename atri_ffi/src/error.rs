@@ -1,7 +1,6 @@
+use crate::RawString;
 use std::error::Error;
 use std::mem::ManuallyDrop;
-use crate::RawString;
-
 
 #[repr(C)]
 pub struct FFIResult<T> {
@@ -12,18 +11,18 @@ pub struct FFIResult<T> {
 impl<T, E: Error> From<Result<T, E>> for FFIResult<T> {
     fn from(r: Result<T, E>) -> Self {
         match r {
-            Ok(val) => {
-                Self {
-                    has_error: false,
-                    result: ResultWithValue { value: ManuallyDrop::new(val) },
-                }
-            }
-            Err(e) => {
-                Self {
-                    has_error: true,
-                    result: ResultWithValue { error: ManuallyDrop::new(e.into()) },
-                }
-            }
+            Ok(val) => Self {
+                has_error: false,
+                result: ResultWithValue {
+                    value: ManuallyDrop::new(val),
+                },
+            },
+            Err(e) => Self {
+                has_error: true,
+                result: ResultWithValue {
+                    error: ManuallyDrop::new(e.into()),
+                },
+            },
         }
     }
 }
