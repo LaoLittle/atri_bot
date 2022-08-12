@@ -1,6 +1,5 @@
 use std::future::Future;
 use std::marker::PhantomData;
-use std::mem::ManuallyDrop;
 
 use crate::future::FFIFuture;
 use crate::Managed;
@@ -10,9 +9,9 @@ use crate::closure::FFIFn;
 
 #[repr(C)]
 pub struct AtriVTable {
-    pub plugin_manager_spawn: 
+    pub plugin_manager_spawn:
     extern "C" fn(manager: *const (), FFIFuture<Managed>) -> FFIFuture<Managed>,
-    pub plugin_manager_block_on: 
+    pub plugin_manager_block_on:
     extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
     pub new_listener:
     extern "C" fn(FFIFn<FFIFuture<bool>, FFIEvent>) -> Managed,
