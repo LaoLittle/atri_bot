@@ -6,9 +6,9 @@ use std::time::Duration;
 use ricq::handler::QEvent;
 use ricq::structs::GroupMessage;
 
-use tokio::time::error::Elapsed;
-use atri_ffi::ffi::{FFIEvent};
+use atri_ffi::ffi::FFIEvent;
 use atri_ffi::Managed;
+use tokio::time::error::Elapsed;
 
 use crate::contact::group::Group;
 use crate::contact::{Contact, HasSubject};
@@ -26,14 +26,14 @@ pub enum Event {
 
 impl Event {
     pub fn into_ffi(self) -> FFIEvent {
-        let (t,e) = match self {
-            Event::BotOnlineEvent(e) => (0,Managed::from_value(e)),
-            Event::GroupMessageEvent(e) => (1,Managed::from_value(e)),
-            Event::FriendMessageEvent(e) => (2,Managed::from_value(e)),
-            Event::Unknown(e) =>(255,Managed::from_value(e)),
+        let (t, e) = match self {
+            Event::BotOnlineEvent(e) => (0, Managed::from_value(e)),
+            Event::GroupMessageEvent(e) => (1, Managed::from_value(e)),
+            Event::FriendMessageEvent(e) => (2, Managed::from_value(e)),
+            Event::Unknown(e) => (255, Managed::from_value(e)),
         };
 
-        FFIEvent::from(t,e)
+        FFIEvent::from(t, e)
     }
 }
 

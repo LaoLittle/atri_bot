@@ -10,7 +10,7 @@ use tokio::runtime;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace};
 
-use atri_ffi::ffi::{AtriManager};
+use atri_ffi::ffi::AtriManager;
 use atri_ffi::plugin::PluginInstance;
 
 use crate::plugin::ffi::get_plugin_vtable;

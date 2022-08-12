@@ -3,11 +3,11 @@ mod listener;
 
 use std::sync::OnceLock;
 
+use crate::plugin::ffi::listener::new_listener;
 use crate::PluginManager;
 use atri_ffi::ffi::AtriVTable;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
-use crate::plugin::ffi::listener::new_listener;
 
 static PLUGIN_VTABLE: OnceLock<AtriVTable> = OnceLock::new();
 
@@ -15,7 +15,7 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
     PLUGIN_VTABLE.get_or_init(|| AtriVTable {
         plugin_manager_spawn,
         plugin_manager_block_on,
-        new_listener
+        new_listener,
     })
 }
 
