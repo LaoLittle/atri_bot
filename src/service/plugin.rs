@@ -94,7 +94,6 @@ impl super::super::Atri {
         #[cfg(all(target_os = "unix", not(target_os = "macos")))]
         const EXT: &str = "so";
         for entry in dir {
-            
             match entry {
                 Ok(entry) => {
                     let f_name = entry.file_name();
