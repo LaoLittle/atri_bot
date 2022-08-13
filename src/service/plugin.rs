@@ -94,6 +94,7 @@ impl super::super::Atri {
         #[cfg(all(target_os = "unix", not(target_os = "macos")))]
         const EXT: &str = "so";
         for entry in dir {
+            
             match entry {
                 Ok(entry) => {
                     let f_name = entry.file_name();
@@ -106,7 +107,7 @@ impl super::super::Atri {
                         let result = self.load_plugin(&buf);
                         buf.pop();
                         match result {
-                            Ok(p) => {
+                            Ok(_p) => {
                                 info!("插件({})加载成功", name);
                             }
                             Err(e) => {

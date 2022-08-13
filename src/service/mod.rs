@@ -42,12 +42,11 @@ impl Service {
         }
     }
 
-    pub fn with_path(&mut self, mut path: PathBuf) {
-        if !path.is_dir() {
+    pub fn with_path(&mut self, path: impl AsRef<Path>) {
+        if !path.as_ref().is_dir() {
             fs::create_dir(&path).unwrap();
         }
-        path.push(format!("{}.toml", self.name()));
-        self.path = path;
+        self.path = path.as_ref().join(format!("{}.toml", self.name()));
     }
 
     pub fn with_handler<H: ServiceHandler>(&mut self, handler: H) -> &mut Self {
@@ -63,7 +62,7 @@ impl Service {
 
     pub fn read_config<T>(&self) -> T
     where
-        for<'a> T: Serialize + Deserialize<'a> + Default,
+        for<'de> T: Serialize + Deserialize<'de> + Default,
     {
         fn _read_config<T>(path: &Path) -> Result<T, Box<dyn Error>>
         where
