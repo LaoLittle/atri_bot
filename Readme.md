@@ -13,9 +13,6 @@ QQ群怎能少得了高性能亚托莉的身影呢？
 > ricq: 基于rust编写的qq协议
 - 部署快速，易于使用
 
-## 功能
- - DrawMeme: 奇怪的图片生成器 (移植于[DrawMeme](https://github.com/LaoLittle/DrawMeme))
-
 ## 部署
 使用登陆帮助程序[rq_login](https://github.com/LaoLittle/rq_login)登陆后得到device和token，
 放入bots文件夹内，然后配置登陆信息(位于`service/login.toml`)即可
@@ -23,3 +20,6 @@ QQ群怎能少得了高性能亚托莉的身影呢？
 ## TODO
  - [ ] 完善框架
  - [ ] 支持插件化拓展
+   - 支持Rust动态库插件(主要)
+   - 支持Lua编写插件
+   - 支持Http api拓展
