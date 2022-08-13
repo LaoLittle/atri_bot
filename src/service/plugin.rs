@@ -2,10 +2,16 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::{fs, io};
+use std::{fs, io, mem, thread};
+use std::any::Any;
+use std::error::Error;
 
-use dashmap::DashMap;
+use std::panic::catch_unwind;
+use std::sync::Arc;
+
+
 use libloading::Library;
+
 use tokio::runtime;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace};
@@ -16,9 +22,11 @@ use atri_ffi::plugin::PluginInstance;
 use crate::plugin::ffi::get_plugin_vtable;
 
 pub struct PluginManager {
-    plugins: DashMap<String, Plugin>,
+    plugins: std::sync::Mutex<Vec<Arc<Plugin>>>,
     plugins_path: PathBuf,
     async_runtime: Runtime,
+    task: std::sync::mpsc::Sender<Box<dyn FnOnce() + Send>>,
+    _plugin_handler: thread::JoinHandle<()>,
 }
 
 impl PluginManager {
@@ -32,10 +40,22 @@ impl PluginManager {
 
         let plugins_path = PathBuf::from("plugins");
 
+        let (tx, rx) = std::sync::mpsc::channel::<Box<dyn FnOnce() + Send>>();
+
+        let plugin_handler = thread::Builder::new()
+            .name("PluginHandler".into())
+            .spawn(move || {
+                while let Ok(task) = rx.recv() {
+                    task();
+                }
+            }).expect("Cannot spawn plugin handler");
+
         Self {
-            plugins: DashMap::new(),
+            plugins: Vec::new().into(),
             plugins_path,
             async_runtime,
+            task: tx,
+            _plugin_handler: plugin_handler,
         }
     }
 
@@ -45,6 +65,24 @@ impl PluginManager {
 
     pub fn plugins_path(&self) -> &Path {
         &self.plugins_path
+    }
+
+    pub fn enable_plugin(&self,plugin: &Arc<Plugin>) {
+        let plugin = plugin.clone();
+        let _ = self.task.send(Box::new(move || {
+            plugin.enable();
+        }));
+    }
+
+    pub fn disable_plugin(&self, plugin: &Arc<Plugin>) {
+        let plugin = plugin.clone();
+        let _ = self.task.send(Box::new(move || {
+            plugin.disable();
+        }));
+    }
+
+    pub fn unload_plugin(&self, name: &String) {
+        todo!()
     }
 
     pub fn load_plugins(&self) -> io::Result<()> {
@@ -74,7 +112,8 @@ impl PluginManager {
                         let result = self.load_plugin(&buf);
                         buf.pop();
                         match result {
-                            Ok(_p) => {
+                            Ok(p) => {
+                                self.plugins.lock().unwrap().push(Arc::new(p));
                                 info!("插件({})加载成功", name);
                             }
                             Err(e) => {
@@ -92,33 +131,74 @@ impl PluginManager {
         Ok(())
     }
 
-    fn load_plugin<P: AsRef<OsStr>>(&self, path: P) -> Result<Plugin, libloading::Error> {
+    fn load_plugin<P: AsRef<OsStr>>(&self, path: P) -> Result<Plugin, Box<dyn Error>> {
         let plugin = unsafe {
             trace!("正在加载插件动态库");
+
+            let ptr = self as *const PluginManager as usize;
             let lib = Library::new(path)?;
-            let plugin_init = lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")?;
-            let on_init = lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")?;
-            trace!("正在初始化插件");
-            plugin_init(AtriManager {
-                manager_ptr: self as *const PluginManager as _,
-                vtb: get_plugin_vtable(),
-            });
 
-            let instance = on_init();
+            let (tx, rx) = std::sync::mpsc::channel();
+            self.task.send(Box::new(move || {
+                let load_plugin = || -> Result<Result<Plugin, Box<dyn Any + Send>>, Box<dyn Error>> {
+                    let plugin_init = lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")?;
+                    let on_init = *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")?;
+                    trace!("正在初始化插件");
+                    plugin_init(AtriManager {
+                        manager_ptr: ptr as *const PluginManager as _,
+                        vtb: get_plugin_vtable(),
+                    });
 
-            let plugin = Plugin {
-                enabled: AtomicBool::new(false),
-                _lib: lib,
-                instance,
-            };
+                    let catch = catch_unwind(move || {
+                        let instance = on_init();
+
+                        let plugin = Plugin {
+                            enabled: AtomicBool::new(false),
+                            _lib: lib,
+                            instance,
+                        };
+
+                        plugin.enable();
+                        plugin
+                    });
+
+                    Ok(catch)
+                };
+
+                let plugin = match load_plugin() {
+                    Ok(Ok(p)) => p,
+                    Ok(Err(_)) => {
+                        error!("插件加载时发生致命错误");
+                        return;
+                    },
+                    Err(e) => {
+                        error!("插件加载失败: {}", e);
+                        return;
+                    }
+                };
+
+                tx.send(plugin).unwrap();
+            })).expect("Cannot send task");
 
             trace!("正在启用插件");
-            plugin.enable();
 
-            plugin
+            if let Ok(p) = rx.recv() {
+                p
+            } else {
+                return Err(io::Error::last_os_error().into()) // todo
+            }
         };
 
         Ok(plugin)
+    }
+}
+
+impl Drop for PluginManager {
+    fn drop(&mut self) {
+        let v = mem::take(&mut self.plugins);
+        let _ = self.task.send(Box::new(move || {
+            drop(v);
+        }));
     }
 }
 
