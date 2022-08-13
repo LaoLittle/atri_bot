@@ -7,7 +7,7 @@ use ricq::client::Token;
 use ricq::ext::common::after_login;
 use ricq::structs::AccountInfo;
 use ricq::{Client, LoginResponse, RQError, RQResult};
-use tokio::io::AsyncReadExt;
+
 use tokio::{fs, io};
 use tracing::error;
 
@@ -23,7 +23,7 @@ impl Bot {
     }
 
     pub async fn try_login(&self) -> RQResult<()> {
-        let mut p = self.0.work_dir.join("token.json");
+        let p = self.0.work_dir.join("token.json");
 
         if p.is_file() {
             let s = fs::read_to_string(&p).await.expect("Cannot open file");
@@ -117,7 +117,7 @@ impl Bot {
                 self.0.group_list.insert(id, group.clone());
                 Some(group)
             }
-            Ok(none) => none,
+            Ok(None) => None,
             Err(e) => {
                 error!("获取群({})信息时发生意料之外的错误: {:?}", id, e);
                 None
@@ -157,7 +157,7 @@ mod imp {
     use ricq::device::Device;
     use ricq::structs::AccountInfo;
     use ricq::Client;
-    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::io::AsyncReadExt;
     use tokio::net::TcpSocket;
     use tokio::task::yield_now;
     use tokio::{fs, io};
@@ -205,11 +205,14 @@ mod imp {
                             };
 
                             drop(f); // make sure the file is closed
-                            if let Ok(mut f) = fs::File::create(file_p).await {
-                                serde_json::to_writer_pretty(f, &device).expect(
-                                    "Cannot serialize device info Or write device info to file",
-                                );
-                            };
+
+                            tokio::task::block_in_place(|| {
+                                if let Ok(f) = std::fs::File::create(file_p) {
+                                    serde_json::to_writer_pretty(f, &device).expect(
+                                        "Cannot serialize device info Or write device info to file",
+                                    );
+                                };
+                            });
 
                             device
                         }
@@ -222,10 +225,12 @@ mod imp {
             } else {
                 let device = Device::random();
 
-                if let Ok(mut f) = fs::File::create(&file_p).await {
-                    serde_json::to_writer_pretty(f, &device)
-                        .expect("Cannot serialize device info Or write device info to file");
-                }
+                tokio::task::block_in_place(|| {
+                    if let Ok(f) = std::fs::File::create(&file_p) {
+                        serde_json::to_writer_pretty(f, &device)
+                            .expect("Cannot serialize device info Or write device info to file");
+                    }
+                });
 
                 device
             };
