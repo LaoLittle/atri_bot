@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::{OnceLock, RwLock};
 
-use skia_safe::{Data, Typeface};
+// use skia_safe::{Data, Typeface};
 
 pub static FONT_DATA_PATH: &str = "font";
 

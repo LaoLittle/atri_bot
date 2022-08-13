@@ -32,12 +32,11 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
         let bot_id: i64;
         let bot: Bot;
 
-        let self_event: Event;
         fn get_bot(id: i64) -> Option<Bot> {
             get_app().bots.get(&id).map(|b| b.clone())
         }
 
-        match event {
+        let self_event = match event {
             QEvent::Login(id) => {
                 bot_id = id;
                 bot = if let Some(b) = get_bot(bot_id) {
@@ -48,7 +47,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 let base = BotOnlineEvent::from(bot);
                 let inner = Event::BotOnlineEvent(base);
-                self_event = inner.into();
+                inner.into()
             }
             QEvent::GroupMessage(e) => {
                 static FILTER_REGEX: OnceLock<Regex> = OnceLock::new();
@@ -79,7 +78,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 );
 
                 let base = GroupMessageEvent::from(group, e);
-                self_event = Event::GroupMessageEvent(base);
+                Event::GroupMessageEvent(base)
             }
             QEvent::FriendMessage(e) => {
                 bot_id = e.client.uin().await;
@@ -97,12 +96,10 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     e.inner.from_uin, e.inner.from_nick, e.inner.elements,
                 );
 
-                self_event = Event::Unknown(EventInner::<QEvent>::from(QEvent::FriendMessage(e)))
+                Event::Unknown(EventInner::<QEvent>::from(QEvent::FriendMessage(e)))
             }
-            or => {
-                self_event = Event::Unknown(EventInner::<QEvent>::from(or));
-            }
-        }
+            or => Event::Unknown(EventInner::<QEvent>::from(or)),
+        };
 
         let e = self_event.clone();
         get_listener_runtime().spawn(async move {

@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fs::File;
 
 use std::io::{Read, Write};
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 use std::{fs, io, mem};
@@ -42,12 +43,11 @@ impl Service {
         }
     }
 
-    pub fn with_path(&mut self, mut path: PathBuf) {
+    pub fn with_path(&mut self, path: impl Deref<Target = Path>) {
         if !path.is_dir() {
-            fs::create_dir(&path).unwrap();
+            fs::create_dir_all(&*path).unwrap();
         }
-        path.push(format!("{}.toml", self.name()));
-        self.path = path;
+        self.path = path.join(format!("{}.toml", self.name()));
     }
 
     pub fn with_handler<H: ServiceHandler>(&mut self, handler: H) -> &mut Self {
@@ -63,7 +63,7 @@ impl Service {
 
     pub fn read_config<T>(&self) -> T
     where
-        for<'a> T: Serialize + Deserialize<'a> + Default,
+        for<'de> T: Serialize + Deserialize<'de> + Default,
     {
         fn _read_config<T>(path: &Path) -> Result<T, Box<dyn Error>>
         where

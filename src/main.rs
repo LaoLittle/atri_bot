@@ -68,11 +68,8 @@ async fn loop_cli() -> MainResult {
                 // nothing to do
             }
             "help" | "?" => {
-                static HELP_INFO: &str = "\
-help: Show this info
-exit: Exit this program
-";
-                stdout.write_all(HELP_INFO.as_bytes()).await?;
+                static HELP_INFO: &[u8] = b"help: Show this info\nexit: Exit this program\n";
+                stdout.write_all(HELP_INFO).await?;
             }
             "exit" | "quit" | "stop" => {
                 println!("Stopping...");

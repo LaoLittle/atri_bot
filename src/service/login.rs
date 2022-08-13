@@ -1,45 +1,44 @@
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::time::Duration;
 
 use rand::{thread_rng, Rng};
 use ricq::{LoginResponse, RQError};
 use tokio::fs;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 use tracing::{error, info, warn};
 
 use crate::bot::BotConfiguration;
-use crate::config::login::LoginConfig;
+use crate::config::login::{LoginConfig, DEFAULT_CONFIG};
 use crate::{config, get_app, Bot};
 
 pub async fn login_bots() -> Result<(), RQError> {
-    let mut login_conf_dir = config::service_config_dir_buf();
-    if !login_conf_dir.is_dir() {
-        fs::create_dir_all(&login_conf_dir).await?;
+    let login_conf_dir = {
+        let path = config::service_config_dir_path();
+        if !path.is_dir() {
+            fs::create_dir_all(&path).await?;
+        }
+        path
     }
-    login_conf_dir.push("login.toml");
+    .join("login.toml");
 
     let login_conf = {
         async fn default_config_write<P: AsRef<Path>>(path: P) -> io::Result<LoginConfig> {
-            let mut f = fs::File::create(path).await?;
-            f.write_all(config::login::DEFAULT_CONFIG).await?;
+            fs::write(path, DEFAULT_CONFIG).await?;
 
             let default_config = LoginConfig::default();
             Ok(default_config)
         }
 
         if login_conf_dir.is_file() {
-            let mut f = fs::File::open(&login_conf_dir).await?;
-            let mut s = String::new();
-            f.read_to_string(&mut s).await?;
+            let s = fs::read_to_string(&login_conf_dir).await?;
 
             match toml::from_str(&s) {
                 Ok(conf) => conf,
                 Err(e) => {
                     error!("读取登陆配置文件失败: {}", e);
 
-                    let mut cp = config::service_config_dir_buf();
-                    cp.push("login.toml.bak");
+                    let cp = config::service_config_dir_path().join("login.toml.bak");
 
                     fs::copy(&login_conf_dir, cp).await?;
                     default_config_write(&login_conf_dir).await?
@@ -50,13 +49,10 @@ pub async fn login_bots() -> Result<(), RQError> {
         }
     };
 
-    let mut bots_path = config::bots_dir_buf();
+    let bots_path = config::bots_dir_path();
     if !bots_path.is_dir() {
         fs::create_dir(&bots_path).await?;
     }
-
-    bots_path.push("0");
-
     let mut logins = vec![];
     for bot in login_conf.bots {
         if !bot.auto_login {
@@ -66,15 +62,11 @@ pub async fn login_bots() -> Result<(), RQError> {
         let account = bot.account;
         let pwd = bot.password;
 
-        bots_path.pop();
-        bots_path.push(account.to_string());
-
-        bots_path.push("device.json");
-        if !bots_path.is_file() {
+        let bot_path = bots_path.join(account.to_string()).join("device.json");
+        if !bot_path.is_file() {
             warn!("未找到Bot({})的登陆信息，跳过登陆", account);
             continue;
         }
-        bots_path.pop();
 
         let handle = tokio::spawn(async move {
             match login_bot(

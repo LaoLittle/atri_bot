@@ -40,14 +40,10 @@ impl ListenerWorker {
         let mut handlers = vec![];
         for list in &self.listeners {
             handlers.reserve(list.len());
-            for opt in list {
-                let opt = opt.clone();
+            for opt in list.into_iter().cloned() {
                 let event = event.clone();
                 let handle = tokio::spawn(async move {
-                    let listener = {
-                        let lock = opt.read().await;
-                        lock.clone()
-                    };
+                    let listener = opt.read().await.to_owned();
 
                     if let Some(listener) = listener {
                         let close_listener = async {
@@ -59,15 +55,8 @@ impl ListenerWorker {
                             mutex.lock().await;
                         }
 
-                        if listener.closed.load(Ordering::Acquire) {
-                            close_listener.await;
-                            return;
-                        }
-
-                        let fu = (listener.handler)(event);
-                        let con: bool = fu.await;
-
-                        if !con {
+                        let fut = (listener.handler)(event);
+                        if listener.closed.load(Ordering::Acquire) || !fut.await {
                             close_listener.await;
                         };
                     }
@@ -76,9 +65,12 @@ impl ListenerWorker {
                 handlers.push(handle);
             }
 
-            for _ in 0..handlers.len() {
-                let handle = handlers.pop().expect("Cannot get handle");
-                let _ = handle.await;
+            //waiting for all task finish
+            for handle in (0..handlers.len())
+                .into_iter()
+                .map(|_| handlers.pop().expect("Cannot get handle"))
+            {
+                handle.await.ok();
             }
 
             if event.is_intercepted() {

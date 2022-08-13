@@ -74,7 +74,7 @@ impl PluginManager {
                         let result = self.load_plugin(&buf);
                         buf.pop();
                         match result {
-                            Ok(p) => {
+                            Ok(_p) => {
                                 info!("插件({})加载成功", name);
                             }
                             Err(e) => {

@@ -1,17 +1,17 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 pub mod login;
 
-static SERVICE_CONFIG_PATH: &str = "service";
+const SERVICE_CONFIG_PATH: &str = "service";
 
-pub fn service_config_dir_buf() -> PathBuf {
-    PathBuf::from(SERVICE_CONFIG_PATH)
+pub fn service_config_dir_path() -> &'static Path {
+    Path::new(SERVICE_CONFIG_PATH)
 }
 
-static BOTS_PATH: &str = "bots";
+const BOTS_PATH: &str = "bots";
 
-pub fn bots_dir_buf() -> PathBuf {
-    PathBuf::from(BOTS_PATH)
+pub fn bots_dir_path() -> &'static Path {
+    Path::new(BOTS_PATH)
 }
 
-static DEFAULT_CONFIG_PATH: &str = "config";
+const DEFAULT_CONFIG_PATH: &str = "config";

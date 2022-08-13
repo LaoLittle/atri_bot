@@ -1,5 +1,4 @@
-use rand::rngs::ThreadRng;
-use rand::{thread_rng, Rng, RngCore};
+use rand::{thread_rng, Rng};
 
 pub struct NumBomb {
     num: u16,

@@ -172,19 +172,14 @@ impl ListenerBuilder {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub enum Priority {
     Top = 0,
     High = 1,
+    #[default]
     Middle = 2,
     Low = 3,
     Base = 4,
-}
-
-impl Default for Priority {
-    fn default() -> Self {
-        Self::Middle
-    }
 }
 
 unsafe impl Send for Listener {}
