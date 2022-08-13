@@ -39,7 +39,7 @@ impl Event {
             BotOnlineEvent => 0;
             GroupMessageEvent => 1;
             FriendMessageEvent => 2;
-            Unknown => 3;
+            Unknown => 255;
         };
 
         FFIEvent::from(t, intercepted as _, base)

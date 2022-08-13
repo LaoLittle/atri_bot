@@ -14,12 +14,11 @@ pub struct AtriVTable {
     pub plugin_manager_block_on:
     extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
     pub new_listener:
-    extern "C" fn(FFIFn<FFIFuture<bool>, FFIEvent>) -> Managed,
+    extern "C" fn(FFIFn<FFIEvent, FFIFuture<bool>>) -> Managed,
     pub event_intercept:
     extern "C" fn(intercepted: *const ()),
     pub event_is_intercepted:
     extern "C" fn(intercepted: *const ()) -> bool,
-
 }
 
 #[repr(C)]

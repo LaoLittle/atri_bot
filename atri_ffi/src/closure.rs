@@ -1,24 +1,24 @@
 use crate::Managed;
 
 #[repr(C)]
-pub struct FFIFn<T, Arg> {
+pub struct FFIFn<Arg, R> {
     closure: Managed,
-    invoke: extern fn(*const (), Arg) -> T
+    invoke: extern fn(*const (), Arg) -> R
 }
 
-impl<T, Arg> FFIFn<T, Arg> {
+impl<Arg,R> FFIFn<Arg,R> {
     pub fn from<F>(closure: F) -> Self
-    where F: Fn(Arg) -> T
+    where F: Fn(Arg) -> R
     {
         let ma = Managed::from_value(closure);
 
         Self {
             closure: ma,
-            invoke: _invoke_fn::<F,T,Arg>
+            invoke: _invoke_fn::<F,Arg,R>
         }
     }
 
-    pub fn invoke(&self, arg: Arg) -> T {
+    pub fn invoke(&self, arg: Arg) -> R {
         (self.invoke)(self.closure.pointer, arg)
     }
 }
@@ -28,8 +28,8 @@ pub struct FFIFnV {
     invoke: extern fn(*const ())
 }
 
-extern fn _invoke_fn<F,T,Arg>(ptr: *const (), arg: Arg) -> T
-    where F: Fn(Arg) -> T
+extern fn _invoke_fn<F,Arg,R>(ptr: *const (), arg: Arg) -> R
+    where F: Fn(Arg) -> R
 {
     let f = unsafe { &*(ptr as *const F) };
     f(arg)
