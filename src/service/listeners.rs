@@ -23,7 +23,7 @@ impl ListenerWorker {
             listeners.push(LinkedList::new())
         }
 
-        let (tx, rx) = tokio::sync::mpsc::channel(61);
+        let (tx, rx) = tokio::sync::mpsc::channel(10);
 
         ListenerWorker {
             listeners,
@@ -51,7 +51,7 @@ impl ListenerWorker {
                 let handle = tokio::spawn(async move {
                     let listener = {
                         let lock = opt.read().await;
-                        lock.clone()
+                        lock.as_ref().map(|a| Arc::clone(a))
                     };
 
                     if let Some(listener) = listener {
@@ -113,7 +113,7 @@ impl ListenerWorker {
             }
 
             // Safety: locked by the mpsc::channel,
-            // and the node will not remove when listener closed
+            // and the node will not remove when listener close
             #[allow(clippy::cast_ref_to_mut)]
             let list = unsafe { &mut *(list as *const _ as *mut LimitedListeners) };
             list.push_back(Arc::new(RwLock::new(Some(l))));
