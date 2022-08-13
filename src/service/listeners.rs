@@ -55,12 +55,8 @@ impl ListenerWorker {
                             mutex.lock().await;
                         }
 
-                        if listener.closed.load(Ordering::Acquire)
-                            || !{
-                                let fu = (listener.handler)(event);
-                                fu.await
-                            }
-                        {
+                        let fut = (listener.handler)(event);
+                        if listener.closed.load(Ordering::Acquire) || !fut.await {
                             close_listener.await;
                         };
                     }

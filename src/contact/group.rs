@@ -89,18 +89,13 @@ impl Group {
     }
 
     pub async fn quit(&self) {
-        self.bot().client().group_quit(self.id()).await.ok();
+        let _ = self.bot().client().group_quit(self.id()).await;
     }
 }
 
 impl Display for Group {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Group({}, member_size: {})",
-            self.id(),
-            self.0.members.len()
-        )
+        write!(f, "Group({})", self.id(),)
     }
 }
 
