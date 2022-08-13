@@ -43,7 +43,8 @@ impl Service {
         }
     }
 
-    pub fn with_path(&mut self, path: impl Deref<Target = Path>) {
+    pub fn with_path<P: AsRef<Path>>(&mut self, path: P) {
+        let path = path.as_ref();
         if !path.is_dir() {
             fs::create_dir_all(&*path).unwrap();
         }

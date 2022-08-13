@@ -37,7 +37,6 @@ impl Listener {
             name: None,
             concurrent: true,
             handler,
-            closed: AtomicBool::new(false).into(),
             priority: Priority::Middle,
         }
     }
@@ -114,7 +113,6 @@ pub struct ListenerBuilder {
     pub concurrent: bool,
     handler:
         Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output = bool> + Send + 'static>> + Send + 'static>,
-    closed: Arc<AtomicBool>,
     pub priority: Priority,
 }
 
@@ -124,12 +122,12 @@ impl ListenerBuilder {
             name,
             concurrent,
             handler,
-            closed,
             priority,
         } = self;
 
         let name = Arc::new(name.unwrap_or_else(|| String::from("Unnamed-Listener")));
         let arc_name = name.clone();
+        let closed = Arc::new(AtomicBool::new(false));
         let arc_closed = closed.clone();
         let listener = Listener {
             name,

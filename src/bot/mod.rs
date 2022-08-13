@@ -41,11 +41,13 @@ impl Bot {
 
                 self.0.enable.swap(true, Ordering::Relaxed);
             } else {
-                error!("Bot({})登陆失败: {:?}", self.0.client.uin().await, resp);
+                error!("{}登陆失败: {:?}", self, resp);
 
                 return Err(RQError::TokenLoginFailed);
             }
         } else {
+            error!("{}登陆失败: 未找到Token", self);
+
             return Err(RQError::TokenLoginFailed);
         }
 
@@ -128,6 +130,10 @@ impl Bot {
     pub(crate) fn client(&self) -> &Client {
         &self.0.client
     }
+
+    /*pub async fn guild_client(&self) -> GuildClient {
+        GuildClient::new(&self.0.client).await
+    }*/
 }
 
 impl PartialEq for Bot {

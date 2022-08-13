@@ -1,5 +1,5 @@
 use std::collections::LinkedList;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 
 use tokio::sync::{Mutex, RwLock};
@@ -12,6 +12,7 @@ pub struct ListenerWorker {
     listeners: Vec<LimitedListeners>,
     listener_rx: Mutex<tokio::sync::mpsc::Receiver<Arc<Listener>>>,
     listener_tx: tokio::sync::mpsc::Sender<Arc<Listener>>,
+    closed: AtomicBool,
 }
 
 impl ListenerWorker {
@@ -28,6 +29,7 @@ impl ListenerWorker {
             listeners,
             listener_rx: rx.into(),
             listener_tx: tx,
+            closed: AtomicBool::new(false),
         }
     }
 
@@ -37,13 +39,20 @@ impl ListenerWorker {
     }
 
     pub async fn handle(&self, event: &Event) {
+        if self.closed.load(Ordering::Acquire) {
+            return;
+        }
+
         let mut handlers = vec![];
         for list in &self.listeners {
             handlers.reserve(list.len());
             for opt in list.into_iter().cloned() {
                 let event = event.clone();
                 let handle = tokio::spawn(async move {
-                    let listener = opt.read().await.to_owned();
+                    let listener = {
+                        let lock = opt.read().await;
+                        lock.clone()
+                    };
 
                     if let Some(listener) = listener {
                         let close_listener = async {
@@ -55,8 +64,15 @@ impl ListenerWorker {
                             mutex.lock().await;
                         }
 
-                        let fut = (listener.handler)(event);
-                        if listener.closed.load(Ordering::Acquire) || !fut.await {
+                        if listener.closed.load(Ordering::Acquire) {
+                            close_listener.await;
+                            return;
+                        }
+
+                        let fu = (listener.handler)(event);
+                        let con: bool = fu.await;
+
+                        if !con {
                             close_listener.await;
                         };
                     }
@@ -66,11 +82,9 @@ impl ListenerWorker {
             }
 
             //waiting for all task finish
-            for handle in (0..handlers.len())
-                .into_iter()
-                .map(|_| handlers.pop().expect("Cannot get handle"))
-            {
-                handle.await.ok();
+            for _ in 0..handlers.len() {
+                let handle = handlers.pop().expect("Cannot get handle");
+                let _ = handle.await;
             }
 
             if event.is_intercepted() {
@@ -80,13 +94,16 @@ impl ListenerWorker {
     }
 
     pub async fn start(&self) {
-        let mut lock = self.listener_rx.lock().await;
+        let mut lock = self
+            .listener_rx
+            .try_lock()
+            .unwrap_or_else(|_| panic!("ListenerWorker只可开启一次"));
 
         'add: while let Some(l) = lock.recv().await {
             let list = &self.listeners[l.priority as usize];
 
             for opt in list {
-                let node = { opt.read().await.clone() };
+                let node = { opt.read().await.clone() }; //限制生命周期
 
                 if node.is_none() {
                     let mut wl = opt.write().await;
@@ -95,14 +112,20 @@ impl ListenerWorker {
                 }
             }
 
+            // Safety: locked by the mpsc::channel,
+            // and the node will not remove when listener closed
             #[allow(clippy::cast_ref_to_mut)]
             let list = unsafe { &mut *(list as *const _ as *mut LimitedListeners) };
             list.push_back(Arc::new(RwLock::new(Some(l))));
         }
     }
+
+    pub fn close(&self) {
+        self.closed.swap(true, Ordering::Release);
+    }
 }
 
 pub fn get_global_worker() -> &'static ListenerWorker {
     static WORKER: OnceLock<ListenerWorker> = OnceLock::new();
-    WORKER.get_or_init(|| ListenerWorker::new())
+    WORKER.get_or_init(ListenerWorker::new)
 }
