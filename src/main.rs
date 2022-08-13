@@ -11,7 +11,7 @@ use atri_qq::event::GroupMessageEvent;
 use atri_qq::service::listeners::get_global_worker;
 use atri_qq::service::log::init_logger;
 use atri_qq::service::login::login_bots;
-use atri_qq::{fun, get_app, get_listener_runtime, get_runtime, main_handler, Atri};
+use atri_qq::{fun, get_app, get_listener_runtime, main_handler, Atri};
 
 type MainResult = Result<(), Box<dyn Error>>;
 
@@ -24,7 +24,7 @@ fn main() -> MainResult {
 
     atri.plugin_manager().load_plugins()?;
 
-    let runtime = get_runtime();
+    let runtime = atri.global_runtime();
 
     let guard = Listener::listening_on_always(|e: GroupMessageEvent| async move {
         if !get_app().check_group_bot(e.group().bot().id(), e.group().id()) {

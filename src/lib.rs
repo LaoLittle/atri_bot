@@ -65,24 +65,16 @@ impl Atri {
     pub fn plugin_manager(&self) -> &PluginManager {
         &self.plugin_manager
     }
+
+    pub fn global_runtime(&self) -> &Runtime {
+        &self.global_runtime
+    }
 }
 
 static APP: OnceLock<App> = OnceLock::new();
 
 pub fn get_app() -> &'static App {
     APP.get_or_init(App::new)
-}
-
-static ASYNC_RUNTIME: OnceLock<Runtime> = OnceLock::new();
-
-pub fn get_runtime() -> &'static Runtime {
-    ASYNC_RUNTIME.get_or_init(|| {
-        runtime::Builder::new_multi_thread()
-            .thread_name("GlobalRuntime")
-            .enable_all()
-            .build()
-            .unwrap()
-    })
 }
 
 static LISTENER_RUNTIME: OnceLock<Runtime> = OnceLock::new();
