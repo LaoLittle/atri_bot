@@ -177,7 +177,7 @@ mod imp {
 
     impl Bot {
         pub async fn new(id: i64, conf: BotConfiguration) -> Self {
-            let mut work_dir = conf.get_work_dir(id);
+            let work_dir = conf.get_work_dir(id);
 
             if !work_dir.is_dir() {
                 fs::create_dir_all(&work_dir)
@@ -185,7 +185,7 @@ mod imp {
                     .expect("Cannot create work dir");
             }
 
-            let mut file_p = work_dir.join("device.json");
+            let file_p = work_dir.join("device.json");
             let device: Device = if file_p.is_file() {
                 if let Ok(fu) = fs::File::open(&file_p).await.map(|mut f| async move {
                     let mut str = String::new();

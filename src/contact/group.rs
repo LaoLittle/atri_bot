@@ -8,7 +8,7 @@ use ricq::RQResult;
 use tracing::error;
 
 use crate::contact::member::NamedMember;
-use crate::{Bot, GroupMemberInfo, MessageChain};
+use crate::{Bot, MessageChain};
 
 #[derive(Clone)]
 pub struct Group(Arc<imp::Group>);
@@ -110,10 +110,9 @@ impl Display for Group {
 mod imp {
     use dashmap::DashMap;
     use ricq::structs::GroupInfo;
-    use std::sync::Arc;
 
     use crate::contact::member::NamedMember;
-    use crate::{Bot, GroupMemberInfo};
+    use crate::Bot;
 
     pub struct Group {
         pub id: i64,
