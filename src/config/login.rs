@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub static DEFAULT_CONFIG: &[u8] = include_bytes!("../../default_config/default_login_conf.toml");
+pub const DEFAULT_CONFIG: &[u8] = include_bytes!("../../default_config/default_login_conf.toml");
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 pub struct LoginConfig {
@@ -18,19 +18,14 @@ pub struct BotConfig {
     pub auto_login: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, Copy)]
+#[derive(Deserialize, Serialize, Debug, Clone, Copy, Default)]
 pub enum Protocol {
+    #[default]
     IPAD,
     AndroidPhone,
     AndroidWatch,
     MacOS,
     QiDian,
-}
-
-impl Default for Protocol {
-    fn default() -> Self {
-        Self::IPAD
-    }
 }
 
 impl Protocol {

@@ -2,16 +2,16 @@ use std::path::PathBuf;
 
 pub mod login;
 
-static SERVICE_CONFIG_PATH: &str = "service";
+const SERVICE_CONFIG_PATH: &str = "service";
 
 pub fn service_config_dir_buf() -> PathBuf {
     PathBuf::from(SERVICE_CONFIG_PATH)
 }
 
-static BOTS_PATH: &str = "bots";
+const BOTS_PATH: &str = "bots";
 
 pub fn bots_dir_buf() -> PathBuf {
     PathBuf::from(BOTS_PATH)
 }
 
-static DEFAULT_CONFIG_PATH: &str = "config";
+const DEFAULT_CONFIG_PATH: &str = "config";
