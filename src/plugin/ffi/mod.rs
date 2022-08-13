@@ -1,8 +1,10 @@
 mod bot;
+mod event;
 mod listener;
 
 use std::sync::OnceLock;
 
+use crate::plugin::ffi::event::{event_intercept, event_is_intercepted};
 use crate::plugin::ffi::listener::new_listener;
 use crate::PluginManager;
 use atri_ffi::ffi::AtriVTable;
@@ -16,6 +18,8 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
         plugin_manager_spawn,
         plugin_manager_block_on,
         new_listener,
+        event_intercept,
+        event_is_intercepted,
     })
 }
 

@@ -22,7 +22,7 @@ fn main() -> MainResult {
 
     get_listener_runtime().spawn(get_global_worker().start());
 
-    atri.load_plugins()?;
+    atri.plugin_manager().load_plugins()?;
 
     let runtime = get_runtime();
 

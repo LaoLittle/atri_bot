@@ -1,4 +1,3 @@
-use std::mem::ManuallyDrop;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -26,14 +25,24 @@ pub enum Event {
 
 impl Event {
     pub fn into_ffi(self) -> FFIEvent {
-        let (t, e) = match self {
-            Event::BotOnlineEvent(e) => (0, Managed::from_value(e)),
-            Event::GroupMessageEvent(e) => (1, Managed::from_value(e)),
-            Event::FriendMessageEvent(e) => (2, Managed::from_value(e)),
-            Event::Unknown(e) => (255, Managed::from_value(e)),
+        macro_rules! ffi_get {
+            ($($e:ident => $t:expr);* $(;)?) => {
+                match self {
+                    $(
+                    Self::$e(e) => ($t, &*e.intercepted as *const AtomicBool, Managed::from_value(e)),
+                    )*
+                }
+            };
+        }
+
+        let (t, intercepted, base) = ffi_get! {
+            BotOnlineEvent => 0;
+            GroupMessageEvent => 1;
+            FriendMessageEvent => 2;
+            Unknown => 3;
         };
 
-        FFIEvent::from(t, e)
+        FFIEvent::from(t, intercepted as _, base)
     }
 }
 
@@ -55,9 +64,9 @@ macro_rules! event_fun_impl {
     ($($name:ident: $ret:ty as $func:expr);+ $(;)?) => {
         $(
         event_impl! {
+            BotOnlineEvent,
             GroupMessageEvent,
             FriendMessageEvent,
-            BotOnlineEvent,
             Unknown;
             $name: $ret as $func
         }

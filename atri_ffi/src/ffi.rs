@@ -15,6 +15,11 @@ pub struct AtriVTable {
     extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
     pub new_listener:
     extern "C" fn(FFIFn<FFIFuture<bool>, FFIEvent>) -> Managed,
+    pub event_intercept:
+    extern "C" fn(intercepted: *const ()),
+    pub event_is_intercepted:
+    extern "C" fn(intercepted: *const ()) -> bool,
+
 }
 
 #[repr(C)]
@@ -55,16 +60,24 @@ impl<T> Future for JoinHandle<T> {
 #[repr(C)]
 pub struct FFIEvent {
     t: u8,
+    intercepted: *const (),
     base: Managed,
 }
 
 impl FFIEvent {
-
-
-    pub fn from(t: u8, e: Managed) -> Self {
+    pub fn from(
+        t: u8,
+        intercepted: *const (),
+        base: Managed,
+    ) -> Self {
         Self {
             t,
-            base: e
+            intercepted,
+            base,
         }
+    }
+    
+    pub fn get(self) -> (u8,*const (), Managed) {
+        (self.t, self.intercepted, self.base)
     }
 }

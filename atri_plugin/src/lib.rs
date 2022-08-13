@@ -4,6 +4,7 @@ use atri_ffi::Managed;
 pub mod loader;
 pub mod manager;
 pub mod listener;
+pub mod event;
 
 pub use atri_ffi::plugin::PluginInstance;
 
