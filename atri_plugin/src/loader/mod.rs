@@ -1,19 +1,18 @@
 use atri_ffi::ffi::{AtriManager, AtriVTable};
 use std::mem::MaybeUninit;
 
-static mut ATRI_VTABLE: MaybeUninit<AtriManager> = MaybeUninit::uninit();
+static mut ATRI_MANAGER: MaybeUninit<AtriManager> = MaybeUninit::uninit();
 
+/// Safety: This function will be called by the plugin manager once
 #[no_mangle]
-extern "C" fn atri_manager_init(vtb: AtriManager) {
-    unsafe {
-        ATRI_VTABLE = MaybeUninit::new(vtb);
-    }
+unsafe extern "C" fn atri_manager_init(vtb: AtriManager) {
+    ATRI_MANAGER = MaybeUninit::new(vtb);
 }
 
 pub(crate) fn get_plugin_manager() -> *const () {
-    unsafe { ATRI_VTABLE.assume_init_ref().manager_ptr }
+    unsafe { ATRI_MANAGER.assume_init_ref().manager_ptr }
 }
 
 pub(crate) fn get_plugin_manager_vtb() -> &'static AtriVTable {
-    unsafe { &*ATRI_VTABLE.assume_init_ref().vtb }
+    unsafe { &*ATRI_MANAGER.assume_init_ref().vtb }
 }

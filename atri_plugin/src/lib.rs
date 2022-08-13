@@ -9,28 +9,42 @@ pub mod event;
 pub use atri_ffi::plugin::PluginInstance;
 
 pub trait Plugin: Sized {
+    /// 插件启用
     fn enable(&mut self);
 
+    /// 插件禁用
     fn disable(&mut self) {
         // nop
     }
 
-    fn into_instance(self) -> PluginInstance {
-        let instance = Managed::from_value(self);
-        let vtb = PluginVTable::from(__enable::<Self>, __disable::<Self>);
-
-        PluginInstance::from(instance, vtb)
+    /// 是否应该在插件被禁用后`drop`插件实例
+    /// 若为`false`，则插件只会在卸载时`drop`
+    fn should_drop() -> bool {
+        true
     }
 }
 
-extern fn __enable<P: Plugin>(ptr: *mut ()) {
-    // Safety: Plugin is pinned by box
-    let p = unsafe { &mut *(ptr as *mut P) };
-    p.enable();
+pub trait IntoInstance {
+    fn into_instance(self) -> PluginInstance;
 }
 
-extern fn __disable<P: Plugin>(ptr: *mut ()) {
-    // Safety: Plugin is pinned by box
-    let p = unsafe { &mut *(ptr as *mut P) };
-    p.disable();
+impl<P: Plugin> IntoInstance for P {
+    fn into_instance(self) -> PluginInstance {
+        extern fn _enable<P: Plugin>(ptr: *mut ()) {
+            // Safety: Plugin is pinned by box
+            let p = unsafe { &mut *(ptr as *mut P) };
+            p.enable();
+        }
+
+        extern fn _disable<P: Plugin>(ptr: *mut ()) {
+            // Safety: Plugin is pinned by box
+            let p = unsafe { &mut *(ptr as *mut P) };
+            p.disable();
+        }
+
+        let instance = Managed::from_value(self);
+        let vtb = PluginVTable::from(_enable::<Self>, _disable::<Self>);
+
+        PluginInstance::from(instance, vtb)
+    }
 }
