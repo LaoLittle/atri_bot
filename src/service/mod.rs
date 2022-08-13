@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fs::File;
 
 use std::io::{Read, Write};
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 use std::{fs, io, mem};
@@ -35,7 +34,10 @@ impl Service {
     pub fn new<S: ToString>(name: S) -> Self {
         let name = name.to_string();
         let mut p = get_service_path().clone();
-        p.push(&name);
+        let mut s = String::from(&name);
+        p.push(&s);
+        s.push_str(".toml");
+        p.push(&s);
         Self {
             name,
             path: p,
@@ -68,18 +70,27 @@ impl Service {
     {
         fn _read_config<T>(path: &Path) -> Result<T, Box<dyn Error>>
         where
-            for<'a> T: Deserialize<'a> + Default,
+            for<'a> T: Serialize + Deserialize<'a> + Default,
         {
+            let exist = path.is_file();
+
             let mut f = fs::OpenOptions::new()
                 .create(true)
                 .read(true)
                 .write(true)
                 .open(path)?;
 
-            let mut s = String::new();
-            f.read_to_string(&mut s)?;
+            let data = if exist {
+                let mut s = String::new();
+                f.read_to_string(&mut s)?;
+                toml::from_str(&s)?
+            } else {
+                let dat = T::default();
+                let str = toml::to_string_pretty(&dat)?;
+                let _ = f.write_all(str.as_bytes());
+                dat
+            };
 
-            let data = toml::from_str(&s)?;
             Ok(data)
         }
 
@@ -87,6 +98,11 @@ impl Service {
             Ok(data) => data,
             Err(e) => {
                 error!("读取配置文件({:?})时发生意料之外的错误: {}", self.path, e);
+
+                let mut bk = self.path.clone();
+                bk.pop();
+                bk.push(format!("{}.toml.bak", self.name()));
+                let _ = fs::copy(&self.path, bk);
 
                 let data = T::default();
                 if let Ok(mut f) = File::create(&self.path) {
@@ -141,6 +157,7 @@ pub trait ServiceHandler: 'static {
 
     fn on_close(&mut self, service: &Service) {
         //nop
+        let _ = service;
     }
 }
 
