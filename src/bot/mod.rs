@@ -23,16 +23,10 @@ impl Bot {
     }
 
     pub async fn try_login(&self) -> RQResult<()> {
-        //let client = &self.client;
-
-        let mut p = self.0.work_dir.clone();
-        p.push("token.json");
+        let mut p = self.0.work_dir.join("token.json");
 
         if p.is_file() {
-            let mut f = fs::File::open(&p).await.expect("Cannot open file");
-
-            let mut s = String::new();
-            f.read_to_string(&mut s).await?;
+            let s = fs::read_to_string(&p).await.expect("Cannot open file");
 
             let token: Token = serde_json::from_str(&s).expect("Cannot read token from file");
 
@@ -77,6 +71,7 @@ impl Bot {
     pub async fn refresh_group_list(&self) -> RQResult<()> {
         let infos = self.client().get_group_list().await?;
         self.0.group_list.clear();
+
         for info in infos {
             let code = info.code;
             let group = Group::from(self.clone(), info);
@@ -117,15 +112,12 @@ impl Bot {
         let result = self.client().get_group_info(id).await;
 
         match result {
-            Ok(info) => {
-                if let Some(info) = info {
-                    let group = Group::from(self.clone(), info);
-                    self.0.group_list.insert(id, group.clone());
-                    Some(group)
-                } else {
-                    None
-                }
+            Ok(Some(info)) => {
+                let group = Group::from(self.clone(), info);
+                self.0.group_list.insert(id, group.clone());
+                Some(group)
             }
+            Ok(none) => none,
             Err(e) => {
                 error!("获取群({})信息时发生意料之外的错误: {:?}", id, e);
                 None
@@ -185,14 +177,7 @@ mod imp {
 
     impl Bot {
         pub async fn new(id: i64, conf: BotConfiguration) -> Self {
-            let mut work_dir = PathBuf::new();
-
-            if let Some(s) = conf.work_dir {
-                work_dir = s;
-            } else {
-                work_dir.push("bots");
-                work_dir.push(id.to_string());
-            };
+            let mut work_dir = conf.get_work_dir(id);
 
             if !work_dir.is_dir() {
                 fs::create_dir_all(&work_dir)
@@ -200,8 +185,7 @@ mod imp {
                     .expect("Cannot create work dir");
             }
 
-            let mut file_p = work_dir.clone();
-            file_p.push("device.json");
+            let mut file_p = work_dir.join("device.json");
             let device: Device = if file_p.is_file() {
                 if let Ok(fu) = fs::File::open(&file_p).await.map(|mut f| async move {
                     let mut str = String::new();
@@ -211,26 +195,23 @@ mod imp {
                         Ok(d) => d,
                         Err(e) => {
                             error!("{:?}", e);
-                            let d = Device::random();
+                            let device = Device::random();
 
                             let mut bak = file_p.as_os_str().to_owned();
                             bak.push(".bak");
                             let bak = Path::new(&bak);
                             if let Err(_) = fs::copy(&file_p, &bak).await {
-                                return d;
+                                return device;
                             };
 
                             drop(f); // make sure the file is closed
                             if let Ok(mut f) = fs::File::create(file_p).await {
-                                let s = serde_json::to_string_pretty(&d)
-                                    .expect("Cannot serialize device info");
-
-                                f.write_all(s.as_bytes())
-                                    .await
-                                    .expect("Cannot write device info to file");
+                                serde_json::to_writer_pretty(f, &device).expect(
+                                    "Cannot serialize device info Or write device info to file",
+                                );
                             };
 
-                            d
+                            device
                         }
                     }
                 }) {
@@ -239,17 +220,14 @@ mod imp {
                     Device::random()
                 }
             } else {
-                let d = Device::random();
+                let device = Device::random();
 
                 if let Ok(mut f) = fs::File::create(&file_p).await {
-                    let s = serde_json::to_string_pretty(&d).unwrap();
-
-                    f.write_all(s.as_bytes())
-                        .await
-                        .expect("Cannot write device info to file")
+                    serde_json::to_writer_pretty(f, &device)
+                        .expect("Cannot serialize device info Or write device info to file");
                 }
 
-                d
+                device
             };
 
             let client = Client::new(device, conf.version, GlobalEventBroadcastHandler);
@@ -267,10 +245,8 @@ mod imp {
         pub async fn start(&self) -> io::Result<()> {
             let client = self.client.clone();
 
-            //let addr = SocketAddr::new(Ipv4Addr::new(113, 96, 18, 253).into(), 80);
             let socket = TcpSocket::new_v4()?;
             let stream = socket.connect(client.get_address_list().await[0]).await?;
-            //let stream = TcpStream::connect(client.get_address()).await?;
 
             tokio::spawn(async move {
                 client.start(stream).await;
@@ -299,4 +275,13 @@ mod imp {
 pub struct BotConfiguration {
     pub work_dir: Option<PathBuf>,
     pub version: ricq::version::Version,
+}
+
+impl BotConfiguration {
+    fn get_work_dir(&self, id: i64) -> PathBuf {
+        self.work_dir
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| PathBuf::new().join("bots").join(id.to_string()))
+    }
 }
