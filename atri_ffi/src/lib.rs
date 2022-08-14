@@ -10,16 +10,16 @@ pub mod closure;
 
 #[repr(C)]
 pub struct Managed {
-    pointer: *mut (),
-    vtable: ManagedVTable,
+    pub pointer: *mut (),
+    pub vtable: ManagedVTable,
 }
 
 unsafe impl Send for Managed {}
 unsafe impl Sync for Managed {}
 
 #[repr(C)]
-struct ManagedVTable {
-    drop: extern "C" fn(*mut ()),
+pub struct ManagedVTable {
+    pub drop: extern "C" fn(*mut ()),
 }
 
 impl Managed {

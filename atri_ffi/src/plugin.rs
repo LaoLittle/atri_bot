@@ -2,13 +2,14 @@ use crate::Managed;
 
 #[repr(C)]
 pub struct PluginInstance {
-    instance: Managed,
-    vtb: PluginVTable,
+    pub instance: Managed,
+    pub should_drop: bool,
+    pub vtb: PluginVTable,
 }
 
 impl PluginInstance {
-    pub fn from(instance: Managed, vtb: PluginVTable) -> Self {
-        Self { instance, vtb }
+    pub fn from(instance: Managed, should_drop: bool,vtb: PluginVTable) -> Self {
+        Self { instance, should_drop,vtb }
     }
 
     pub fn enable(&self) {
@@ -22,12 +23,7 @@ impl PluginInstance {
 
 #[repr(C)]
 pub struct PluginVTable {
-    enable: extern "C" fn(*mut ()),
-    disable: extern "C" fn(*mut ()),
-}
-
-impl PluginVTable {
-    pub fn from(enable: extern "C" fn(*mut ()), disable: extern "C" fn(*mut ())) -> Self {
-        Self { enable, disable }
-    }
+    pub new: extern "C" fn() -> Managed,
+    pub enable: extern "C" fn(*mut ()),
+    pub disable: extern "C" fn(*mut ()),
 }
