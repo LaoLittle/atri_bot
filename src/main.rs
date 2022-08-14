@@ -16,9 +16,8 @@ use atri_qq::{fun, get_app, get_listener_runtime, main_handler, Atri};
 type MainResult = Result<(), Box<dyn Error>>;
 
 fn main() -> MainResult {
-    let atri = Atri::new();
-
     init_logger();
+    let atri = Atri::new();
 
     get_listener_runtime().spawn(get_global_worker().start());
 

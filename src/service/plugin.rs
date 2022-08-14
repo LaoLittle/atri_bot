@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::{fs, io, mem, thread};
 
 use std::panic::catch_unwind;
-use std::ptr::{null, null_mut};
+use std::ptr::null_mut;
 use std::sync::Arc;
 
 use libloading::Library;
@@ -82,7 +82,7 @@ impl PluginManager {
         }));
     }
 
-    pub fn unload_plugin(&self, name: &String) {
+    pub fn unload_plugin(&self, name: &str) {
         todo!()
     }
 

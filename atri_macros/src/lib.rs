@@ -22,6 +22,7 @@ use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenSt
 ///
 /// Note that only one struct or enum that impls `atri_plugin::Plugin` trait can be
 /// mark as a plugin
+
 #[proc_macro_attribute]
 pub fn plugin(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let mut tree: Vec<TokenTree> = input.into_iter().collect();

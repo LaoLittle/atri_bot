@@ -20,6 +20,24 @@ impl Listener {
         let ma = (get_plugin_manager_vtb().new_listener)(f);
         ListenerGuard(ma)
     }
+
+    fn new_always<F, Fu>(handler: F) -> ListenerGuard
+        where
+            F: Fn(Event) -> Fu,
+            F: Send + 'static,
+            Fu: Future<Output = ()>,
+            Fu: Send + 'static,
+    {
+        Self::new(move |e: Event| {
+            let fu = handler(e);
+            let b: Box<dyn Future<Output = bool> + Send + 'static> = Box::new(async move {
+                fu.await;
+                true
+            });
+
+            Box::into_pin(b)
+        })
+    }
 }
 
 pub struct ListenerGuard(Managed);

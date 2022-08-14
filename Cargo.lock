@@ -1115,8 +1115,8 @@ dependencies = [
 
 [[package]]
 name = "ricq"
-version = "0.1.16"
-source = "git+https://github.com/lz1998/ricq.git#e7309354ef6732040beb5fcd919bd9bb8d1af86a"
+version = "0.1.17"
+source = "git+https://github.com/lz1998/ricq.git#d4c777990b12b0c3cb0b2715f5ec4fc5f756f962"
 dependencies = [
  "async-trait",
  "bytes",
@@ -1137,8 +1137,8 @@ dependencies = [
 
 [[package]]
 name = "ricq-core"
-version = "0.1.16"
-source = "git+https://github.com/lz1998/ricq.git#e7309354ef6732040beb5fcd919bd9bb8d1af86a"
+version = "0.1.17"
+source = "git+https://github.com/lz1998/ricq.git#d4c777990b12b0c3cb0b2715f5ec4fc5f756f962"
 dependencies = [
  "byteorder",
  "bytes",
@@ -1159,7 +1159,7 @@ dependencies = [
 [[package]]
 name = "ricq-guild"
 version = "0.1.0"
-source = "git+https://github.com/lz1998/ricq.git#e7309354ef6732040beb5fcd919bd9bb8d1af86a"
+source = "git+https://github.com/lz1998/ricq.git#d4c777990b12b0c3cb0b2715f5ec4fc5f756f962"
 dependencies = [
  "bytes",
  "dynamic-protobuf",
