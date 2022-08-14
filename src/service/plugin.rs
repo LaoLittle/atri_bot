@@ -1,14 +1,14 @@
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::{fs, io, mem, thread};
 use std::any::Any;
 use std::error::Error;
+use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
+use std::{fs, io, mem, thread};
 
 use std::panic::catch_unwind;
+use std::ptr::{null, null_mut};
 use std::sync::Arc;
-
 
 use libloading::Library;
 
@@ -17,7 +17,7 @@ use tokio::runtime::Runtime;
 use tracing::{error, info, trace};
 
 use atri_ffi::ffi::AtriManager;
-use atri_ffi::plugin::PluginInstance;
+use atri_ffi::plugin::{PluginInstance, PluginVTable};
 
 use crate::plugin::ffi::get_plugin_vtable;
 
@@ -48,7 +48,8 @@ impl PluginManager {
                 while let Ok(task) = rx.recv() {
                     task();
                 }
-            }).expect("Cannot spawn plugin handler");
+            })
+            .expect("Cannot spawn plugin handler");
 
         Self {
             plugins: Vec::new().into(),
@@ -67,7 +68,7 @@ impl PluginManager {
         &self.plugins_path
     }
 
-    pub fn enable_plugin(&self,plugin: &Arc<Plugin>) {
+    pub fn enable_plugin(&self, plugin: &Arc<Plugin>) {
         let plugin = plugin.clone();
         let _ = self.task.send(Box::new(move || {
             plugin.enable();
@@ -139,53 +140,70 @@ impl PluginManager {
             let lib = Library::new(path)?;
 
             let (tx, rx) = std::sync::mpsc::channel();
-            self.task.send(Box::new(move || {
-                let load_plugin = || -> Result<Result<Plugin, Box<dyn Any + Send>>, Box<dyn Error>> {
-                    let plugin_init = lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")?;
-                    let on_init = *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")?;
-                    trace!("正在初始化插件");
-                    plugin_init(AtriManager {
-                        manager_ptr: ptr as *const PluginManager as _,
-                        vtb: get_plugin_vtable(),
-                    });
+            self.task
+                .send(Box::new(move || {
+                    let load_plugin =
+                        || -> Result<Result<Plugin, Box<dyn Any + Send>>, Box<dyn Error>> {
+                            let plugin_init =
+                                lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")?;
+                            let on_init =
+                                *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")?;
+                            trace!("正在初始化插件");
 
-                    let catch = catch_unwind(move || {
-                        let instance = on_init();
+                            plugin_init(AtriManager {
+                                manager_ptr: ptr as *const PluginManager as _,
+                                vtb: get_plugin_vtable(),
+                            });
 
-                        let plugin = Plugin {
-                            enabled: AtomicBool::new(false),
-                            _lib: lib,
-                            instance,
+                            let catch = catch_unwind(move || {
+                                let plugin_instance = on_init();
+
+                                let should_drop = plugin_instance.should_drop;
+
+                                let managed = plugin_instance.instance;
+                                let ptr = managed.pointer;
+                                let drop_fn = managed.vtable.drop;
+
+                                mem::forget(managed);
+
+                                let plugin = Plugin {
+                                    enabled: AtomicBool::new(false),
+                                    _lib: lib,
+                                    instance: AtomicPtr::new(ptr),
+                                    should_drop,
+                                    vtb: plugin_instance.vtb,
+                                    drop_fn,
+                                };
+
+                                plugin.enable();
+                                plugin
+                            });
+
+                            Ok(catch)
                         };
 
-                        plugin.enable();
-                        plugin
-                    });
+                    let plugin = match load_plugin() {
+                        Ok(Ok(p)) => p,
+                        Ok(Err(_)) => {
+                            error!("插件加载时发生致命错误");
+                            return;
+                        }
+                        Err(e) => {
+                            error!("插件加载失败: {}", e);
+                            return;
+                        }
+                    };
 
-                    Ok(catch)
-                };
-
-                let plugin = match load_plugin() {
-                    Ok(Ok(p)) => p,
-                    Ok(Err(_)) => {
-                        error!("插件加载时发生致命错误");
-                        return;
-                    },
-                    Err(e) => {
-                        error!("插件加载失败: {}", e);
-                        return;
-                    }
-                };
-
-                tx.send(plugin).unwrap();
-            })).expect("Cannot send task");
+                    tx.send(plugin).unwrap();
+                }))
+                .expect("Cannot send task");
 
             trace!("正在启用插件");
 
             if let Ok(p) = rx.recv() {
                 p
             } else {
-                return Err(io::Error::last_os_error().into()) // todo
+                return Err(io::Error::last_os_error().into()); // todo
             }
         };
 
@@ -204,7 +222,10 @@ impl Drop for PluginManager {
 
 pub struct Plugin {
     enabled: AtomicBool,
-    instance: PluginInstance,
+    instance: AtomicPtr<()>,
+    should_drop: bool,
+    vtb: PluginVTable,
+    drop_fn: extern "C" fn(*mut ()),
     _lib: Library,
 }
 
@@ -214,10 +235,38 @@ impl Plugin {
             .enabled
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
         {
-            Ok(false) => {}
+            Ok(_) => {}
             _ => return false,
         }
-        self.instance.enable();
+        if self.should_drop {
+            let initialized = self.instance.load(Ordering::Relaxed);
+            if initialized != null_mut() {
+                (self.vtb.enable)(initialized);
+                return true;
+            }
+            let new_instance = (self.vtb.new)();
+
+            match self.instance.compare_exchange(
+                null_mut(),
+                new_instance.pointer,
+                Ordering::AcqRel,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => {
+                    (self.vtb.enable)(new_instance.pointer);
+                    if self.instance.load(Ordering::Relaxed) == new_instance.pointer {
+                        mem::forget(new_instance);
+                    }
+                }
+                Err(ptr) => {
+                    (self.vtb.enable)(ptr);
+                    return false;
+                }
+            }
+        } else {
+            (self.vtb.enable)(self.instance.load(Ordering::Relaxed));
+        }
+
         true
     }
 
@@ -229,7 +278,28 @@ impl Plugin {
             Ok(true) => {}
             _ => return false,
         }
-        self.instance.disable();
+
+        if self.should_drop {
+            let ptr = self.instance.swap(null_mut(), Ordering::Acquire);
+            (self.vtb.disable)(ptr);
+            (self.drop_fn)(ptr);
+        } else {
+            (self.vtb.disable)(self.instance.load(Ordering::Relaxed));
+        }
+
         true
+    }
+
+    pub fn should_drop(&self) -> bool {
+        self.should_drop
+    }
+}
+
+impl Drop for Plugin {
+    fn drop(&mut self) {
+        self.disable();
+        if !self.should_drop {
+            (self.drop_fn)(self.instance.load(Ordering::Relaxed))
+        }
     }
 }
