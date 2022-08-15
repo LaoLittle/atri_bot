@@ -244,9 +244,10 @@ impl Plugin {
             Ok(_) => {}
             _ => return false,
         }
+
         if self.should_drop {
-            let initialized = self.instance.load(Ordering::Relaxed);
-            if initialized != null_mut() {
+            let initialized = self.instance.load(Ordering::Release);
+            if !initialized.is_null() {
                 (self.vtb.enable)(initialized);
                 return true;
             }
@@ -256,7 +257,7 @@ impl Plugin {
             match self.instance.compare_exchange(
                 null_mut(),
                 new_instance.pointer,
-                Ordering::AcqRel,
+                Ordering::Acquire,
                 Ordering::Relaxed,
             ) {
                 Ok(_) => {
