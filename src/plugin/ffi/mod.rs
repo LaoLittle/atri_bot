@@ -4,12 +4,13 @@ mod listener;
 
 use std::sync::OnceLock;
 
-use crate::plugin::ffi::event::{event_intercept, event_is_intercepted};
+use crate::plugin::ffi::event::{event_intercept, event_is_intercepted, group_message_event_get_bot, group_message_event_get_group};
 use crate::plugin::ffi::listener::new_listener;
 use crate::PluginManager;
 use atri_ffi::ffi::AtriVTable;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
+use crate::plugin::ffi::bot::bot_get_id;
 
 static PLUGIN_VTABLE: OnceLock<AtriVTable> = OnceLock::new();
 
@@ -20,6 +21,9 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
         new_listener,
         event_intercept,
         event_is_intercepted,
+        bot_get_id,
+        group_message_event_get_bot,
+        group_message_event_get_group
     })
 }
 

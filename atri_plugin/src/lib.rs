@@ -7,6 +7,8 @@ pub mod loader;
 pub mod manager;
 pub mod listener;
 pub mod event;
+pub mod bot;
+pub mod contact;
 
 pub use atri_ffi::plugin::PluginInstance;
 

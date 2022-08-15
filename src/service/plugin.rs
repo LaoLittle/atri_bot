@@ -14,6 +14,7 @@ use libloading::Library;
 
 use tokio::runtime;
 use tokio::runtime::Runtime;
+use tokio::sync::oneshot;
 use tracing::{error, info, trace};
 
 use atri_ffi::ffi::AtriManager;
@@ -105,7 +106,7 @@ impl PluginManager {
                 Ok(entry) => {
                     let f_name = entry.file_name();
                     let name = f_name.to_str().expect("Unable to get file name");
-                    buf.push(name);
+                    buf.push(&f_name);
                     let ext_curr: Vec<&str> = name.split('.').collect();
 
                     if let Some(&EXT) = ext_curr.last() {
@@ -213,10 +214,14 @@ impl PluginManager {
 
 impl Drop for PluginManager {
     fn drop(&mut self) {
+        let (sigtx, sigrx) = std::sync::mpsc::channel();
+
         let v = mem::take(&mut self.plugins);
         let _ = self.task.send(Box::new(move || {
             drop(v);
+            sigtx.send(()).unwrap();
         }));
+        sigrx.recv().unwrap();
     }
 }
 
@@ -244,6 +249,7 @@ impl Plugin {
                 (self.vtb.enable)(initialized);
                 return true;
             }
+
             let new_instance = (self.vtb.new)();
 
             match self.instance.compare_exchange(
@@ -254,14 +260,9 @@ impl Plugin {
             ) {
                 Ok(_) => {
                     (self.vtb.enable)(new_instance.pointer);
-                    if self.instance.load(Ordering::Relaxed) == new_instance.pointer {
-                        mem::forget(new_instance);
-                    }
+                    mem::forget(new_instance);
                 }
-                Err(ptr) => {
-                    (self.vtb.enable)(ptr);
-                    return false;
-                }
+                Err(_) => return false,
             }
         } else {
             (self.vtb.enable)(self.instance.load(Ordering::Relaxed));

@@ -19,6 +19,12 @@ pub struct AtriVTable {
     extern "C" fn(intercepted: *const ()),
     pub event_is_intercepted:
     extern "C" fn(intercepted: *const ()) -> bool,
+    pub bot_get_id:
+    extern fn (bot: *const ()) -> i64,
+    pub group_message_event_get_bot:
+    extern "C" fn(event: *const ()) -> Managed,
+    pub group_message_event_get_group:
+    extern "C" fn(event: *const ()) -> Managed,
 }
 
 #[repr(C)]

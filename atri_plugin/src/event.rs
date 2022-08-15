@@ -1,6 +1,8 @@
 use std::sync::Arc;
 use atri_ffi::ffi::FFIEvent;
 use atri_ffi::Managed;
+use crate::bot::Bot;
+use crate::contact::group::Group;
 use crate::loader::get_plugin_manager_vtb;
 
 pub enum Event {
@@ -53,6 +55,18 @@ pub struct BotOnlineEvent(EventInner);
 
 #[derive(Clone)]
 pub struct GroupMessageEvent(EventInner);
+
+impl GroupMessageEvent {
+    pub fn bot(&self) -> Bot {
+        let ma = (get_plugin_manager_vtb().group_message_event_get_bot)(self.0.event.pointer);
+        Bot(ma)
+    }
+
+    pub fn group(&self) -> Group {
+        let ma = (get_plugin_manager_vtb().group_message_event_get_group)(self.0.event.pointer);
+        Group(ma)
+    }
+}
 
 #[derive(Clone)]
 pub struct FriendMessageEvent(EventInner);

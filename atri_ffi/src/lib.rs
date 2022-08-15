@@ -1,6 +1,6 @@
-use std::mem;
+
+use std::{mem, slice};
 use std::mem::ManuallyDrop;
-use std::ptr::null_mut;
 
 pub mod error;
 pub mod ffi;
@@ -70,35 +70,13 @@ impl Drop for Managed {
 }
 
 #[repr(C)]
-pub struct RawString {
-    pointer: *mut u8,
-    length: usize,
+pub struct RustString {
+    ptr: *mut u8,
+    len: usize,
     capacity: usize,
 }
 
-impl RawString {
-    pub fn null() -> Self {
-        Self {
-            pointer: null_mut(),
-            length: 0,
-            capacity: 0,
-        }
-    }
-
-    pub fn is_null(&self) -> bool {
-        self.pointer.is_null()
-    }
-
-    pub fn to_string(self) -> Option<String> {
-        if self.is_null() {
-            return None;
-        }
-
-        Some(unsafe { String::from_raw_parts(self.pointer, self.length, self.capacity) })
-    }
-}
-
-impl From<String> for RawString {
+impl From<String> for RustString {
     fn from(s: String) -> Self {
         let mut ma = ManuallyDrop::new(s);
         let ptr = ma.as_mut_ptr();
@@ -106,9 +84,62 @@ impl From<String> for RawString {
         let cap = ma.capacity();
 
         Self {
-            pointer: ptr,
-            length: len,
+            ptr,
+            len,
             capacity: cap,
         }
+    }
+}
+
+impl From<RustString> for String {
+    fn from(s: RustString) -> Self {
+        unsafe {
+            String::from_raw_parts(s.ptr,s.len,s.capacity)
+        }
+    }
+}
+
+impl AsRef<str> for RustString {
+    fn as_ref(&self) -> &str {
+        unsafe {
+            let slice = slice::from_raw_parts(self.ptr, self.len);
+            std::str::from_utf8_unchecked(slice)
+        }
+    }
+}
+
+impl ToString for RustString {
+    fn to_string(&self) -> String {
+        self.as_ref().to_string()
+    }
+}
+
+#[repr(C)]
+pub struct RustStr {
+    slice: *const u8,
+    len: usize,
+}
+
+impl From<&str> for RustStr {
+    fn from(s: &str) -> Self {
+        Self {
+            slice: s.as_ptr(),
+            len: s.len(),
+        }
+    }
+}
+
+impl AsRef<str> for RustStr {
+    fn as_ref(&self) -> &str {
+        unsafe {
+            let slice = slice::from_raw_parts(self.slice, self.len);
+            std::str::from_utf8_unchecked(slice)
+        }
+    }
+}
+
+impl ToString for RustStr {
+    fn to_string(&self) -> String {
+        self.as_ref().to_string()
     }
 }
