@@ -39,7 +39,7 @@ impl ListenerWorker {
     }
 
     pub async fn handle(&self, event: &Event) {
-        if self.closed.load(Ordering::Acquire) {
+        if self.closed.load(Ordering::Relaxed) {
             return;
         }
 
@@ -121,7 +121,13 @@ impl ListenerWorker {
     }
 
     pub fn close(&self) {
-        self.closed.swap(true, Ordering::Release);
+        self.closed.swap(true, Ordering::Relaxed);
+    }
+}
+
+impl Drop for ListenerWorker {
+    fn drop(&mut self) {
+        self.close();
     }
 }
 

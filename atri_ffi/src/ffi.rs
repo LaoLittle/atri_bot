@@ -1,34 +1,25 @@
 use std::future::Future;
 use std::marker::PhantomData;
 
+use crate::closure::FFIFn;
 use crate::future::FFIFuture;
+use crate::message::FFIMessageChain;
 use crate::{Managed, RustString};
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use crate::closure::FFIFn;
 
 #[repr(C)]
 pub struct AtriVTable {
     pub plugin_manager_spawn:
-    extern "C" fn(manager: *const (), FFIFuture<Managed>) -> FFIFuture<Managed>,
-    pub plugin_manager_block_on:
-    extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
-    pub new_listener:
-    extern "C" fn(FFIFn<FFIEvent, FFIFuture<bool>>) -> Managed,
-    pub event_intercept:
-    extern "C" fn(intercepted: *const ()),
-    pub event_is_intercepted:
-    extern "C" fn(intercepted: *const ()) -> bool,
-    pub bot_get_id:
-    extern "C" fn (bot: *const ()) -> i64,
-    pub group_message_event_get_bot:
-    extern "C" fn(event: *const ()) -> Managed,
-    pub group_message_event_get_group:
-    extern "C" fn(event: *const ()) -> Managed,
-    pub group_message_event_get_message:
-    extern "C" fn(event: *const ()) -> Managed,
-    pub message_chain_to_string:
-    extern "C" fn(chain: *const ()) -> RustString,
+        extern "C" fn(manager: *const (), FFIFuture<Managed>) -> FFIFuture<Managed>,
+    pub plugin_manager_block_on: extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
+    pub new_listener: extern "C" fn(FFIFn<FFIEvent, FFIFuture<bool>>) -> Managed,
+    pub event_intercept: extern "C" fn(intercepted: *const ()),
+    pub event_is_intercepted: extern "C" fn(intercepted: *const ()) -> bool,
+    pub bot_get_id: extern "C" fn(bot: *const ()) -> i64,
+    pub group_message_event_get_bot: extern "C" fn(event: *const ()) -> Managed,
+    pub group_message_event_get_group: extern "C" fn(event: *const ()) -> Managed,
+    pub group_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
 }
 
 #[repr(C)]
@@ -74,19 +65,15 @@ pub struct FFIEvent {
 }
 
 impl FFIEvent {
-    pub fn from(
-        t: u8,
-        intercepted: *const (),
-        base: Managed,
-    ) -> Self {
+    pub fn from(t: u8, intercepted: *const (), base: Managed) -> Self {
         Self {
             t,
             intercepted,
             base,
         }
     }
-    
-    pub fn get(self) -> (u8,*const (), Managed) {
+
+    pub fn get(self) -> (u8, *const (), Managed) {
         (self.t, self.intercepted, self.base)
     }
 }

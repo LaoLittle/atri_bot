@@ -38,6 +38,20 @@ where Self: Sized
     }
 }
 
+#[derive(Default)]
+pub struct PluginInfo {
+    /// 插件名称
+    pub name: &'static str,
+    /// 插件作者
+    pub author: &'static str,
+    /// 插件依赖, 固定./plugins作为根目录
+    pub dependencies: &'static [&'static str],
+    /// 是否应该在插件被禁用后销毁插件实例
+    ///
+    /// 若为`false`，则插件只会在卸载时销毁实例
+    pub should_drop: bool,
+}
+
 pub fn __get_instance<P: Plugin>(plugin: P) -> PluginInstance {
     extern fn _new<P: Plugin>() -> Managed {
         Managed::from_value(P::new())

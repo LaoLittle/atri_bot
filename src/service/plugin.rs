@@ -246,7 +246,7 @@ impl Plugin {
         }
 
         if self.should_drop {
-            let initialized = self.instance.load(Ordering::Release);
+            let initialized = self.instance.load(Ordering::Acquire);
             if !initialized.is_null() {
                 (self.vtb.enable)(initialized);
                 return true;

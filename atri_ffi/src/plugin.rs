@@ -8,8 +8,12 @@ pub struct PluginInstance {
 }
 
 impl PluginInstance {
-    pub fn from(instance: Managed, should_drop: bool,vtb: PluginVTable) -> Self {
-        Self { instance, should_drop,vtb }
+    pub fn from(instance: Managed, should_drop: bool, vtb: PluginVTable) -> Self {
+        Self {
+            instance,
+            should_drop,
+            vtb,
+        }
     }
 
     pub fn enable(&self) {

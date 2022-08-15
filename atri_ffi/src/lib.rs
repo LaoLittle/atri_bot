@@ -1,12 +1,12 @@
-
-use std::{mem, slice};
 use std::mem::ManuallyDrop;
+use std::{mem, slice};
 
+pub mod closure;
 pub mod error;
 pub mod ffi;
 pub mod future;
+pub mod message;
 pub mod plugin;
-pub mod closure;
 
 #[repr(C)]
 pub struct Managed {
@@ -76,7 +76,7 @@ pub struct ManagedRef {
 impl ManagedRef {
     pub fn from_ref<T>(val: &T) -> Self {
         Self {
-            pointer: val as *const T as usize as *mut ()
+            pointer: val as *const T as usize as *mut (),
         }
     }
 }
@@ -105,9 +105,7 @@ impl From<String> for RustString {
 
 impl From<RustString> for String {
     fn from(s: RustString) -> Self {
-        let str = unsafe {
-            String::from_raw_parts(s.ptr,s.len,s.capacity)
-        };
+        let str = unsafe { String::from_raw_parts(s.ptr, s.len, s.capacity) };
         str
     }
 }
@@ -154,5 +152,30 @@ impl AsRef<str> for RustStr {
 impl ToString for RustStr {
     fn to_string(&self) -> String {
         self.as_ref().to_string()
+    }
+}
+
+#[repr(C)]
+pub struct RawVec<T> {
+    ptr: *mut T,
+    len: usize,
+    capacity: usize,
+}
+
+impl<T> RawVec<T> {
+    pub fn into_vec(self) -> Vec<T> {
+        unsafe { Vec::from_raw_parts(self.ptr, self.len, self.capacity) }
+    }
+}
+
+impl<T> From<Vec<T>> for RawVec<T> {
+    fn from(mut v: Vec<T>) -> Self {
+        let (ptr, len, cap) = (v.as_mut_ptr(), v.len(), v.capacity());
+        mem::forget(v);
+        Self {
+            ptr,
+            len,
+            capacity: cap,
+        }
     }
 }

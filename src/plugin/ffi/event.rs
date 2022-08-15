@@ -1,5 +1,6 @@
 use crate::event::GroupMessageEvent;
 use crate::plugin::cast_ref;
+use atri_ffi::message::FFIMessageChain;
 use atri_ffi::Managed;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -23,7 +24,9 @@ pub extern "C" fn group_message_event_get_group(event: *const ()) -> Managed {
     Managed::from_value(event.group().clone())
 }
 
-pub extern "C" fn group_message_event_get_message(event: *const ()) -> Managed {
+pub extern "C" fn group_message_event_get_message(event: *const ()) -> FFIMessageChain {
     let event: &GroupMessageEvent = cast_ref(event);
-    Managed::from_value(event.message().elements.clone()) // todo: optimize
+    let chain = event.message().elements.clone();
+    let chain = crate::message::MessageChain::from(chain);
+    chain.into_ffi()
 }

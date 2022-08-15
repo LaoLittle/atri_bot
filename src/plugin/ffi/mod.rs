@@ -31,7 +31,6 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
         group_message_event_get_bot,
         group_message_event_get_group,
         group_message_event_get_message,
-        message_chain_to_string,
     })
 }
 

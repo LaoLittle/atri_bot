@@ -23,6 +23,7 @@ pub mod channel;
 pub mod config;
 pub mod contact;
 pub mod data;
+pub mod error;
 pub mod event;
 pub mod fun;
 pub mod macros;
