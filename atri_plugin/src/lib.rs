@@ -9,6 +9,8 @@ pub mod listener;
 pub mod event;
 pub mod bot;
 pub mod contact;
+pub mod message;
+pub mod log;
 
 pub use atri_ffi::plugin::PluginInstance;
 

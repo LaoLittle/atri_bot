@@ -69,6 +69,18 @@ impl Drop for Managed {
     }
 }
 
+pub struct ManagedRef {
+    pub pointer: *mut (),
+}
+
+impl ManagedRef {
+    pub fn from_ref<T>(val: &T) -> Self {
+        Self {
+            pointer: val as *const T as usize as *mut ()
+        }
+    }
+}
+
 #[repr(C)]
 pub struct RustString {
     ptr: *mut u8,
@@ -93,9 +105,10 @@ impl From<String> for RustString {
 
 impl From<RustString> for String {
     fn from(s: RustString) -> Self {
-        unsafe {
+        let str = unsafe {
             String::from_raw_parts(s.ptr,s.len,s.capacity)
-        }
+        };
+        str
     }
 }
 

@@ -101,6 +101,7 @@ impl PluginManager {
         const EXT: &str = "dll";
         #[cfg(all(target_os = "unix", not(target_os = "macos")))]
         const EXT: &str = "so";
+        let mut plugins = self.plugins.lock().unwrap();
         for entry in dir {
             match entry {
                 Ok(entry) => {
@@ -115,7 +116,7 @@ impl PluginManager {
                         buf.pop();
                         match result {
                             Ok(p) => {
-                                self.plugins.lock().unwrap().push(Arc::new(p));
+                                plugins.push(Arc::new(p));
                                 info!("插件({})加载成功", name);
                             }
                             Err(e) => {

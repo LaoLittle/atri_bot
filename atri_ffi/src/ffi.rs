@@ -2,7 +2,7 @@ use std::future::Future;
 use std::marker::PhantomData;
 
 use crate::future::FFIFuture;
-use crate::Managed;
+use crate::{Managed, RustString};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use crate::closure::FFIFn;
@@ -20,11 +20,15 @@ pub struct AtriVTable {
     pub event_is_intercepted:
     extern "C" fn(intercepted: *const ()) -> bool,
     pub bot_get_id:
-    extern fn (bot: *const ()) -> i64,
+    extern "C" fn (bot: *const ()) -> i64,
     pub group_message_event_get_bot:
     extern "C" fn(event: *const ()) -> Managed,
     pub group_message_event_get_group:
     extern "C" fn(event: *const ()) -> Managed,
+    pub group_message_event_get_message:
+    extern "C" fn(event: *const ()) -> Managed,
+    pub message_chain_to_string:
+    extern "C" fn(chain: *const ()) -> RustString,
 }
 
 #[repr(C)]

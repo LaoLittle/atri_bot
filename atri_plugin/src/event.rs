@@ -1,9 +1,11 @@
+use std::ops::Deref;
 use std::sync::Arc;
 use atri_ffi::ffi::FFIEvent;
 use atri_ffi::Managed;
 use crate::bot::Bot;
 use crate::contact::group::Group;
 use crate::loader::get_plugin_manager_vtb;
+use crate::message::MessageChain;
 
 pub enum Event {
     BotOnlineEvent(BotOnlineEvent),
@@ -27,6 +29,12 @@ impl Event {
             2 => Self::FriendMessageEvent(FriendMessageEvent(inner)),
             _ => Self::Unknown(inner)
         }
+    }
+}
+
+impl FromEvent for Event {
+    fn from_event(e: Event) -> Option<Self> {
+        Some(e)
     }
 }
 
@@ -66,54 +74,52 @@ impl GroupMessageEvent {
         let ma = (get_plugin_manager_vtb().group_message_event_get_group)(self.0.event.pointer);
         Group(ma)
     }
+
+    pub fn message(&self) -> MessageChain {
+        let ma = (get_plugin_manager_vtb().group_message_event_get_message)(self.0.event.pointer);
+        MessageChain(ma)
+    }
+}
+
+impl FromEvent for GroupMessageEvent {
+    fn from_event(e: Event) -> Option<Self> {
+        if let Event::GroupMessageEvent(e) = e {
+            Some(e)
+        } else { None }
+    }
 }
 
 #[derive(Clone)]
 pub struct FriendMessageEvent(EventInner);
 
-macro_rules! event_impl {
-    ($($e:ty);* $(;)?) => {
-        $(
-        impl $e {
-            pub fn intercept(&self) {
-                self.0.intercept();
-            }
+impl FromEvent for FriendMessageEvent {
+    fn from_event(e: Event) -> Option<Self> {
+        if let Event::FriendMessageEvent(e) = e {
+            Some(e)
+        } else { None }
+    }
+}
 
-            pub fn is_intercepted(&self) -> bool {
-                self.0.is_intercepted()
+pub trait FromEvent: Sized {
+    fn from_event(e: Event) -> Option<Self>;
+}
+
+macro_rules! event_inner_impl {
+    ($($t:ty)*) => {
+        $(
+        impl Deref for $t {
+            type Target = EventInner;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
             }
         }
         )*
     };
 }
 
-event_impl! {
-    BotOnlineEvent;
-    GroupMessageEvent;
-    FriendMessageEvent;
+event_inner_impl! {
+    BotOnlineEvent
+    GroupMessageEvent
+    FriendMessageEvent
 }
-
-/*pub trait FromFFIEvent: Sized {
-    fn from_ffi(e: FFIEvent) -> Option<Self>;
-}
-
-macro_rules! from_ffi_impl {
-    ($($e:ty => $t:expr);* $(;)?) => {
-        $(
-        impl FromFFIEvent for $e {
-            fn from_ffi(e: FFIEvent) -> Option<Self> {
-                match e.get() {
-                    ($t,m) => Some(Self(Arc::new(m))),
-                    _ => None
-                }
-            }
-        }
-        )*
-    };
-}
-
-from_ffi_impl! {
-    BotOnlineEvent => 0;
-    GroupMessageEvent => 1;
-    FriendMessageEvent => 2;
-}*/

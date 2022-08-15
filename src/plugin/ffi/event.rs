@@ -1,7 +1,7 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use atri_ffi::Managed;
 use crate::event::GroupMessageEvent;
 use crate::plugin::cast_ref;
+use atri_ffi::Managed;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 pub extern "C" fn event_intercept(intercepted: *const ()) {
     let intercepted = unsafe { &*(intercepted as *const AtomicBool) };
@@ -23,6 +23,7 @@ pub extern "C" fn group_message_event_get_group(event: *const ()) -> Managed {
     Managed::from_value(event.group().clone())
 }
 
-pub extern "C" fn group_message_event_get_message(event: *const ()) {
-
+pub extern "C" fn group_message_event_get_message(event: *const ()) -> Managed {
+    let event: &GroupMessageEvent = cast_ref(event);
+    Managed::from_value(event.message().elements.clone()) // todo: optimize
 }
