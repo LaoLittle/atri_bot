@@ -28,11 +28,9 @@ features = [
     "sync",
     "mio",
     "io-std",
-    "fs"
+    "fs",
+    "io-util"
 ]
-
-[dependencies.reqwest]
-version = "0"
 
 [dependencies.ricq]
 git = "https://github.com/lz1998/ricq.git"
