@@ -56,7 +56,18 @@ pub enum MessageValue {
 impl From<MessageValue> for FFIMessageValue {
     fn from(val: MessageValue) -> Self {
         match val {
-            MessageValue::Text(s) => FFIMessageValue::from(RustString::from(s)),
+            MessageValue::Text(s) => FFIMessageValue {
+                t: 0,
+                union: MessageValueUnion {
+                    text: ManuallyDrop::new(RustString::from(s)),
+                },
+            },
+            MessageValue::Image(img) => FFIMessageValue {
+                t: 1,
+                union: MessageValueUnion {
+                    image: ManuallyDrop::new(Managed::from_value(img)),
+                },
+            },
             or => FFIMessageValue {
                 t: 255,
                 union: MessageValueUnion {
@@ -86,6 +97,7 @@ impl From<FFIMessageValue> for MessageValue {
         unsafe {
             match v.t {
                 0 => MessageValue::Text(ManuallyDrop::into_inner(v.union.text).into()),
+                1 => MessageValue::Image(ManuallyDrop::into_inner(v.union.image).into_value()),
                 _ => ManuallyDrop::into_inner(v.union.unknown).into_value(),
             }
         }

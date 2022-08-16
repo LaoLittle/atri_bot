@@ -1,10 +1,9 @@
 use std::mem::ManuallyDrop;
 use std::slice::Iter;
-use std::{vec};
+use std::{mem, vec};
 use atri_ffi::{Managed, RawVec, RustString};
 
 use atri_ffi::message::{FFIMessageChain, FFIMessageValue, MessageValueUnion};
-
 
 pub struct MessageChain(Vec<MessageValue>);
 
@@ -19,7 +18,11 @@ impl MessageChain {
     }
     
     pub(crate) fn into_ffi(self) -> FFIMessageChain {
-        let v: Vec<FFIMessageValue> = self.0.into_iter().map(FFIMessageValue::from).collect();
+        let v: Vec<FFIMessageValue> = self.0
+            .into_iter()
+            .map(FFIMessageValue::from)
+            .collect();
+
         let raw = RawVec::from(v);
         FFIMessageChain { inner: raw }
     }
@@ -43,9 +46,38 @@ impl<'a> IntoIterator for &'a MessageChain {
     }
 }
 
+impl ToString for MessageChain {
+    fn to_string(&self) -> String {
+        let mut s = String::new();
+        for value in self {
+            value.push_to_string(&mut s);
+        }
+        s
+    }
+}
+
 pub enum MessageValue {
     Text(String),
+    Image(Image),
     Unknown(Managed)
+}
+
+impl MessageValue {
+    fn push_to_string(&self, str: &mut String) {
+        match self {
+            Self::Text(text) => str.push_str(text),
+            Self::Image(_) => str.push_str("Image"),
+            Self::Unknown(_) => {},
+        }
+    }
+}
+
+impl ToString for MessageValue {
+    fn to_string(&self) -> String {
+        let mut s = String::new();
+        self.push_to_string(&mut s);
+        s
+    }
 }
 
 impl From<FFIMessageValue> for MessageValue {
@@ -53,6 +85,7 @@ impl From<FFIMessageValue> for MessageValue {
         unsafe {
             match ffi.t {
                 0 => Self::Text(ManuallyDrop::into_inner(ffi.union.text).into()),
+                1 => Self::Image(Image(ManuallyDrop::into_inner(ffi.union.image))),
                 _ => Self::Unknown(ManuallyDrop::into_inner(ffi.union.unknown))
             }
         }
@@ -66,6 +99,12 @@ impl From<MessageValue> for FFIMessageValue {
                 Self {
                     t: 0,
                     union: MessageValueUnion { text: ManuallyDrop::new(RustString::from(s)) }
+                }
+            }
+            MessageValue::Image(img) => {
+                Self {
+                    t: 1,
+                    union: MessageValueUnion { image: ManuallyDrop::new(img.0) }
                 }
             }
             MessageValue::Unknown(ma) => Self {
@@ -87,7 +126,11 @@ impl MessageChainBuilder {
         Self::default()
     }
 
-    pub fn push(&mut self) -> &mut Self {
+    pub fn push<E: Message>(&mut self, elem: E) -> &mut Self {
+        let str = mem::take(&mut self.buf);
+        let text = MessageValue::Text(str);
+        self.value.push(text);
+        elem.push_to(&mut self.value);
         self
     }
 
@@ -100,5 +143,37 @@ impl MessageChainBuilder {
         let text = MessageValue::Text(self.buf);
         self.value.push(text);
         MessageChain(self.value)
+    }
+}
+
+pub struct Image(Managed);
+
+impl Image {
+    pub(crate) fn from_managed(ma: Managed) -> Self {
+        Self(ma)
+    }
+}
+
+pub struct MessageReceipt(Managed);
+
+impl MessageReceipt {
+    pub(crate) fn from_managed(ma: Managed) -> Self {
+        Self(ma)
+    }
+}
+
+pub trait Message {
+    fn push_to(self, v: &mut Vec<MessageValue>);
+}
+
+impl Message for String {
+    fn push_to(self, v: &mut Vec<MessageValue>) {
+        v.push(MessageValue::Text(self));
+    }
+}
+
+impl Message for Image {
+    fn push_to(self, v: &mut Vec<MessageValue>) {
+        v.push(MessageValue::Image(self));
     }
 }

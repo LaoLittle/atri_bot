@@ -12,20 +12,10 @@ pub struct FFIMessageValue {
     pub union: MessageValueUnion,
 }
 
-impl From<RustString> for FFIMessageValue {
-    fn from(t: RustString) -> Self {
-        Self {
-            t: 0,
-            union: MessageValueUnion {
-                text: ManuallyDrop::new(t),
-            },
-        }
-    }
-}
-
 #[repr(C)]
 pub union MessageValueUnion {
     pub text: ManuallyDrop<RustString>,
+    pub image: ManuallyDrop<Managed>,
     pub unknown: ManuallyDrop<Managed>,
 }
 

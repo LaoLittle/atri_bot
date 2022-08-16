@@ -11,6 +11,7 @@ pub mod bot;
 pub mod contact;
 pub mod message;
 pub mod log;
+pub mod error;
 
 pub use atri_ffi::plugin::PluginInstance;
 
@@ -18,11 +19,11 @@ pub trait Plugin
 where Self: Sized
 {
     /// 构造插件实例
-    ///
-    /// 若`should_drop`为`true`, 则再次启用插件前会先构造插件实例
     fn new() -> Self;
 
     /// 插件启用
+    ///
+    /// 若`should_drop`为`true`, 则再次启用插件前会先构造插件实例
     fn enable(&mut self);
 
     /// 插件禁用
