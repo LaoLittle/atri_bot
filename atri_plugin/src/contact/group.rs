@@ -7,6 +7,10 @@ use crate::message::{Image, MessageChain, MessageReceipt};
 pub struct Group(pub(crate) Managed);
 
 impl Group {
+    pub fn id(&self) -> i64 {
+        (get_plugin_manager_vtb().group_get_id)(self.0.pointer)
+    }
+
     pub async fn send_message(&self, chain: MessageChain) -> Result<MessageReceipt, AtriError> {
         let fu = {
             let ffi: FFIMessageChain = chain.into_ffi();

@@ -7,6 +7,11 @@ use atri_ffi::future::FFIFuture;
 use atri_ffi::message::{FFIMessageChain, FFIMessageValue};
 use atri_ffi::{Managed, RawVec};
 
+pub extern "C" fn group_get_id(group: *const ()) -> i64 {
+    let group: &Group = cast_ref(group);
+    group.id()
+}
+
 pub extern "C" fn group_send_message(
     group: *const (),
     chain: FFIMessageChain,
