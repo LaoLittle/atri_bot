@@ -3,6 +3,7 @@ mod event;
 mod listener;
 mod log;
 mod message;
+mod group;
 
 use std::sync::OnceLock;
 
@@ -17,6 +18,7 @@ use crate::PluginManager;
 use atri_ffi::ffi::AtriVTable;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
+use crate::plugin::ffi::group::group_send_message;
 
 static PLUGIN_VTABLE: OnceLock<AtriVTable> = OnceLock::new();
 
@@ -31,6 +33,7 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
         group_message_event_get_bot,
         group_message_event_get_group,
         group_message_event_get_message,
+        group_send_message
     })
 }
 

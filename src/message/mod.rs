@@ -4,6 +4,7 @@ use atri_ffi::{Managed, RawVec, RustString};
 use ricq::msg::elem::{At, FriendImage, GroupImage, RQElem};
 use ricq::msg::{MessageElem, PushElem};
 use std::mem::ManuallyDrop;
+use atri_ffi::future::FFIFuture;
 
 pub struct MessageChain(Vec<MessageValue>);
 
@@ -13,6 +14,13 @@ impl MessageChain {
 
         let raw = RawVec::from(ffi);
         FFIMessageChain { inner: raw }
+    }
+
+    pub fn from_ffi(ffi: FFIMessageChain) -> Self {
+        let v = ffi.inner.into_vec();
+
+        let values: Vec<MessageValue> = v.into_iter().map(MessageValue::from).collect();
+        Self(values)
     }
 }
 
@@ -70,6 +78,17 @@ impl From<MessageValue> for RQElem {
             },
             MessageValue::At(at) => RQElem::At(at),
             MessageValue::Unknown(rq) => rq,
+        }
+    }
+}
+
+impl From<FFIMessageValue> for MessageValue {
+    fn from(v: FFIMessageValue) -> Self {
+        unsafe {
+            match v.t {
+                0 => MessageValue::Text(ManuallyDrop::into_inner(v.union.text).into()),
+                _ => ManuallyDrop::into_inner(v.union.unknown).into_value(),
+            }
         }
     }
 }

@@ -20,6 +20,7 @@ pub struct AtriVTable {
     pub group_message_event_get_bot: extern "C" fn(event: *const ()) -> Managed,
     pub group_message_event_get_group: extern "C" fn(event: *const ()) -> Managed,
     pub group_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
+    pub group_send_message: extern "C" fn(group: *const (), chain: FFIMessageChain) -> FFIFuture<()>,
 }
 
 #[repr(C)]

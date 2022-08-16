@@ -17,6 +17,7 @@ use tokio::runtime::Runtime;
 use tokio::sync::oneshot;
 use tracing::{error, info, trace};
 
+use crate::error::AtriError;
 use atri_ffi::ffi::AtriManager;
 use atri_ffi::plugin::{PluginInstance, PluginVTable};
 
@@ -134,22 +135,28 @@ impl PluginManager {
         Ok(())
     }
 
-    fn load_plugin<P: AsRef<OsStr>>(&self, path: P) -> Result<Plugin, Box<dyn Error>> {
-        let plugin = unsafe {
-            trace!("正在加载插件动态库");
+    fn load_plugin<P: AsRef<OsStr>>(&self, path: P) -> Result<Plugin, AtriError> {
+        trace!("正在加载插件动态库");
 
-            let ptr = self as *const PluginManager as usize;
-            let lib = Library::new(path)?;
+        let ptr = self as *const PluginManager as usize;
+        let lib = unsafe {
+            Library::new(path)
+                .map_err(|e| AtriError::PluginLoadError(format!("无法加载插件动态库: {}", e)))?
+        };
 
-            let (tx, rx) = std::sync::mpsc::channel();
-            self.task
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.task
                 .send(Box::new(move || {
                     let load_plugin =
-                        || -> Result<Result<Plugin, Box<dyn Any + Send>>, Box<dyn Error>> {
-                            let plugin_init =
-                                lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")?;
-                            let on_init =
-                                *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")?;
+                        || -> Result<Plugin, AtriError> {
+                            let (plugin_init, on_init) = unsafe {
+                                (
+                                    *lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")
+                                     .map_err(|_| AtriError::PluginInitializeError("无法找到插件初始化函数'atri_manager_init', 或许这不是一个插件"))?,
+                                    *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")
+                                     .map_err(|_| AtriError::PluginInitializeError("无法找到插件初始化函数'on_init'"))?,
+                                )
+                            };
                             trace!("正在初始化插件");
 
                             plugin_init(AtriManager {
@@ -179,35 +186,18 @@ impl PluginManager {
 
                                 plugin.enable();
                                 plugin
-                            });
+                            }).map_err(|_| AtriError::PluginLoadError(String::from("插件加载错误, 可能是插件发生了panic!")))?;
 
                             Ok(catch)
                         };
 
-                    let plugin = match load_plugin() {
-                        Ok(Ok(p)) => p,
-                        Ok(Err(_)) => {
-                            error!("插件加载时发生致命错误");
-                            return;
-                        }
-                        Err(e) => {
-                            error!("插件加载失败: {}", e);
-                            return;
-                        }
-                    };
-
-                    tx.send(plugin).unwrap();
+                    tx.send(load_plugin()).unwrap_or_else(|_| unreachable!());
                 }))
                 .expect("Cannot send task");
 
-            trace!("正在启用插件");
+        trace!("正在启用插件");
 
-            if let Ok(p) = rx.recv() {
-                p
-            } else {
-                return Err(io::Error::last_os_error().into()); // todo
-            }
-        };
+        let plugin = rx.recv().unwrap_or_else(|_| unreachable!())?;
 
         Ok(plugin)
     }

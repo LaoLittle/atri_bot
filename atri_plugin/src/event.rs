@@ -76,8 +76,8 @@ impl GroupMessageEvent {
     }
 
     pub fn message(&self) -> MessageChain {
-        let ma = (get_plugin_manager_vtb().group_message_event_get_message)(self.0.event.pointer);
-        MessageChain::from(ma)
+        let ffi = (get_plugin_manager_vtb().group_message_event_get_message)(self.0.event.pointer);
+        MessageChain::from_ffi(ffi)
     }
 }
 
