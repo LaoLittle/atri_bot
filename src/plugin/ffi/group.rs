@@ -12,6 +12,11 @@ pub extern "C" fn group_get_id(group: *const ()) -> i64 {
     group.id()
 }
 
+pub extern "C" fn group_get_bot(group: *const()) -> Managed {
+    let group: &Group = cast_ref(group);
+    Managed::from_value(group.bot().clone())
+}
+
 pub extern "C" fn group_send_message(
     group: *const (),
     chain: FFIMessageChain,

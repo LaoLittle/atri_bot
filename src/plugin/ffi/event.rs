@@ -14,11 +14,6 @@ pub extern "C" fn event_is_intercepted(intercepted: *const ()) -> bool {
     intercepted.load(Ordering::Relaxed)
 }
 
-pub extern "C" fn group_message_event_get_bot(event: *const ()) -> Managed {
-    let event: &GroupMessageEvent = cast_ref(event);
-    Managed::from_value(event.bot().clone())
-}
-
 pub extern "C" fn group_message_event_get_group(event: *const ()) -> Managed {
     let event: &GroupMessageEvent = cast_ref(event);
     Managed::from_value(event.group().clone())

@@ -95,7 +95,6 @@ pub struct App {
     bots: DashMap<i64, Bot>,
     group_bot: DashMap<i64, i64>,
     group_members_info: DashMap<i64, Arc<GroupMemberInfo>>,
-    http_client: reqwest::Client,
 }
 
 impl App {
@@ -104,7 +103,6 @@ impl App {
             bots: DashMap::new(),
             group_bot: DashMap::new(),
             group_members_info: DashMap::new(),
-            http_client: reqwest::Client::new(),
         }
     }
 
@@ -146,10 +144,6 @@ impl App {
 
     pub(crate) fn remove_bot(&self, bot: i64) -> Option<Bot> {
         self.bots.remove(&bot).map(|(_, bot)| bot)
-    }
-
-    pub fn http_client(&self) -> &reqwest::Client {
-        &self.http_client
     }
 }
 

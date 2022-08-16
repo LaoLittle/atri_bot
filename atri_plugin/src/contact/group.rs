@@ -1,5 +1,6 @@
 use atri_ffi::{Managed};
 use atri_ffi::message::FFIMessageChain;
+use crate::bot::Bot;
 use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::{Image, MessageChain, MessageReceipt};
@@ -9,6 +10,11 @@ pub struct Group(pub(crate) Managed);
 impl Group {
     pub fn id(&self) -> i64 {
         (get_plugin_manager_vtb().group_get_id)(self.0.pointer)
+    }
+
+    pub fn bot(&self) -> Bot {
+        let ma = (get_plugin_manager_vtb().group_get_bot)(self.0.pointer);
+        Bot(ma)
     }
 
     pub async fn send_message(&self, chain: MessageChain) -> Result<MessageReceipt, AtriError> {

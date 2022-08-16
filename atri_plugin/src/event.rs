@@ -65,14 +65,13 @@ pub struct BotOnlineEvent(EventInner);
 pub struct GroupMessageEvent(EventInner);
 
 impl GroupMessageEvent {
-    pub fn bot(&self) -> Bot {
-        let ma = (get_plugin_manager_vtb().group_message_event_get_bot)(self.0.event.pointer);
-        Bot(ma)
-    }
-
     pub fn group(&self) -> Group {
         let ma = (get_plugin_manager_vtb().group_message_event_get_group)(self.0.event.pointer);
         Group(ma)
+    }
+
+    pub fn bot(&self) -> Bot {
+        self.group().bot()
     }
 
     pub fn message(&self) -> MessageChain {
