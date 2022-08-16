@@ -97,11 +97,11 @@ impl PluginManager {
         let dir = fs::read_dir(plugins_path)?;
 
         #[cfg(target_os = "macos")]
-        const EXT: &str = "dylib";
+        const EXTENSION: &str = "dylib";
         #[cfg(target_os = "windows")]
-        const EXT: &str = "dll";
-        #[cfg(all(target_os = "unix", not(target_os = "macos")))]
-        const EXT: &str = "so";
+        const EXTENSION: &str = "dll";
+        #[cfg(all(target_os = "linux", not(target_os = "macos")))]
+        const EXTENSION: &str = "so";
         let mut plugins = self.plugins.lock().unwrap();
         for entry in dir {
             match entry {
@@ -116,7 +116,7 @@ impl PluginManager {
                     let name = f_name.to_str().expect("Unable to get file name");
                     let ext_curr: Vec<&str> = name.split('.').collect();
 
-                    if let Some(&EXT) = ext_curr.last() {
+                    if ext_curr.last().map(|&ext| ext == EXTENSION).unwrap_or_default() {
                         info!("正在加载插件: {}", name);
                         let result = self.load_plugin(&path);
                         match result {

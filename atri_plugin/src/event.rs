@@ -40,7 +40,7 @@ impl FromEvent for Event {
 
 #[derive(Clone)]
 pub struct EventInner {
-    intercepted: *const (),
+    intercepted: *const (), // owned by event
     event: Arc<Managed>,
 }
 
