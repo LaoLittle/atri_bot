@@ -27,7 +27,7 @@ where Self: Sized
 
     /// 插件禁用
     fn disable(&mut self) {
-        // 默认实现: nop
+        // default impl: nop
     }
 
     /// 是否应该在插件被禁用后销毁插件实例

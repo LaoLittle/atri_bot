@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use crate::closure::FFIFn;
 use crate::future::FFIFuture;
 use crate::message::FFIMessageChain;
-use crate::{Managed, RustString};
+use crate::{Managed, RustStr};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -21,6 +21,8 @@ pub struct AtriVTable {
     pub group_message_event_get_group: extern "C" fn(event: *const ()) -> Managed,
     pub group_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
     pub group_send_message: extern "C" fn(group: *const (), chain: FFIMessageChain) -> FFIFuture<()>,
+
+    pub log_info: extern "C" fn(log: RustStr),
 }
 
 #[repr(C)]

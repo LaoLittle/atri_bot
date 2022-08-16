@@ -5,6 +5,7 @@ use std::mem;
 
 use tokio::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tracing::info;
 
 use atri_qq::event::listener::{Listener, Priority};
 use atri_qq::event::GroupMessageEvent;
@@ -56,6 +57,8 @@ async fn loop_cli() -> MainResult {
     let stdin = io::stdin();
     let mut stdin = BufReader::new(stdin);
     let mut stdout = io::stdout();
+
+    info!("已启动AtriQQ");
 
     loop {
         let mut buf = String::new();

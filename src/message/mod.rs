@@ -4,7 +4,6 @@ use atri_ffi::{Managed, RawVec, RustString};
 use ricq::msg::elem::{At, FriendImage, GroupImage, RQElem};
 use ricq::msg::{MessageElem, PushElem};
 use std::mem::ManuallyDrop;
-use atri_ffi::future::FFIFuture;
 
 pub struct MessageChain(Vec<MessageValue>);
 

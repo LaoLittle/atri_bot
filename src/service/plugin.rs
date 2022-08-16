@@ -1,8 +1,6 @@
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-use std::any::Any;
-use std::error::Error;
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::{fs, io, mem, thread};
 
@@ -14,7 +12,6 @@ use libloading::Library;
 
 use tokio::runtime;
 use tokio::runtime::Runtime;
-use tokio::sync::oneshot;
 use tracing::{error, info, trace};
 
 use crate::error::AtriError;
@@ -41,6 +38,9 @@ impl PluginManager {
             .unwrap();
 
         let plugins_path = PathBuf::from("plugins");
+        if !plugins_path.is_dir() {
+            let _ = fs::create_dir_all(&plugins_path);
+        }
 
         let (tx, rx) = std::sync::mpsc::channel::<Box<dyn FnOnce() + Send>>();
 
@@ -89,12 +89,12 @@ impl PluginManager {
     }
 
     pub fn load_plugins(&self) -> io::Result<()> {
-        let mut buf = self.plugins_path().to_path_buf();
-        if !buf.is_dir() {
-            fs::create_dir_all(buf)?;
+        let plugins_path = self.plugins_path.as_path();
+        if !plugins_path.is_dir() {
+            fs::create_dir_all(plugins_path)?;
             return Ok(());
         }
-        let dir = fs::read_dir(&buf)?;
+        let dir = fs::read_dir(plugins_path)?;
 
         #[cfg(target_os = "macos")]
         const EXT: &str = "dylib";
@@ -106,15 +106,19 @@ impl PluginManager {
         for entry in dir {
             match entry {
                 Ok(entry) => {
-                    let f_name = entry.file_name();
+                    let path = entry.path();
+                    let f_name = if path.is_file() {
+                        path.file_name().unwrap()
+                    } else {
+                        continue;
+                    };
+
                     let name = f_name.to_str().expect("Unable to get file name");
-                    buf.push(&f_name);
                     let ext_curr: Vec<&str> = name.split('.').collect();
 
                     if let Some(&EXT) = ext_curr.last() {
                         info!("正在加载插件: {}", name);
-                        let result = self.load_plugin(&buf);
-                        buf.pop();
+                        let result = self.load_plugin(&path);
                         match result {
                             Ok(p) => {
                                 plugins.push(Arc::new(p));
