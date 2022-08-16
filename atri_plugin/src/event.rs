@@ -1,11 +1,11 @@
-use std::ops::Deref;
-use std::sync::Arc;
-use atri_ffi::ffi::FFIEvent;
-use atri_ffi::Managed;
 use crate::bot::Bot;
 use crate::contact::group::Group;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::MessageChain;
+use atri_ffi::ffi::FFIEvent;
+use atri_ffi::Managed;
+use std::ops::Deref;
+use std::sync::Arc;
 
 pub enum Event {
     BotOnlineEvent(BotOnlineEvent),
@@ -16,18 +16,18 @@ pub enum Event {
 
 impl Event {
     pub fn from_ffi(ffi: FFIEvent) -> Self {
-        let (t,intercepted,m) = ffi.get();
+        let (t, intercepted, m) = ffi.get();
         let arc = Arc::new(m);
         let inner = EventInner {
             intercepted,
-            event: arc
+            event: arc,
         };
 
         match t {
             0 => Self::BotOnlineEvent(BotOnlineEvent(inner)),
             1 => Self::GroupMessageEvent(GroupMessageEvent(inner)),
             2 => Self::FriendMessageEvent(FriendMessageEvent(inner)),
-            _ => Self::Unknown(inner)
+            _ => Self::Unknown(inner),
         }
     }
 }
@@ -84,7 +84,9 @@ impl FromEvent for GroupMessageEvent {
     fn from_event(e: Event) -> Option<Self> {
         if let Event::GroupMessageEvent(e) = e {
             Some(e)
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 
@@ -95,7 +97,9 @@ impl FromEvent for FriendMessageEvent {
     fn from_event(e: Event) -> Option<Self> {
         if let Event::FriendMessageEvent(e) = e {
             Some(e)
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 

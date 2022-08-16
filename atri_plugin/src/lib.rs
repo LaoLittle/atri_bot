@@ -1,22 +1,23 @@
-use atri_ffi::plugin::{PluginVTable};
+use atri_ffi::plugin::PluginVTable;
 use atri_ffi::Managed;
 
 pub use atri_macros::plugin;
 
-pub mod loader;
-pub mod manager;
-pub mod listener;
-pub mod event;
 pub mod bot;
 pub mod contact;
-pub mod message;
-pub mod log;
 pub mod error;
+pub mod event;
+pub mod listener;
+pub mod loader;
+pub mod log;
+pub mod manager;
+pub mod message;
 
 pub use atri_ffi::plugin::PluginInstance;
 
 pub trait Plugin
-where Self: Sized
+where
+    Self: Sized,
 {
     /// 构造插件实例
     fn new() -> Self;
@@ -54,17 +55,17 @@ pub struct PluginInfo {
 }
 
 pub fn __get_instance<P: Plugin>(plugin: P) -> PluginInstance {
-    extern fn _new<P: Plugin>() -> Managed {
+    extern "C" fn _new<P: Plugin>() -> Managed {
         Managed::from_value(P::new())
     }
 
-    extern fn _enable<P: Plugin>(ptr: *mut ()) {
+    extern "C" fn _enable<P: Plugin>(ptr: *mut ()) {
         // Safety: Plugin is pinned by box
         let p = unsafe { &mut *(ptr as *mut P) };
         p.enable();
     }
 
-    extern fn _disable<P: Plugin>(ptr: *mut ()) {
+    extern "C" fn _disable<P: Plugin>(ptr: *mut ()) {
         // Safety: Plugin is pinned by box
         let p = unsafe { &mut *(ptr as *mut P) };
         p.disable();
@@ -76,8 +77,8 @@ pub fn __get_instance<P: Plugin>(plugin: P) -> PluginInstance {
     let vtb = PluginVTable {
         new: _new::<P>,
         enable: _enable::<P>,
-        disable: _disable::<P>
+        disable: _disable::<P>,
     };
 
-    PluginInstance::from(instance, should_drop,vtb)
+    PluginInstance::from(instance, should_drop, vtb)
 }

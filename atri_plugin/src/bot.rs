@@ -1,5 +1,5 @@
-use atri_ffi::Managed;
 use crate::loader::get_plugin_manager_vtb;
+use atri_ffi::Managed;
 
 pub struct Bot(pub(crate) Managed);
 

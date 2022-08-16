@@ -1,9 +1,9 @@
-use atri_ffi::{Managed};
-use atri_ffi::message::FFIMessageChain;
 use crate::bot::Bot;
 use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::{Image, MessageChain, MessageReceipt};
+use atri_ffi::message::FFIMessageChain;
+use atri_ffi::Managed;
 
 pub struct Group(pub(crate) Managed);
 
@@ -25,20 +25,18 @@ impl Group {
 
         let res = fu.await;
         match Result::from(res) {
-            Ok(ma) => Ok(MessageReceipt::from_managed(ma)),
-            Err(s) => Err(AtriError::RQError(s))
+            Ok(ma) => Ok(MessageReceipt(ma)),
+            Err(s) => Err(AtriError::RQError(s)),
         }
     }
 
     pub async fn upload_image(&self, image: Vec<u8>) -> Result<Image, AtriError> {
-        let fu = {
-            (get_plugin_manager_vtb().group_upload_image)(self.0.pointer, image.into())
-        };
+        let fu = { (get_plugin_manager_vtb().group_upload_image)(self.0.pointer, image.into()) };
 
         let result = fu.await;
         match Result::from(result) {
-            Ok(ma) => Ok(Image::from_managed(ma)),
-            Err(e) => Err(AtriError::RQError(e))
+            Ok(ma) => Ok(Image(ma)),
+            Err(e) => Err(AtriError::RQError(e)),
         }
     }
 }
