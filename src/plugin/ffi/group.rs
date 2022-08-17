@@ -1,6 +1,5 @@
 use crate::contact::group::Group;
 use crate::message;
-use crate::message::Image;
 use crate::plugin::cast_ref;
 use atri_ffi::error::FFIResult;
 use atri_ffi::future::FFIFuture;

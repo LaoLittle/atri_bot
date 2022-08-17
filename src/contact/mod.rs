@@ -4,6 +4,7 @@ use crate::contact::member::Member;
 use crate::MessageChain;
 use ricq::structs::MessageReceipt;
 use ricq::RQResult;
+use crate::message::image::Image;
 
 pub mod friend;
 pub mod group;
@@ -26,6 +27,10 @@ impl Contact {
                 todo!()
             }
         }
+    }
+
+    pub async fn upload_image(&self, chain: MessageChain) -> RQResult<Image> {
+        todo!()
     }
 }
 

@@ -7,7 +7,7 @@ use ricq::RQResult;
 use tracing::error;
 
 use crate::contact::member::NamedMember;
-use crate::message::Image;
+use crate::message::image::Image;
 use crate::{Bot, MessageChain};
 
 #[derive(Clone)]

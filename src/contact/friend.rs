@@ -1,4 +1,4 @@
-use crate::message::Image;
+use crate::message::image::Image;
 use crate::{Bot, MessageChain};
 use ricq::structs::{FriendInfo, MessageReceipt};
 use ricq::RQResult;
