@@ -10,6 +10,7 @@ use atri_ffi::Managed;
 use tokio::time::error::Elapsed;
 
 use crate::contact::group::Group;
+use crate::contact::member::{AnonymousMember, Member};
 use crate::contact::{Contact, HasSubject};
 use crate::{Bot, Listener, MessageChain};
 
@@ -133,6 +134,18 @@ impl GroupMessageEvent {
 
     pub fn bot(&self) -> &Bot {
         self.group().bot()
+    }
+
+    pub async fn sender(&self) -> Member {
+        let id = self.message().from_uin;
+        self.group()
+            .find_member(id)
+            .await
+            .map(|named| Member::Named(named))
+            .unwrap_or_else(|| {
+                let an = AnonymousMember::from(self.group().clone(), id);
+                Member::Anonymous(an)
+            })
     }
 
     pub fn message(&self) -> &GroupMessage {

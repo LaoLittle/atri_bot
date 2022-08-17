@@ -3,6 +3,7 @@ use crate::MessageChain;
 
 pub mod group;
 pub mod member;
+pub mod friend;
 
 pub enum Contact {
     Friend,

@@ -83,9 +83,9 @@ impl ManagedRef {
 
 #[repr(C)]
 pub struct RustString {
-    ptr: *mut u8,
-    len: usize,
-    capacity: usize,
+    pub ptr: *mut u8,
+    pub len: usize,
+    pub capacity: usize,
 }
 
 impl From<String> for RustString {
@@ -127,8 +127,8 @@ impl ToString for RustString {
 
 #[repr(C)]
 pub struct RustStr {
-    slice: *const u8,
-    len: usize,
+    pub slice: *const u8,
+    pub len: usize,
 }
 
 impl From<&str> for RustStr {

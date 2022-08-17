@@ -1,6 +1,7 @@
 use dashmap::DashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
+use std::time::Duration;
 
 use ricq::msg::elem::GroupImage;
 use ricq::structs::{GroupInfo, MessageReceipt};
@@ -9,6 +10,7 @@ use tracing::error;
 
 use crate::contact::member::NamedMember;
 use crate::{Bot, MessageChain};
+use crate::message::Image;
 
 #[derive(Clone)]
 pub struct Group(Arc<imp::Group>);
@@ -71,11 +73,12 @@ impl Group {
             })
     }
 
-    pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<GroupImage> {
+    pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<Image> {
         self.bot()
             .client()
             .upload_group_image(self.id(), image)
             .await
+            .map(|g| Image::Group(g))
             .map_err(|err| {
                 error!(
                     "{}上传图片失败, 目标群: {}({}), {:?}",
@@ -88,8 +91,16 @@ impl Group {
             })
     }
 
-    pub async fn quit(&self) {
-        let _ = self.bot().client().group_quit(self.id()).await;
+    pub async fn quit(&self) -> bool {
+        let result = self.bot().client().group_quit(self.id()).await;
+        if let Err(e) = result {
+            error!("尝试退出群 {}({}) 时失败: {:?}", self.name(), self.id(), e);
+            return false;
+        }
+
+        let map = self.bot().delete_group(self.id());
+
+        map.is_some()
     }
 }
 

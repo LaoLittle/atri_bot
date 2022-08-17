@@ -100,7 +100,7 @@ impl PluginManager {
         const EXTENSION: &str = "dylib";
         #[cfg(target_os = "windows")]
         const EXTENSION: &str = "dll";
-        #[cfg(all(target_os = "linux", not(target_os = "macos")))]
+        #[cfg(any(target_os = "linux", target_os = "android"))]
         const EXTENSION: &str = "so";
         let mut plugins = self.plugins.lock().unwrap();
         for entry in dir {
@@ -116,7 +116,11 @@ impl PluginManager {
                     let name = f_name.to_str().expect("Unable to get file name");
                     let ext_curr: Vec<&str> = name.split('.').collect();
 
-                    if ext_curr.last().map(|&ext| ext == EXTENSION).unwrap_or_default() {
+                    if ext_curr
+                        .last()
+                        .map(|&ext| ext == EXTENSION)
+                        .unwrap_or_default()
+                    {
                         info!("正在加载插件: {}", name);
                         let result = self.load_plugin(&path);
                         match result {

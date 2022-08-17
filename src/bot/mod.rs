@@ -10,6 +10,7 @@ use ricq::{Client, LoginResponse, RQError, RQResult};
 
 use tokio::{fs, io};
 use tracing::error;
+use crate::contact::friend::Friend;
 
 use crate::contact::group::Group;
 
@@ -69,6 +70,16 @@ impl Bot {
     pub async fn account_info(&self) -> AccountInfo {
         self.0.account_info().await
     }
+    
+    pub async fn refresh_friend_list(&self) -> RQResult<()> {
+        let list = self.client().get_friend_list().await?;
+
+        for info in list.friends {
+            self.0.friend_list.insert(info.uin, Friend::from(self.clone(),info));
+        }
+        
+        Ok(())
+    }
 
     pub async fn refresh_group_list(&self) -> RQResult<()> {
         let infos = self.client().get_group_list().await?;
@@ -97,8 +108,12 @@ impl Bot {
 
         Ok(())
     }
+    
+    pub(crate) fn delete_friend(&self, friend_id: i64) -> Option<Friend> {
+        self.0.friend_list.remove(&friend_id).map(|(_,f)| f)
+    }
 
-    pub fn delete_group(&self, group_id: i64) -> Option<Group> {
+    pub(crate) fn delete_group(&self, group_id: i64) -> Option<Group> {
         self.0.group_list.remove(&group_id).map(|(_, g)| g)
     }
 
@@ -125,6 +140,14 @@ impl Bot {
                 None
             }
         }
+    }
+    
+    pub async fn find_friend(&self, id: i64) -> Option<Friend> {
+        if let Some(f) = self.0.friend_list.get(&id) {
+            return Some(f.clone());
+        }
+        
+        None
     }
 
     pub(crate) fn client(&self) -> &Client {
@@ -171,12 +194,14 @@ mod imp {
 
     use crate::bot::BotConfiguration;
     use crate::channel::GlobalEventBroadcastHandler;
+    use crate::contact::friend::Friend;
     use crate::contact::group::Group;
 
     pub struct Bot {
         pub id: i64,
         pub enable: AtomicBool,
         pub client: Arc<Client>,
+        pub friend_list: DashMap<i64, Friend>,
         pub group_list: DashMap<i64, Group>,
         pub work_dir: PathBuf,
     }
@@ -247,6 +272,7 @@ mod imp {
             Self {
                 id,
                 enable: AtomicBool::new(false),
+                friend_list: DashMap::new(),
                 group_list: DashMap::new(),
                 client,
                 work_dir,
