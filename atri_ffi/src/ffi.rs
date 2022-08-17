@@ -5,7 +5,7 @@ use crate::closure::FFIFn;
 use crate::error::FFIResult;
 use crate::future::FFIFuture;
 use crate::message::FFIMessageChain;
-use crate::{Managed, RawVec, RustStr};
+use crate::{Managed, RawVec, RustStr, RustString};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -37,12 +37,13 @@ pub struct AtriVTable {
     pub friend_send_message:
         extern "C" fn(friend: *const (), chain: FFIMessageChain) -> FFIFuture<FFIResult<Managed>>,
 
-    pub log_info: extern "C" fn(log: RustStr),
+    pub log_info: extern "C" fn(log: RustString),
 }
 
 #[repr(C)]
 pub struct AtriManager {
     pub manager_ptr: *const (),
+    pub handle: usize,
     pub vtb: *const AtriVTable,
 }
 

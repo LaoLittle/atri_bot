@@ -2,11 +2,14 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-use std::{fs, io, mem, thread};
+use std::{fs, io, mem, ptr, thread};
+use std::marker::PhantomPinned;
+
 
 use std::panic::catch_unwind;
 use std::ptr::null_mut;
 use std::sync::Arc;
+use dashmap::DashMap;
 
 use libloading::Library;
 
@@ -21,11 +24,12 @@ use atri_ffi::plugin::{PluginInstance, PluginVTable};
 use crate::plugin::ffi::get_plugin_vtable;
 
 pub struct PluginManager {
-    plugins: std::sync::Mutex<Vec<Arc<Plugin>>>,
+    plugins: DashMap<usize, Arc<Plugin>>,
     plugins_path: PathBuf,
     async_runtime: Runtime,
     task: std::sync::mpsc::Sender<Box<dyn FnOnce() + Send>>,
     _plugin_handler: thread::JoinHandle<()>,
+    _mark: PhantomPinned // move in memory is unsafe because plugin have a pointer to it
 }
 
 impl PluginManager {
@@ -54,11 +58,12 @@ impl PluginManager {
             .expect("Cannot spawn plugin handler");
 
         Self {
-            plugins: Vec::new().into(),
+            plugins: DashMap::new(),
             plugins_path,
             async_runtime,
             task: tx,
             _plugin_handler: plugin_handler,
+            _mark: PhantomPinned,
         }
     }
 
@@ -70,15 +75,17 @@ impl PluginManager {
         &self.plugins_path
     }
 
-    pub fn enable_plugin(&self, plugin: &Arc<Plugin>) {
-        let plugin = plugin.clone();
+    pub fn find_plugin(&self, handle: usize) -> Option<Arc<Plugin>> {
+        self.plugins.get(&handle).map(|r| r.clone())
+    }
+
+    pub fn enable_plugin(&self, plugin: Arc<Plugin>) {
         let _ = self.task.send(Box::new(move || {
             plugin.enable();
         }));
     }
 
-    pub fn disable_plugin(&self, plugin: &Arc<Plugin>) {
-        let plugin = plugin.clone();
+    pub fn disable_plugin(&self, plugin: Arc<Plugin>) {
         let _ = self.task.send(Box::new(move || {
             plugin.disable();
         }));
@@ -102,7 +109,6 @@ impl PluginManager {
         const EXTENSION: &str = "dll";
         #[cfg(any(target_os = "linux", target_os = "android"))]
         const EXTENSION: &str = "so";
-        let mut plugins = self.plugins.lock().unwrap();
         for entry in dir {
             match entry {
                 Ok(entry) => {
@@ -125,11 +131,20 @@ impl PluginManager {
                         let result = self.load_plugin(&path);
                         match result {
                             Ok(p) => {
-                                plugins.push(Arc::new(p));
+                                let plugin = Arc::new(p);
+                                if let Some(old) = self.plugins.insert(plugin.handle,plugin.clone()) {
+                                    unsafe {
+                                        let lib = ptr::read(&old._lib);
+                                        drop(lib);
+                                    }
+                                    mem::forget(old);
+                                    error!("插件({})被重复加载, 这是一个Bug, 请报告此Bug", name);
+                                }
+                                self.enable_plugin(plugin);
                                 info!("插件({})加载成功", name);
                             }
                             Err(e) => {
-                                error!("插件: {} 加载失败: {}", name, e);
+                                error!("插件({})加载失败: {}", name, e);
                             }
                         };
                     }
@@ -157,7 +172,7 @@ impl PluginManager {
                 .send(Box::new(move || {
                     let load_plugin =
                         || -> Result<Plugin, AtriError> {
-                            let (plugin_init, on_init) = unsafe {
+                            let (atri_manager_init, on_init) = unsafe {
                                 (
                                     *lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")
                                      .map_err(|_| AtriError::PluginInitializeError("无法找到插件初始化函数'atri_manager_init', 或许这不是一个插件"))?,
@@ -165,10 +180,12 @@ impl PluginManager {
                                      .map_err(|_| AtriError::PluginInitializeError("无法找到插件初始化函数'on_init'"))?,
                                 )
                             };
+                            let handle = atri_manager_init as usize;
                             trace!("正在初始化插件");
 
-                            plugin_init(AtriManager {
+                            atri_manager_init(AtriManager {
                                 manager_ptr: ptr as *const PluginManager as _,
+                                handle,
                                 vtb: get_plugin_vtable(),
                             });
 
@@ -185,14 +202,14 @@ impl PluginManager {
 
                                 let plugin = Plugin {
                                     enabled: AtomicBool::new(false),
-                                    _lib: lib,
                                     instance: AtomicPtr::new(ptr),
                                     should_drop,
                                     vtb: plugin_instance.vtb,
+                                    handle,
                                     drop_fn,
+                                    _lib: lib,
                                 };
 
-                                plugin.enable();
                                 plugin
                             }).map_err(|_| AtriError::PluginLoadError(String::from("插件加载错误, 可能是插件发生了panic!")))?;
 
@@ -230,6 +247,7 @@ pub struct Plugin {
     should_drop: bool,
     vtb: PluginVTable,
     drop_fn: extern "C" fn(*mut ()),
+    handle: usize,
     _lib: Library,
 }
 

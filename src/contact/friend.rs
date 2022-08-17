@@ -44,10 +44,16 @@ impl Friend {
     }
 
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
-        self.bot()
+        let result = self.bot()
             .client()
             .send_friend_message(self.id(), chain)
-            .await
+            .await;
+
+        if let Err(ref e) = result {
+            error!("{}发送消息失败, 目标好友: {}({}), {:?}", self.bot(), self.nickname(), self.id(), e);
+        }
+
+        result
     }
 
     pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<Image> {
