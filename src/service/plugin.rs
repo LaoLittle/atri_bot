@@ -1,13 +1,12 @@
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-use std::{fs, io, mem, ptr};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::marker::{PhantomData, PhantomPinned};
-
+use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
+use std::{fs, io, mem, ptr};
 
 use std::panic::catch_unwind;
 use std::ptr::null_mut;
@@ -114,7 +113,10 @@ impl PluginManager {
                                             drop(lib);
                                         }
                                         mem::forget(p);
-                                        error!("插件({})被重复加载, 这是一个Bug, 请报告此Bug", name);
+                                        error!(
+                                            "插件({})被重复加载, 这是一个Bug, 请报告此Bug",
+                                            name
+                                        );
                                         warn!("未加载插件{}", name);
                                     }
                                     Entry::Vacant(vac) => {
@@ -151,9 +153,15 @@ impl PluginManager {
         let (atri_manager_init, on_init) = unsafe {
             (
                 *lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")
-                    .map_err(|_| AtriError::PluginInitializeError("无法找到插件初始化函数'atri_manager_init', 或许这不是一个插件"))?,
+                    .map_err(|_| {
+                        AtriError::PluginInitializeError(
+                            "无法找到插件初始化函数'atri_manager_init', 或许这不是一个插件",
+                        )
+                    })?,
                 *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")
-                    .map_err(|_| AtriError::PluginInitializeError("无法找到插件初始化函数'on_init'"))?,
+                    .map_err(|_| {
+                        AtriError::PluginInitializeError("无法找到插件初始化函数'on_init'")
+                    })?,
             )
         };
         let handle = atri_manager_init as usize;
@@ -187,7 +195,10 @@ impl PluginManager {
             };
 
             plugin
-        }).map_err(|_| AtriError::PluginLoadError(String::from("插件加载错误, 可能是插件发生了panic!")))?;
+        })
+        .map_err(|_| {
+            AtriError::PluginLoadError(String::from("插件加载错误, 可能是插件发生了panic!"))
+        })?;
 
         trace!("正在启用插件");
 

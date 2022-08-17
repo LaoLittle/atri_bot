@@ -7,6 +7,7 @@ pub mod ffi;
 pub mod future;
 pub mod message;
 pub mod plugin;
+pub mod contact;
 
 #[repr(C)]
 pub struct Managed {

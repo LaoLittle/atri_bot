@@ -8,18 +8,23 @@ use crate::message::FFIMessageChain;
 use crate::{Managed, RawVec, RustStr, RustString};
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use crate::contact::FFIMember;
 
 #[repr(C)]
 pub struct AtriVTable {
     pub plugin_manager_spawn:
         extern "C" fn(manager: *const (), FFIFuture<Managed>) -> FFIFuture<Managed>,
     pub plugin_manager_block_on: extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
+
     pub new_listener: extern "C" fn(FFIFn<FFIEvent, FFIFuture<bool>>) -> Managed,
     pub event_intercept: extern "C" fn(intercepted: *const ()),
     pub event_is_intercepted: extern "C" fn(intercepted: *const ()) -> bool,
     pub bot_get_id: extern "C" fn(bot: *const ()) -> i64,
+
     pub group_message_event_get_group: extern "C" fn(event: *const ()) -> Managed,
     pub group_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
+    pub group_message_event_get_sender: extern "C" fn(event: *const ()) -> FFIFuture<FFIMember>,
+
     pub group_get_id: extern "C" fn(group: *const ()) -> i64,
     pub group_get_name: extern "C" fn(group: *const ()) -> RustStr,
     pub group_get_bot: extern "C" fn(group: *const ()) -> Managed,
@@ -36,6 +41,12 @@ pub struct AtriVTable {
     pub friend_get_bot: extern "C" fn(friend: *const ()) -> Managed,
     pub friend_send_message:
         extern "C" fn(friend: *const (), chain: FFIMessageChain) -> FFIFuture<FFIResult<Managed>>,
+
+    pub named_member_get_id: extern "C" fn(named: *const ()) -> i64,
+    pub named_member_get_nickname: extern "C" fn(named: *const ()) -> RustStr,
+    pub named_member_get_card_name: extern "C" fn(named: *const ()) -> RustStr,
+    pub named_member_get_group: extern "C" fn(named: *const ()) -> Managed,
+    pub named_member_change_card_name: extern "C" fn(named: *const (), card: RustString) -> FFIFuture<FFIResult<()>>,
 
     pub log_info: extern "C" fn(handle: usize, manager: *const (), log: RustString),
 }

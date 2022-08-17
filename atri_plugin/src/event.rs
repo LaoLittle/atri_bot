@@ -7,6 +7,7 @@ use atri_ffi::Managed;
 use std::ops::Deref;
 use std::sync::Arc;
 use crate::contact::friend::Friend;
+use crate::contact::member::Member;
 
 pub enum Event {
     BotOnlineEvent(BotOnlineEvent),
@@ -73,6 +74,14 @@ impl GroupMessageEvent {
 
     pub fn bot(&self) -> Bot {
         self.group().bot()
+    }
+
+    pub async fn sender(&self) -> Member {
+        let fu = {
+            (get_plugin_manager_vtb().group_message_event_get_sender)(self.event.pointer)
+        };
+
+        Member::from_ffi(fu.await)
     }
 
     pub fn message(&self) -> MessageChain {

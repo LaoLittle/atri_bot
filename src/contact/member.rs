@@ -1,7 +1,10 @@
 use crate::contact::group::Group;
-use crate::{GroupMemberInfo, MessageChain};
+use crate::{Bot, GroupMemberInfo, MessageChain};
+use atri_ffi::contact::{FFIMember, MemberUnion};
+use atri_ffi::Managed;
 use ricq::structs::MessageReceipt;
 use ricq::{RQError, RQResult};
+use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -19,10 +22,48 @@ impl Member {
         }
     }
 
+    pub fn group(&self) {}
+
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
         match self {
             Self::Named(named) => named.send_message(chain).await,
-            Self::Anonymous(..) => Err(RQError::Other("".into())),
+            Self::Anonymous(..) => Err(RQError::Other("cannot send anonymous yet".into())),
+        }
+    }
+
+    pub fn into_ffi(self) -> FFIMember {
+        match self {
+            Self::Named(named) => {
+                let ma = Managed::from_value(named);
+                FFIMember {
+                    is_named: true,
+                    inner: MemberUnion {
+                        named: ManuallyDrop::new(ma),
+                    },
+                }
+            }
+            Self::Anonymous(ano) => {
+                let ma = Managed::from_value(ano);
+                FFIMember {
+                    is_named: false,
+                    inner: MemberUnion {
+                        anonymous: ManuallyDrop::new(ma),
+                    },
+                }
+            }
+        }
+    }
+
+    pub fn from_ffi(ffi: FFIMember) -> Self {
+        unsafe {
+            if ffi.is_named {
+                let named: NamedMember = ManuallyDrop::into_inner(ffi.inner.named).into_value();
+                Self::Named(named)
+            } else {
+                let ano: AnonymousMember =
+                    ManuallyDrop::into_inner(ffi.inner.anonymous).into_value();
+                Self::Anonymous(ano)
+            }
         }
     }
 }
@@ -31,12 +72,6 @@ impl Member {
 pub struct NamedMember(Arc<imp::NamedMember>);
 
 impl NamedMember {
-    pub(crate) fn from(group: Group, info: GroupMemberInfo) -> Self {
-        let inner = imp::NamedMember { group, info };
-
-        Self(inner.into())
-    }
-
     pub fn id(&self) -> i64 {
         self.0.info.uin
     }
@@ -51,6 +86,10 @@ impl NamedMember {
 
     pub fn group(&self) -> &Group {
         &self.0.group
+    }
+
+    pub fn bot(&self) -> &Bot {
+        self.group().bot()
     }
 
     pub async fn mute(&self, duration: Duration) -> RQResult<()> {
@@ -88,6 +127,12 @@ impl NamedMember {
                 .await
         }
     }
+
+    pub(crate) fn from(group: Group, info: GroupMemberInfo) -> Self {
+        let inner = imp::NamedMember { group, info };
+
+        Self(inner.into())
+    }
 }
 
 pub trait KickMessage: Sized {
@@ -124,6 +169,10 @@ impl AnonymousMember {
 
     pub fn group(&self) -> &Group {
         &self.0.group
+    }
+
+    pub fn bot(&self) -> &Bot {
+        self.group().bot()
     }
 
     pub async fn mute(&self, duration: Duration) -> RQResult<()> {
