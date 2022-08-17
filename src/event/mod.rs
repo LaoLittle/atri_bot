@@ -13,6 +13,7 @@ use crate::contact::group::Group;
 use crate::contact::member::{AnonymousMember, Member};
 use crate::contact::{Contact, HasSubject};
 use crate::{Bot, Listener, MessageChain};
+use crate::contact::friend::Friend;
 
 pub mod listener;
 
@@ -121,13 +122,6 @@ impl<T> Clone for EventInner<T> {
 pub type GroupMessageEvent = EventInner<imp::GroupMessageEvent>;
 
 impl GroupMessageEvent {
-    pub fn from(group: Group, ori: ricq::client::event::GroupMessageEvent) -> Self {
-        Self::new(imp::GroupMessageEvent {
-            group,
-            message: ori.inner,
-        })
-    }
-
     pub fn group(&self) -> &Group {
         &self.event.group
     }
@@ -207,11 +201,18 @@ impl GroupMessageEvent {
             .await
             .map(|e| e.message().elements.clone())
     }
+
+    pub(crate) fn from(group: Group, ori: ricq::client::event::GroupMessageEvent) -> Self {
+        Self::new(imp::GroupMessageEvent {
+            group,
+            message: ori.inner,
+        })
+    }
 }
 
 impl HasSubject for GroupMessageEvent {
     fn subject(&self) -> Contact {
-        Contact::Group(self.event.group.clone())
+        Contact::Group(self.group().clone())
     }
 }
 
@@ -227,7 +228,20 @@ impl FromEvent for GroupMessageEvent {
 
 pub type FriendMessageEvent = EventInner<imp::FriendMessageEvent>;
 
-impl FriendMessageEvent {}
+impl FriendMessageEvent {
+    pub fn friend(&self) -> &Friend {
+        &self.event.friend
+    }
+    
+    pub(crate) fn from(friend: Friend, ori: ricq::client::event::FriendMessageEvent) -> Self {
+        let imp = imp::FriendMessageEvent {
+            friend,
+            message: ori.inner
+        };
+        
+        Self::new(imp)
+    }
+}
 
 impl FromEvent for FriendMessageEvent {
     fn from_event(e: Event) -> Option<Self> {
@@ -236,6 +250,12 @@ impl FromEvent for FriendMessageEvent {
         } else {
             None
         }
+    }
+}
+
+impl HasSubject for FriendMessageEvent {
+    fn subject(&self) -> Contact {
+        Contact::Friend(self.friend().clone())
     }
 }
 
@@ -258,6 +278,7 @@ mod imp {
 
     use crate::contact::group::Group;
     use crate::Bot;
+    use crate::contact::friend::Friend;
 
     pub struct GroupMessageEvent {
         pub group: Group,
@@ -265,6 +286,7 @@ mod imp {
     }
 
     pub struct FriendMessageEvent {
+        pub friend: Friend,
         pub message: FriendMessage,
     }
 

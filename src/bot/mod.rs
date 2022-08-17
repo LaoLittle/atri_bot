@@ -8,9 +8,9 @@ use ricq::ext::common::after_login;
 use ricq::structs::AccountInfo;
 use ricq::{Client, LoginResponse, RQError, RQResult};
 
+use crate::contact::friend::Friend;
 use tokio::{fs, io};
 use tracing::error;
-use crate::contact::friend::Friend;
 
 use crate::contact::group::Group;
 
@@ -70,14 +70,16 @@ impl Bot {
     pub async fn account_info(&self) -> AccountInfo {
         self.0.account_info().await
     }
-    
+
     pub async fn refresh_friend_list(&self) -> RQResult<()> {
         let list = self.client().get_friend_list().await?;
 
         for info in list.friends {
-            self.0.friend_list.insert(info.uin, Friend::from(self.clone(),info));
+            self.0
+                .friend_list
+                .insert(info.uin, Friend::from(self.clone(), info));
         }
-        
+
         Ok(())
     }
 
@@ -108,9 +110,9 @@ impl Bot {
 
         Ok(())
     }
-    
+
     pub(crate) fn delete_friend(&self, friend_id: i64) -> Option<Friend> {
-        self.0.friend_list.remove(&friend_id).map(|(_,f)| f)
+        self.0.friend_list.remove(&friend_id).map(|(_, f)| f)
     }
 
     pub(crate) fn delete_group(&self, group_id: i64) -> Option<Group> {
@@ -141,12 +143,12 @@ impl Bot {
             }
         }
     }
-    
+
     pub async fn find_friend(&self, id: i64) -> Option<Friend> {
         if let Some(f) = self.0.friend_list.get(&id) {
             return Some(f.clone());
         }
-        
+
         None
     }
 

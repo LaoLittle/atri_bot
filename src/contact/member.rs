@@ -1,6 +1,7 @@
 use crate::contact::group::Group;
-use crate::GroupMemberInfo;
-use ricq::RQResult;
+use crate::{GroupMemberInfo, MessageChain};
+use ricq::structs::MessageReceipt;
+use ricq::{RQError, RQResult};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -10,7 +11,21 @@ pub enum Member {
     Anonymous(AnonymousMember),
 }
 
-impl Member {}
+impl Member {
+    pub fn id(&self) -> i64 {
+        match self {
+            Self::Named(named) => named.id(),
+            Self::Anonymous(an) => an.id(),
+        }
+    }
+
+    pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
+        match self {
+            Self::Named(named) => named.send_message(chain).await,
+            Self::Anonymous(..) => Err(RQError::Other("".into())),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct NamedMember(Arc<imp::NamedMember>);
@@ -51,7 +66,7 @@ impl NamedMember {
         self.group()
             .bot()
             .client()
-            .group_kick(self.group().id(), vec![self.id()],msg, block)
+            .group_kick(self.group().id(), vec![self.id()], msg, block)
             .await
     }
 
@@ -62,9 +77,16 @@ impl NamedMember {
             .edit_group_member_card(self.group().id(), self.id(), new.to_string())
             .await
     }
-    
-    pub async fn send_message(&self) {
-        
+
+    pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
+        let bot = self.group().bot();
+        if let Some(f) = bot.find_friend(self.id()).await {
+            f.send_message(chain).await
+        } else {
+            bot.client()
+                .send_group_temp_message(self.group().id(), self.id(), chain)
+                .await
+        }
     }
 }
 
@@ -78,7 +100,7 @@ impl KickMessage for bool {
     }
 }
 
-impl<S: AsRef<str>> KickMessage for (S,bool) {
+impl<S: AsRef<str>> KickMessage for (S, bool) {
     fn to_kick_message(&self) -> (&str, bool) {
         (self.0.as_ref(), self.1)
     }
@@ -123,7 +145,7 @@ mod imp {
     }
 
     pub struct AnonymousMember {
-        pub id: i64,
         pub group: Group,
+        pub id: i64,
     }
 }

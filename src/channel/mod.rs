@@ -6,7 +6,7 @@ use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tracing::info;
 
-use crate::event::{BotOnlineEvent, Event, EventInner, GroupMessageEvent};
+use crate::event::{BotOnlineEvent, Event, EventInner, FriendMessageEvent, GroupMessageEvent};
 use crate::service::listeners::get_global_worker;
 use crate::{get_app, get_listener_runtime, Bot};
 
@@ -91,12 +91,18 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     return;
                 };
 
+                let friend = if let Some(f) = bot.find_friend(e.inner.from_uin).await {
+                    f
+                } else { return; };
+
                 info!(
                     "好友 {}({}) >> {bot}: {}",
-                    e.inner.from_uin, e.inner.from_nick, e.inner.elements,
+                    friend.nickname(), friend.id(), e.inner.elements,
                 );
 
-                Event::Unknown(EventInner::<QEvent>::from(QEvent::FriendMessage(e)))
+                let base = FriendMessageEvent::from(friend, e);
+
+                Event::FriendMessageEvent(base)
             }
             or => Event::Unknown(EventInner::<QEvent>::from(or)),
         };

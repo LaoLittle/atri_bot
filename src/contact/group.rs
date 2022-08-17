@@ -1,16 +1,14 @@
 use dashmap::DashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
-use std::time::Duration;
 
-use ricq::msg::elem::GroupImage;
 use ricq::structs::{GroupInfo, MessageReceipt};
 use ricq::RQResult;
 use tracing::error;
 
 use crate::contact::member::NamedMember;
-use crate::{Bot, MessageChain};
 use crate::message::Image;
+use crate::{Bot, MessageChain};
 
 #[derive(Clone)]
 pub struct Group(Arc<imp::Group>);

@@ -1,24 +1,30 @@
+use crate::contact::friend::Friend;
 use crate::contact::group::Group;
+use crate::contact::member::Member;
 use crate::MessageChain;
+use ricq::structs::MessageReceipt;
+use ricq::RQResult;
 
+pub mod friend;
 pub mod group;
 pub mod member;
-pub mod friend;
 
 pub enum Contact {
-    Friend,
+    Friend(Friend),
     Group(Group),
+    Member(Member),
     Stranger,
 }
 
 impl Contact {
-    pub async fn send_message(&self, chain: MessageChain) {
+    pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
         match self {
-            Self::Friend => {}
-            Self::Group(g) => {
-                g.send_message(chain).await.ok();
+            Self::Friend(f) => f.send_message(chain).await,
+            Self::Group(g) => g.send_message(chain).await,
+            Self::Member(m) => m.send_message(chain).await,
+            Self::Stranger => {
+                todo!()
             }
-            Self::Stranger => {}
         }
     }
 }

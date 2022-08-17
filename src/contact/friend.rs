@@ -1,9 +1,9 @@
-use std::sync::Arc;
-use ricq::RQResult;
-use ricq::structs::{FriendInfo, MessageReceipt};
-use tracing::error;
-use crate::{Bot, MessageChain};
 use crate::message::Image;
+use crate::{Bot, MessageChain};
+use ricq::structs::{FriendInfo, MessageReceipt};
+use ricq::RQResult;
+use std::sync::Arc;
+use tracing::error;
 
 #[derive(Clone)]
 pub struct Friend(Arc<imp::Friend>);
@@ -26,13 +26,15 @@ impl Friend {
     }
 
     pub async fn delete(&self) -> bool {
-        let result = self.bot()
-            .client()
-            .delete_friend(self.id())
-            .await;
+        let result = self.bot().client().delete_friend(self.id()).await;
 
         if let Err(e) = result {
-            error!("尝试删除好友 {}({}) 时失败: {:?}",self.nickname(), self.id(), e);
+            error!(
+                "尝试删除好友 {}({}) 时失败: {:?}",
+                self.nickname(),
+                self.id(),
+                e
+            );
             return false;
         }
 
@@ -56,19 +58,16 @@ impl Friend {
             .map(|f| Image::Friend(f))
     }
 
-    pub(crate) fn from(bot: Bot,info: FriendInfo) -> Self {
-        let f = imp::Friend {
-            bot,
-            info
-        };
+    pub(crate) fn from(bot: Bot, info: FriendInfo) -> Self {
+        let f = imp::Friend { bot, info };
 
         Self(Arc::new(f))
     }
 }
 
 mod imp {
-    use ricq::structs::FriendInfo;
     use crate::Bot;
+    use ricq::structs::FriendInfo;
 
     pub struct Friend {
         pub bot: Bot,
