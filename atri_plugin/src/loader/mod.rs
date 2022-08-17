@@ -17,6 +17,10 @@ pub(crate) fn get_plugin_manager() -> *const () {
     get_atri_manager().manager_ptr
 }
 
+pub(crate) fn get_plugin_handle() -> usize {
+    get_atri_manager().handle
+}
+
 pub(crate) fn get_plugin_manager_vtb() -> &'static AtriVTable {
     unsafe { &*get_atri_manager().vtb }
 }

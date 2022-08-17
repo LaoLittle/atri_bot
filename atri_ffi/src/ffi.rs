@@ -37,7 +37,7 @@ pub struct AtriVTable {
     pub friend_send_message:
         extern "C" fn(friend: *const (), chain: FFIMessageChain) -> FFIFuture<FFIResult<Managed>>,
 
-    pub log_info: extern "C" fn(log: RustString),
+    pub log_info: extern "C" fn(handle: usize, manager: *const (), log: RustString),
 }
 
 #[repr(C)]

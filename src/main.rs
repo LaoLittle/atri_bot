@@ -18,7 +18,7 @@ type MainResult = Result<(), Box<dyn Error>>;
 
 fn main() -> MainResult {
     init_logger();
-    let atri = Atri::new();
+    let mut atri = Atri::new();
 
     get_listener_runtime().spawn(get_global_worker().start());
 

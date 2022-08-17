@@ -63,8 +63,8 @@ impl Atri {
         }
     }
 
-    pub fn plugin_manager(&self) -> &PluginManager {
-        &self.plugin_manager
+    pub fn plugin_manager(&mut self) -> &mut PluginManager {
+        &mut self.plugin_manager
     }
 
     pub fn global_runtime(&self) -> &Runtime {
