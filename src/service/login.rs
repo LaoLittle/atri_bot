@@ -83,6 +83,9 @@ pub async fn login_bots() -> Result<(), RQError> {
             .await
             {
                 Ok(bot) => {
+                    if let Err(e) = bot.refresh_friend_list().await {
+                        warn!("{}刷新好友列表失败: {:?}", bot, e);
+                    }
                     if let Err(e) = bot.refresh_group_list().await {
                         warn!("{}刷新群列表失败: {:?}", bot, e);
                     }

@@ -1,10 +1,10 @@
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
 use crate::contact::member::Member;
+use crate::message::image::Image;
 use crate::MessageChain;
 use ricq::structs::MessageReceipt;
 use ricq::RQResult;
-use crate::message::image::Image;
 
 pub mod friend;
 pub mod group;
@@ -29,7 +29,7 @@ impl Contact {
         }
     }
 
-    pub async fn upload_image(&self, chain: MessageChain) -> RQResult<Image> {
+    pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<Image> {
         todo!()
     }
 }

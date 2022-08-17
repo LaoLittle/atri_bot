@@ -1,8 +1,8 @@
-use std::mem::ManuallyDrop;
+use super::MessageChain;
+use crate::message::MessageValue;
 use atri_ffi::message::{FFIMessageChain, FFIMessageValue, MessageValueUnion};
 use atri_ffi::{Managed, RawVec, RustString};
-use crate::message::MessageValue;
-use super::MessageChain;
+use std::mem::ManuallyDrop;
 
 impl MessageChain {
     pub fn into_ffi(self) -> FFIMessageChain {

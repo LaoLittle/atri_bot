@@ -1,10 +1,10 @@
-pub mod image;
 pub mod ffi;
+pub mod image;
 
 use crate::Text;
+use image::Image;
 use ricq::msg::elem::{At, RQElem};
 use ricq::msg::{MessageElem, PushElem};
-use image::Image;
 
 pub struct MessageChain(Vec<MessageValue>);
 

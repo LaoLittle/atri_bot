@@ -3,17 +3,17 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ricq::handler::QEvent;
-use ricq::structs::GroupMessage;
+use ricq::structs::{FriendMessage, GroupMessage};
 
 use atri_ffi::ffi::FFIEvent;
 use atri_ffi::Managed;
 use tokio::time::error::Elapsed;
 
+use crate::contact::friend::Friend;
 use crate::contact::group::Group;
-use crate::contact::member::{AnonymousMember, Member};
+use crate::contact::member::{AnonymousMember, Member, NamedMember};
 use crate::contact::{Contact, HasSubject};
 use crate::{Bot, Listener, MessageChain};
-use crate::contact::friend::Friend;
 
 pub mod listener;
 
@@ -132,14 +132,16 @@ impl GroupMessageEvent {
 
     pub async fn sender(&self) -> Member {
         let id = self.message().from_uin;
+        if id == 80000000 {
+            let an = AnonymousMember::from(self.group().clone(), id);
+            return Member::Anonymous(an);
+        }
+
         self.group()
             .find_member(id)
             .await
             .map(|named| Member::Named(named))
-            .unwrap_or_else(|| {
-                let an = AnonymousMember::from(self.group().clone(), id);
-                Member::Anonymous(an)
-            })
+            .expect("Cannot get sender")
     }
 
     pub fn message(&self) -> &GroupMessage {
@@ -232,13 +234,17 @@ impl FriendMessageEvent {
     pub fn friend(&self) -> &Friend {
         &self.event.friend
     }
-    
+
+    pub fn message(&self) -> &FriendMessage {
+        &self.event.message
+    }
+
     pub(crate) fn from(friend: Friend, ori: ricq::client::event::FriendMessageEvent) -> Self {
         let imp = imp::FriendMessageEvent {
             friend,
-            message: ori.inner
+            message: ori.inner,
         };
-        
+
         Self::new(imp)
     }
 }
@@ -276,9 +282,9 @@ impl EventInner<QEvent> {
 mod imp {
     use ricq::structs::{FriendMessage, GroupMessage};
 
+    use crate::contact::friend::Friend;
     use crate::contact::group::Group;
     use crate::Bot;
-    use crate::contact::friend::Friend;
 
     pub struct GroupMessageEvent {
         pub group: Group,

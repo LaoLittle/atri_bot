@@ -1,5 +1,6 @@
 mod bot;
 mod event;
+mod friend;
 mod group;
 mod listener;
 mod log;
@@ -9,7 +10,8 @@ use std::sync::OnceLock;
 
 use crate::plugin::ffi::bot::bot_get_id;
 use crate::plugin::ffi::event::{
-    event_intercept, event_is_intercepted, group_message_event_get_group,
+    event_intercept, event_is_intercepted, friend_message_event_get_friend,
+    friend_message_event_get_message, group_message_event_get_group,
     group_message_event_get_message,
 };
 use crate::plugin::ffi::group::{
@@ -17,6 +19,7 @@ use crate::plugin::ffi::group::{
 };
 use crate::plugin::ffi::listener::new_listener;
 
+use crate::plugin::ffi::friend::{friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message};
 use crate::plugin::ffi::log::log_info;
 use crate::PluginManager;
 use atri_ffi::ffi::AtriVTable;
@@ -41,6 +44,12 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
         group_send_message,
         group_upload_image,
         group_quit,
+        friend_message_event_get_friend,
+        friend_message_event_get_message,
+        friend_get_id,
+        friend_get_nickname,
+        friend_get_bot,
+        friend_send_message,
         log_info,
     })
 }

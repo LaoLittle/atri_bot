@@ -93,11 +93,15 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 let friend = if let Some(f) = bot.find_friend(e.inner.from_uin).await {
                     f
-                } else { return; };
+                } else {
+                    return;
+                };
 
                 info!(
                     "好友 {}({}) >> {bot}: {}",
-                    friend.nickname(), friend.id(), e.inner.elements,
+                    friend.nickname(),
+                    friend.id(),
+                    e.inner.elements,
                 );
 
                 let base = FriendMessageEvent::from(friend, e);

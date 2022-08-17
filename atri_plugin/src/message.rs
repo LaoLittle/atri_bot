@@ -116,8 +116,8 @@ impl From<MessageValue> for FFIMessageValue {
 
 #[derive(Default)]
 pub struct MessageChainBuilder {
-    pub value: Vec<MessageValue>,
-    pub buf: String,
+    value: Vec<MessageValue>,
+    buf: String,
 }
 
 impl MessageChainBuilder {

@@ -1,4 +1,4 @@
-use crate::event::GroupMessageEvent;
+use crate::event::{FriendMessageEvent, GroupMessageEvent};
 use crate::plugin::cast_ref;
 use atri_ffi::message::FFIMessageChain;
 use atri_ffi::Managed;
@@ -21,6 +21,18 @@ pub extern "C" fn group_message_event_get_group(event: *const ()) -> Managed {
 
 pub extern "C" fn group_message_event_get_message(event: *const ()) -> FFIMessageChain {
     let event: &GroupMessageEvent = cast_ref(event);
+    let chain = event.message().elements.clone();
+    let chain = crate::message::MessageChain::from(chain);
+    chain.into_ffi()
+}
+
+pub extern "C" fn friend_message_event_get_friend(event: *const ()) -> Managed {
+    let event: &FriendMessageEvent = cast_ref(event);
+    Managed::from_value(event.friend().clone())
+}
+
+pub extern "C" fn friend_message_event_get_message(event: *const ()) -> FFIMessageChain {
+    let event: &FriendMessageEvent = cast_ref(event);
     let chain = event.message().elements.clone();
     let chain = crate::message::MessageChain::from(chain);
     chain.into_ffi()

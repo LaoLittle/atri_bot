@@ -28,6 +28,14 @@ pub struct AtriVTable {
     pub group_upload_image:
         extern "C" fn(group: *const (), data: RawVec<u8>) -> FFIFuture<FFIResult<Managed>>,
     pub group_quit: extern "C" fn(group: *const ()) -> FFIFuture<bool>,
+    
+    pub friend_message_event_get_friend: extern "C" fn(event: *const ()) -> Managed,
+    pub friend_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
+    pub friend_get_id: extern "C" fn(friend: *const ()) -> i64,
+    pub friend_get_nickname: extern "C" fn(friend: *const ()) -> RustStr,
+    pub friend_get_bot: extern "C" fn(friend: *const ()) -> Managed,
+    pub friend_send_message:
+        extern "C" fn(friend: *const (), chain: FFIMessageChain) -> FFIFuture<FFIResult<Managed>>,
 
     pub log_info: extern "C" fn(log: RustStr),
 }
