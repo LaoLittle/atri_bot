@@ -32,10 +32,10 @@ pub mod plugin;
 pub mod service;
 
 pub struct Atri {
-    global_runtime: Runtime,
+    pub global_runtime: Runtime,
     //listener_runtime: Runtime,
     //listener_worker: ListenerWorker,
-    plugin_manager: PluginManager,
+    pub plugin_manager: PluginManager,
 }
 
 impl Atri {
@@ -61,14 +61,6 @@ impl Atri {
             //listener_worker,
             plugin_manager: PluginManager::new(),
         }
-    }
-
-    pub fn plugin_manager(&mut self) -> &mut PluginManager {
-        &mut self.plugin_manager
-    }
-
-    pub fn global_runtime(&self) -> &Runtime {
-        &self.global_runtime
     }
 }
 

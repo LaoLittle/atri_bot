@@ -1,11 +1,15 @@
 extern crate core;
 
 use std::error::Error;
+use std::future::{poll_fn, Future};
 use std::mem;
+use std::pin::Pin;
+use std::task::Poll;
+use std::time::Duration;
 
-use tokio::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tracing::info;
+use tokio::{io, signal};
+use tracing::{error, info};
 
 use atri_qq::event::listener::{Listener, Priority};
 use atri_qq::event::GroupMessageEvent;
@@ -22,9 +26,9 @@ fn main() -> MainResult {
 
     get_listener_runtime().spawn(get_global_worker().start());
 
-    atri.plugin_manager().load_plugins()?;
+    atri.plugin_manager.load_plugins()?;
 
-    let runtime = atri.global_runtime();
+    let runtime = &atri.global_runtime;
 
     let guard = Listener::listening_on_always(|e: GroupMessageEvent| async move {
         if !get_app().check_group_bot(e.group().bot().id(), e.group().id()) {
@@ -42,7 +46,43 @@ fn main() -> MainResult {
         main0().await.expect("Error");
     });
 
-    runtime.block_on(loop_cli())?;
+    runtime.block_on(async {
+        let mut loop_cli = tokio::spawn(async {
+            if let Err(e) = loop_cli().await {
+                error!("命令处理服务出现错误: {}", e);
+            }
+        });
+        let mut sig = signal::ctrl_c();
+
+        poll_fn(|ctx| {
+            let cli = unsafe { Pin::new_unchecked(&mut loop_cli) };
+            let sig = unsafe { Pin::new_unchecked(&mut sig) };
+
+            match (cli.poll(ctx), sig.poll(ctx)) {
+                (Poll::Pending, Poll::Pending) => Poll::Pending,
+                (Poll::Ready(Err(e)), _) => {
+                    error!("{}", e);
+                    Poll::Ready(())
+                }
+                (_, Poll::Ready(result)) => {
+                    if let Err(e) = result {
+                        error!("{}", e);
+                    }
+                    println!("正在中止AtriQQ");
+                    Poll::Ready(())
+                }
+                (_, _) => Poll::Ready(()),
+            }
+        })
+        .await;
+
+        Ok::<_, Box<dyn Error>>(())
+    })?;
+
+    atri.global_runtime
+        .shutdown_timeout(Duration::from_millis(800));
+
+    println!("已成功停止服务");
 
     Ok(())
 }
@@ -60,8 +100,9 @@ async fn loop_cli() -> MainResult {
 
     info!("已启动AtriQQ");
 
+    let mut buf = String::new();
     loop {
-        let mut buf = String::new();
+        buf.clear();
         stdin.read_line(&mut buf).await?;
         let cmd = buf.trim_end();
 
@@ -70,7 +111,7 @@ async fn loop_cli() -> MainResult {
                 // nothing to do
             }
             "help" | "?" => {
-                static INFOS: &[&str] = &["help: Show this info", "exit: Exit this program"];
+                static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
 
                 for &info in INFOS {
                     stdout.write_all(info.as_bytes()).await?;
@@ -78,14 +119,11 @@ async fn loop_cli() -> MainResult {
                 }
             }
             "exit" | "quit" | "stop" => {
-                println!("Stopping...");
+                println!("正在停止AtriQQ");
                 break;
             }
             _ => {
-                println!(
-                    "Unknown command '{}', use 'help' to show the help info",
-                    cmd
-                );
+                println!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
             }
         }
         stdout.write_all(b">>").await?;

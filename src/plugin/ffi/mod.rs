@@ -7,8 +7,8 @@ mod log;
 mod member;
 mod message;
 
-use std::sync::OnceLock;
 use atri_ffi::error::FFIResult;
+use std::sync::OnceLock;
 
 use crate::plugin::ffi::bot::bot_get_id;
 use crate::plugin::ffi::event::{

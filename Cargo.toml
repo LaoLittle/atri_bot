@@ -28,8 +28,9 @@ features = [
     "sync",
     "mio",
     "io-std",
+    "io-util",
     "fs",
-    "io-util"
+    "signal",
 ]
 
 [dependencies.ricq]
