@@ -11,7 +11,6 @@ pub struct AtriVTable {
     pub plugin_manager_spawn:
         extern "C" fn(manager: *const (), FFIFuture<Managed>) -> FFIFuture<FFIResult<Managed>>,
     pub plugin_manager_block_on: extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
-    pub plugin_manager_get_runtime: extern "C" fn(manager: *const ()) -> *const (),
 
     pub new_listener: extern "C" fn(FFIFn<FFIEvent, FFIFuture<bool>>) -> Managed,
     pub event_intercept: extern "C" fn(intercepted: *const ()),
