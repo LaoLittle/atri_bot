@@ -103,6 +103,8 @@ impl Listener {
         })
     }
 
+    pub async fn next_event() {}
+
     pub fn name(&self) -> &str {
         &self.name
     }

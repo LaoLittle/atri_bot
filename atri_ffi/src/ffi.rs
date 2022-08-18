@@ -107,3 +107,11 @@ impl FFIEvent {
         (self.t, self.intercepted, self.base)
     }
 }
+
+pub trait ForFFI {
+    type FFIValue;
+
+    fn into_ffi(self) -> Self::FFIValue;
+
+    fn from_ffi(value: Self::FFIValue) -> Self;
+}

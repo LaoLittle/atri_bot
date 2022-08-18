@@ -5,6 +5,7 @@ use crate::message::{Image, MessageChain, MessageReceipt};
 use atri_ffi::message::FFIMessageChain;
 use atri_ffi::{Managed, RustStr};
 use std::slice;
+use atri_ffi::ffi::ForFFI;
 
 pub struct Group(pub(crate) Managed);
 

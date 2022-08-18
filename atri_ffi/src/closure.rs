@@ -24,11 +24,6 @@ impl<Arg, R> FFIFn<Arg, R> {
     }
 }
 
-pub struct FFIFnV {
-    closure: Managed,
-    invoke: extern "C" fn(*const ()),
-}
-
 extern "C" fn _invoke_fn<F, Arg, R>(ptr: *const (), arg: Arg) -> R
 where
     F: Fn(Arg) -> R,

@@ -1,9 +1,13 @@
+pub mod at;
 pub mod ffi;
 pub mod image;
+pub mod reply;
 
+use crate::message::at::At;
+use crate::message::reply::Reply;
 use crate::Text;
 use image::Image;
-use ricq::msg::elem::{At, RQElem};
+use ricq::msg::elem::RQElem;
 use ricq::msg::{MessageElem, PushElem};
 
 pub struct MessageChain(Vec<MessageValue>);
@@ -34,6 +38,7 @@ impl PushElem for MessageChain {
 pub enum MessageValue {
     Text(String),
     Image(Image),
+    Reply(Reply),
     At(At),
     Unknown(RQElem),
 }
@@ -46,7 +51,26 @@ impl From<MessageValue> for RQElem {
                 Image::Friend(img) => RQElem::FriendImage(img),
                 Image::Group(img) => RQElem::GroupImage(img),
             },
-            MessageValue::At(at) => RQElem::At(at),
+            MessageValue::Reply(reply) => RQElem::Other({
+                let Reply {
+                    reply_seq,
+                    sender,
+                    time,
+                    elements,
+                } = reply;
+
+                let rq = ricq::msg::elem::Reply {
+                    reply_seq,
+                    sender,
+                    time,
+                    elements: ricq::msg::MessageChain::from(elements),
+                };
+
+                Box::new(rq.into())
+            }),
+            MessageValue::At(At { target, display }) => {
+                RQElem::At(ricq::msg::elem::At { target, display })
+            }
             MessageValue::Unknown(rq) => rq,
         }
     }
@@ -58,7 +82,10 @@ impl From<RQElem> for MessageValue {
             RQElem::Text(Text { content }) => MessageValue::Text(content),
             RQElem::GroupImage(img) => MessageValue::Image(Image::Group(img)),
             RQElem::FriendImage(img) => MessageValue::Image(Image::Friend(img)),
-            RQElem::At(at) => MessageValue::At(at),
+            RQElem::At(at) => MessageValue::At(At {
+                target: at.target,
+                display: at.display,
+            }),
             or => Self::Unknown(or),
         }
     }
@@ -69,6 +96,8 @@ impl PushElem for MessageValue {
         match elem {
             Self::Text(s) => PushElem::push_to(Text::new(s), vec),
             Self::Image(img) => PushElem::push_to(img, vec),
+            Self::Reply(reply) => PushElem::push_to(reply, vec),
+            Self::At(at) => PushElem::push_to(at, vec),
             _ => {}
         }
     }

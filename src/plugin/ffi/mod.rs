@@ -24,11 +24,14 @@ use crate::plugin::ffi::friend::{
     friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message,
 };
 use crate::plugin::ffi::log::log_info;
+use crate::plugin::ffi::member::{
+    named_member_change_card_name, named_member_get_card_name, named_member_get_group,
+    named_member_get_id, named_member_get_nickname,
+};
 use crate::PluginManager;
 use atri_ffi::ffi::AtriVTable;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
-use crate::plugin::ffi::member::{named_member_change_card_name, named_member_get_card_name, named_member_get_group, named_member_get_id, named_member_get_nickname};
 
 static PLUGIN_VTABLE: OnceLock<AtriVTable> = OnceLock::new();
 

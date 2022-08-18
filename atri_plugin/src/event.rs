@@ -2,7 +2,7 @@ use crate::bot::Bot;
 use crate::contact::group::Group;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::MessageChain;
-use atri_ffi::ffi::FFIEvent;
+use atri_ffi::ffi::{FFIEvent, ForFFI};
 use atri_ffi::Managed;
 use std::ops::Deref;
 use std::sync::Arc;

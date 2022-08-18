@@ -2,6 +2,7 @@ use crate::contact::group::Group;
 use crate::message;
 use crate::plugin::cast_ref;
 use atri_ffi::error::FFIResult;
+use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::FFIMessageChain;
 use atri_ffi::{Managed, RawVec, RustStr};

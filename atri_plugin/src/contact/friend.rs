@@ -1,4 +1,5 @@
 use std::slice;
+use atri_ffi::ffi::ForFFI;
 use atri_ffi::Managed;
 use crate::bot::Bot;
 use crate::error::AtriError;
