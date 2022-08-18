@@ -8,6 +8,7 @@ pub struct PluginManager;
 
 impl PluginManager {
     /// 使用插件共享协程执行器执行协程，返回JoinHandle
+    ///
     /// 注意：返回值会经过一次Box装箱拆箱，请避免返回过大的值
     pub fn spawn<F>(&self, future: F) -> JoinHandle<F::Output>
     where
@@ -15,7 +16,7 @@ impl PluginManager {
         F: Send + 'static,
         F::Output: Send + 'static,
     {
-        let ffi = FFIFuture::from(async move {
+        let ffi = FFIFuture::from_static(async move {
             let value: F::Output = future.await;
 
             Managed::from_value(value)
@@ -27,6 +28,7 @@ impl PluginManager {
     }
 
     /// 阻塞当前线程执行协程，并返回Future的返回值
+    ///
     /// 注意：返回值会经过一次Box装箱拆箱，请避免返回过大的值
     pub fn block_on<F>(&self, future: F) -> F::Output
     where

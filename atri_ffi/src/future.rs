@@ -22,6 +22,16 @@ impl<T> FFIFuture<T> {
             poll: fun,
         }
     }
+
+    #[inline]
+    pub fn from_static<F>(fu: F) -> Self
+        where
+            F: Future<Output = T>,
+            F: Send + 'static,
+            F::Output: Send + 'static
+    {
+        Self::from(fu)
+    }
 }
 
 unsafe impl<T: Send> Send for FFIFuture<T> {}

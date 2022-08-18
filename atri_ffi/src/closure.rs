@@ -19,6 +19,15 @@ impl<Arg, R> FFIFn<Arg, R> {
         }
     }
 
+    #[inline]
+    pub fn from_static<F>(closure: F) -> Self
+    where
+        F: Fn(Arg) -> R,
+        F: Send + 'static
+    {
+        Self::from(closure)
+    }
+
     pub fn invoke(&self, arg: Arg) -> R {
         (self.invoke)(self.closure.pointer, arg)
     }
