@@ -10,8 +10,8 @@ pub mod event;
 pub mod listener;
 pub mod loader;
 pub mod log;
-pub mod manager;
 pub mod message;
+pub mod runtime;
 
 pub use atri_ffi::plugin::PluginInstance;
 

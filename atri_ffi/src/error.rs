@@ -48,3 +48,18 @@ impl<T> From<FFIResult<T>> for Result<T, String> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+    use crate::error::FFIResult;
+
+    #[test]
+    fn result() {
+        let result = usize::from_str("abc");
+        let ffi = FFIResult::from(result);
+        let result = Result::from(ffi);
+
+        assert_eq!(result, Err("invalid digit found in string".into()));
+    }
+}

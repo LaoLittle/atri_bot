@@ -1,6 +1,6 @@
 use std::slice;
 use atri_ffi::ffi::ForFFI;
-use atri_ffi::Managed;
+use atri_ffi::{Managed, RustStr};
 use crate::bot::Bot;
 use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
@@ -14,10 +14,12 @@ impl Friend {
     }
 
     pub fn nickname(&self) -> &str{
-        let rstr = (get_plugin_manager_vtb().friend_get_nickname)(self.0.pointer);
+        let RustStr {
+            slice,len
+        } = (get_plugin_manager_vtb().friend_get_nickname)(self.0.pointer);
 
         unsafe {
-            let slice = slice::from_raw_parts(rstr.slice, rstr.len);
+            let slice = slice::from_raw_parts(slice, len);
             std::str::from_utf8_unchecked(slice)
         }
     }

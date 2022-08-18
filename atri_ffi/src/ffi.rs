@@ -1,20 +1,17 @@
-use std::future::Future;
-use std::marker::PhantomData;
-
 use crate::closure::FFIFn;
 use crate::error::FFIResult;
 use crate::future::FFIFuture;
 use crate::message::FFIMessageChain;
 use crate::{Managed, RawVec, RustStr, RustString};
-use std::pin::Pin;
-use std::task::{Context, Poll};
+
 use crate::contact::FFIMember;
 
 #[repr(C)]
 pub struct AtriVTable {
     pub plugin_manager_spawn:
-        extern "C" fn(manager: *const (), FFIFuture<Managed>) -> FFIFuture<Managed>,
+        extern "C" fn(manager: *const (), FFIFuture<Managed>) -> FFIFuture<FFIResult<Managed>>,
     pub plugin_manager_block_on: extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
+    pub plugin_manager_get_runtime: extern "C" fn(manager: *const ()) -> *const (),
 
     pub new_listener: extern "C" fn(FFIFn<FFIEvent, FFIFuture<bool>>) -> Managed,
     pub event_intercept: extern "C" fn(intercepted: *const ()),
@@ -56,35 +53,6 @@ pub struct AtriManager {
     pub manager_ptr: *const (),
     pub handle: usize,
     pub vtb: *const AtriVTable,
-}
-
-pub struct JoinHandle<T> {
-    handle: FFIFuture<Managed>,
-    _mark: PhantomData<T>,
-}
-
-impl<T> JoinHandle<T> {
-    pub fn from(f: FFIFuture<Managed>) -> Self {
-        Self {
-            handle: f,
-            _mark: PhantomData,
-        }
-    }
-}
-
-impl<T> Unpin for JoinHandle<T> {}
-
-impl<T> Future for JoinHandle<T> {
-    type Output = T;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let pin = unsafe { Pin::new_unchecked(&mut self.handle) };
-
-        match pin.poll(cx) {
-            Poll::Ready(val) => Poll::Ready(val.into_value()),
-            Poll::Pending => Poll::Pending,
-        }
-    }
 }
 
 #[repr(C)]

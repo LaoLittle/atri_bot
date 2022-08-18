@@ -1,7 +1,10 @@
 use std::fmt::{Debug, Display, Formatter};
 
+pub type AtriResult<T> = Result<T, AtriError>;
+
 #[derive(Debug)]
 pub enum AtriError {
+    JoinError(String),
     RQError(String),
 }
 

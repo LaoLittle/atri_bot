@@ -8,3 +8,8 @@ edition = "2021"
 [dependencies]
 atri_ffi = { path = "../atri_ffi" }
 atri_macros = { path = "../atri_macros" }
+
+[dependencies.tokio]
+version = "1"
+optional = true
+features = ["rt-multi-thread"]

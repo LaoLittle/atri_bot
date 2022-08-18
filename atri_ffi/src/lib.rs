@@ -180,3 +180,66 @@ impl<T> From<Vec<T>> for RawVec<T> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{Managed, RawVec, RustStr, RustString};
+
+    #[test]
+    fn vec() {
+        let v = vec![1,1,4,5,1,4];
+        let raw = RawVec::from(v);
+        let v = raw.into_vec();
+
+        assert_eq!(v, [1,1,4,5,1,4]);
+    }
+
+    #[test]
+    fn string() {
+        let s = String::from("114514");
+        let raw = RustString::from(s);
+        let s = String::from(raw);
+
+        assert_eq!(s, "114514");
+
+        let slice = &s[1..];
+        let raw = RustStr::from(slice);
+        let slice = raw.as_ref();
+
+
+        assert_eq!(slice, "14514");
+    }
+
+    #[test]
+    fn managed_value() {
+        #[derive(Debug, Clone)]
+        struct Test {
+            a: i32,
+            b: usize,
+            c: Option<Box<(Test, Test)>>
+        }
+
+        impl PartialEq for Test {
+            fn eq(&self, other: &Self) -> bool {
+                if self.a != other.a { return false; }
+                if self.b != other.b { return false; }
+
+                self.c == other.c
+            }
+        }
+
+        let test = Test {
+            a: 233,
+            b: 114514,
+            c: Some(Box::new((
+                Test { a: 23114, b: 114514, c: None },
+                Test { a: 114514, b: 2333, c: None }
+            )))
+        };
+        let test0 = test.clone();
+        let managed = Managed::from_value(test);
+        let test: Test = managed.into_value();
+
+        assert_eq!(test, test0);
+    }
+}

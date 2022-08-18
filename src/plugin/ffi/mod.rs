@@ -8,6 +8,8 @@ mod member;
 mod message;
 
 use std::sync::OnceLock;
+use tokio::runtime::Runtime;
+use atri_ffi::error::FFIResult;
 
 use crate::plugin::ffi::bot::bot_get_id;
 use crate::plugin::ffi::event::{
@@ -20,6 +22,7 @@ use crate::plugin::ffi::group::{
 };
 use crate::plugin::ffi::listener::new_listener;
 
+use crate::plugin::cast_ref;
 use crate::plugin::ffi::friend::{
     friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message,
 };
@@ -39,6 +42,7 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
     PLUGIN_VTABLE.get_or_init(|| AtriVTable {
         plugin_manager_spawn,
         plugin_manager_block_on,
+        plugin_manager_get_runtime,
         new_listener,
         event_intercept,
         event_is_intercepted,
@@ -70,14 +74,19 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
 extern "C" fn plugin_manager_spawn(
     manager: *const (),
     future: FFIFuture<Managed>,
-) -> FFIFuture<Managed> {
+) -> FFIFuture<FFIResult<Managed>> {
     let manager = unsafe { &*(manager as *const PluginManager) };
     let handle = manager.async_runtime().spawn(future);
 
-    FFIFuture::from(async { handle.await.unwrap() })
+    FFIFuture::from(async { FFIResult::from(handle.await) })
 }
 
 extern "C" fn plugin_manager_block_on(manager: *const (), future: FFIFuture<Managed>) -> Managed {
     let manager = unsafe { &*(manager as *const PluginManager) };
     manager.async_runtime().block_on(future)
+}
+
+extern "C" fn plugin_manager_get_runtime(manager: *const ()) -> *const () {
+    let manager: &PluginManager = cast_ref(manager);
+    manager.async_runtime() as *const Runtime as _
 }

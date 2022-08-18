@@ -1,8 +1,8 @@
 use crate::loader::{get_plugin_manager, get_plugin_manager_vtb};
-use atri_ffi::ffi::JoinHandle;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
 use std::future::Future;
+use crate::runtime::JoinHandle;
 
 pub struct PluginManager;
 
