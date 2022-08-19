@@ -4,7 +4,7 @@ pub mod image;
 pub mod meta;
 
 use crate::message::at::At;
-use crate::message::meta::MessageMetadata;
+use crate::message::meta::{Anonymous, MessageMetadata, Reply};
 use crate::Text;
 use image::Image;
 use ricq::msg::elem::RQElem;
@@ -27,17 +27,35 @@ impl From<Vec<MessageValue>> for MessageChain {
 
 impl From<ricq::msg::MessageChain> for MessageChain {
     fn from(chain: ricq::msg::MessageChain) -> Self {
-        //let mut iter = chain.0.into_iter();
+        let mut iter = chain.0.into_iter();
 
-        /*let ano = if let Some(elem) = iter.next() {
-            todo: metadata
-        };*/
+        let mut meta = MessageMetadata::default();
+        let mut value: Vec<MessageValue> = vec![];
 
-        let v: Vec<MessageValue> = chain.into_iter().map(MessageValue::from).collect();
-        Self {
-            elems: v,
-            ..Default::default()
+        for _ in 0..2 {
+            match iter.next() {
+                Some(MessageElem::AnonGroupMsg(msg)) => {
+                    let rq = ricq::msg::elem::Anonymous::from(msg);
+                    meta.anonymous = Some(Anonymous::from(rq));
+                }
+                Some(MessageElem::SrcMsg(src)) => {
+                    let rq = ricq::msg::elem::Reply::from(src);
+                    meta.reply = Some(Reply::from(rq));
+                }
+                Some(or) => {
+                    let rq = ricq::msg::elem::RQElem::from(or);
+                    value.push(MessageValue::from(rq));
+                }
+                None => {}
+            }
         }
+
+        for val in iter {
+            let rq = ricq::msg::elem::RQElem::from(val);
+            value.push(MessageValue::from(rq));
+        }
+
+        Self { meta, elems: value }
     }
 }
 
@@ -51,6 +69,16 @@ impl From<MessageChain> for ricq::msg::MessageChain {
 
 impl PushElem for MessageChain {
     fn push_to(elem: Self, vec: &mut Vec<MessageElem>) {
+        if let Some(reply) = elem.meta.reply {
+            let rq = ricq::msg::elem::Reply::from(reply);
+            vec.push(rq.into());
+        }
+
+        if let Some(ano) = elem.meta.anonymous {
+            let rq = ricq::msg::elem::Anonymous::from(ano);
+            vec.push(rq.into());
+        }
+
         for value in elem.elems {
             MessageValue::push_to(value, vec);
         }

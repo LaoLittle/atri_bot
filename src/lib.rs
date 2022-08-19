@@ -5,7 +5,6 @@ use std::sync::{Arc, OnceLock};
 
 use dashmap::DashMap;
 use ricq::msg::elem::Text;
-use ricq::msg::MessageChain;
 use ricq::structs::GroupMemberInfo;
 
 use tokio::runtime;
@@ -140,7 +139,7 @@ impl App {
 }
 
 pub fn app_receiver() {}
-
+/*
 pub fn main_handler() {
     let guard = Listener::listening_on_always(|e: Event| async move {
         match e {
@@ -176,3 +175,4 @@ pub fn main_handler() {
 
     mem::forget(guard);
 }
+*/

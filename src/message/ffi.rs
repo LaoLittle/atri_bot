@@ -3,7 +3,9 @@ use crate::message::at::At;
 use crate::message::meta::{Anonymous, MessageMetadata, Reply};
 use crate::message::MessageValue;
 use atri_ffi::ffi::ForFFI;
-use atri_ffi::message::meta::{ALL_META, ANONYMOUS_FLAG, FFIAnonymous, FFIMessageMetadata, FFIReply, NONE_META, REPLY_FLAG};
+use atri_ffi::message::meta::{
+    FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
+};
 use atri_ffi::message::{FFIAt, FFIMessageChain, FFIMessageValue, MessageValueUnion};
 use atri_ffi::{Managed, RawVec, RustString};
 use std::mem::{ManuallyDrop, MaybeUninit};
@@ -13,13 +15,11 @@ impl ForFFI for MessageChain {
 
     fn into_ffi(self) -> Self::FFIValue {
         let meta = self.meta.into_ffi();
-        let ffi: Vec<FFIMessageValue> = self.elems.into_iter().map(MessageValue::into_ffi).collect();
+        let ffi: Vec<FFIMessageValue> =
+            self.elems.into_iter().map(MessageValue::into_ffi).collect();
 
         let raw = RawVec::from(ffi);
-        FFIMessageChain {
-            meta,
-            inner: raw
-        }
+        FFIMessageChain { meta, inner: raw }
     }
 
     fn from_ffi(ffi: Self::FFIValue) -> Self {
@@ -31,7 +31,7 @@ impl ForFFI for MessageChain {
 
         Self {
             meta,
-            elems: values
+            elems: values,
         }
     }
 }
@@ -95,7 +95,11 @@ impl ForFFI for Reply {
     type FFIValue = FFIReply;
 
     fn into_ffi(self) -> Self::FFIValue {
-        let ffi: Vec<FFIMessageValue> = self.elements.into_iter().map(MessageValue::into_ffi).collect();
+        let ffi: Vec<FFIMessageValue> = self
+            .elements
+            .into_iter()
+            .map(MessageValue::into_ffi)
+            .collect();
         let ffi_chain = RawVec::from(ffi);
 
         FFIReply {
@@ -206,14 +210,14 @@ impl ForFFI for MessageMetadata {
     fn into_ffi(self) -> Self::FFIValue {
         let Self { anonymous, reply } = self;
         let mut flags = NONE_META;
-        let mut ffi_anonymous = MaybeUninit::uninit();
-        let mut ffi_reply = MaybeUninit::uninit();
 
+        let mut ffi_anonymous = MaybeUninit::uninit();
         if let Some(anonymous) = anonymous {
             flags |= ANONYMOUS_FLAG;
             ffi_anonymous.write(anonymous.into_ffi());
         }
 
+        let mut ffi_reply = MaybeUninit::uninit();
         if let Some(reply) = reply {
             flags |= REPLY_FLAG;
             ffi_reply.write(reply.into_ffi());
@@ -233,19 +237,19 @@ impl ForFFI for MessageMetadata {
             reply,
         } = value;
 
-        let (anonymous, reply) = unsafe {
-            match flags {
-                NONE_META => (None, None),
-                ANONYMOUS_FLAG => (Some(Anonymous::from_ffi(anonymous.assume_init())), None),
-                REPLY_FLAG => (None, Some(Reply::from_ffi(reply.assume_init()))),
-                ALL_META => (Some(Anonymous::from_ffi(anonymous.assume_init())),Some(Reply::from_ffi(reply.assume_init()))),
-                _ => unreachable!(),
+        unsafe {
+            Self {
+                anonymous: if flags & ANONYMOUS_FLAG != 0 {
+                    Some(Anonymous::from_ffi(anonymous.assume_init()))
+                } else {
+                    None
+                },
+                reply: if flags & REPLY_FLAG != 0 {
+                    Some(Reply::from_ffi(reply.assume_init()))
+                } else {
+                    None
+                },
             }
-        };
-
-        Self {
-            anonymous,
-            reply
         }
     }
 }

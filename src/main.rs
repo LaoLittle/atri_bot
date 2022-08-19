@@ -16,7 +16,7 @@ use atri_qq::event::GroupMessageEvent;
 use atri_qq::service::listeners::get_global_worker;
 use atri_qq::service::log::init_logger;
 use atri_qq::service::login::login_bots;
-use atri_qq::{fun, get_app, get_listener_runtime, main_handler, Atri};
+use atri_qq::{fun, get_app, get_listener_runtime, Atri};
 
 type MainResult = Result<(), Box<dyn Error>>;
 
@@ -39,7 +39,7 @@ fn main() -> MainResult {
     .start();
     mem::forget(guard);
 
-    main_handler();
+    //main_handler();
     fun::handler();
 
     runtime.spawn(async {

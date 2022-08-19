@@ -13,7 +13,8 @@ use crate::contact::friend::Friend;
 use crate::contact::group::Group;
 use crate::contact::member::{AnonymousMember, Member, NamedMember};
 use crate::contact::{Contact, HasSubject};
-use crate::{Bot, Listener, MessageChain};
+use crate::message::MessageChain;
+use crate::{Bot, Listener};
 
 pub mod listener;
 
@@ -199,9 +200,12 @@ impl GroupMessageEvent {
     where
         F: Fn(&MessageChain) -> bool,
     {
-        self.next_event(timeout, |e| filter(&e.message().elements))
-            .await
-            .map(|e| e.message().elements.clone())
+        // todo: optimize
+        self.next_event(timeout, |e| {
+            filter(&MessageChain::from(e.message().elements.clone()))
+        })
+        .await
+        .map(|e| MessageChain::from(e.message().elements.clone()))
     }
 
     pub(crate) fn from(group: Group, ori: ricq::client::event::GroupMessageEvent) -> Self {

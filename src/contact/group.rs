@@ -8,7 +8,8 @@ use tracing::error;
 
 use crate::contact::member::NamedMember;
 use crate::message::image::Image;
-use crate::{Bot, MessageChain};
+use crate::message::MessageChain;
+use crate::Bot;
 
 #[derive(Clone)]
 pub struct Group(Arc<imp::Group>);
@@ -57,7 +58,7 @@ impl Group {
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
         self.bot()
             .client()
-            .send_group_message(self.id(), chain)
+            .send_group_message(self.id(), chain.into())
             .await
             .map_err(|err| {
                 error!(

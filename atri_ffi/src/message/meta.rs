@@ -7,12 +7,14 @@ pub const ANONYMOUS_FLAG: u8 = 1;
 pub const REPLY_FLAG: u8 = 2;
 pub const ALL_META: u8 = ANONYMOUS_FLAG | REPLY_FLAG;
 
+#[repr(C)]
 pub struct FFIMessageMetadata {
     pub flags: u8,
     pub anonymous: MaybeUninit<FFIAnonymous>,
     pub reply: MaybeUninit<FFIReply>
 }
 
+#[repr(C)]
 pub struct FFIAnonymous {
     pub anon_id: RawVec<u8>,
     pub nick: RustString,

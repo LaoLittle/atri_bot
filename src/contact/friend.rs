@@ -1,5 +1,6 @@
 use crate::message::image::Image;
-use crate::{Bot, MessageChain};
+use crate::message::MessageChain;
+use crate::Bot;
 use ricq::structs::{FriendInfo, MessageReceipt};
 use ricq::RQResult;
 use std::sync::Arc;
@@ -47,7 +48,7 @@ impl Friend {
         let result = self
             .bot()
             .client()
-            .send_friend_message(self.id(), chain)
+            .send_friend_message(self.id(), chain.into())
             .await;
 
         if let Err(ref e) = result {

@@ -2,7 +2,7 @@ use crate::contact::friend::Friend;
 use crate::contact::group::Group;
 use crate::contact::member::Member;
 use crate::message::image::Image;
-use crate::MessageChain;
+use crate::message::MessageChain;
 use ricq::structs::MessageReceipt;
 use ricq::RQResult;
 

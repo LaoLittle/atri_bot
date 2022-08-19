@@ -1,5 +1,6 @@
 use crate::contact::group::Group;
-use crate::{Bot, GroupMemberInfo, MessageChain};
+use crate::message::MessageChain;
+use crate::{Bot, GroupMemberInfo};
 use atri_ffi::contact::{FFIMember, MemberUnion};
 use atri_ffi::Managed;
 use ricq::structs::MessageReceipt;
@@ -123,7 +124,7 @@ impl NamedMember {
             f.send_message(chain).await
         } else {
             bot.client()
-                .send_group_temp_message(self.group().id(), self.id(), chain)
+                .send_group_temp_message(self.group().id(), self.id(), chain.into())
                 .await
         }
     }

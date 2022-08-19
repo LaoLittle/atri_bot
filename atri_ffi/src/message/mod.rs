@@ -4,12 +4,16 @@ use crate::message::meta::{FFIMessageMetadata, FFIReply};
 
 pub mod meta;
 
+pub const TEXT: u8 = 0;
+pub const IMAGE: u8 = 1;
+pub const AT: u8 = 3;
+pub const UNKNOWN: u8 = 255;
+
 #[repr(C)]
 pub struct FFIMessageChain {
     pub meta: FFIMessageMetadata,
     pub inner: RawVec<FFIMessageValue>,
 }
-
 
 #[repr(C)]
 pub struct FFIMessageValue {

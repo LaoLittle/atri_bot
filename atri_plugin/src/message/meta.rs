@@ -1,10 +1,16 @@
-use crate::message::MessageChain;
+use crate::message::{MessageValue};
+
+#[derive(Default)]
+pub struct MessageMetadata {
+    pub anonymous: Option<Anonymous>,
+    pub reply: Option<Reply>,
+}
 
 pub struct Reply {
     pub reply_seq: i32,
     pub sender: i64,
     pub time: i32,
-    pub elements: MessageChain,
+    pub elements: Vec<MessageValue>,
 }
 
 pub struct Anonymous {

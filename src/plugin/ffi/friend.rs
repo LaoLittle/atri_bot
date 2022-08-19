@@ -30,9 +30,8 @@ pub extern "C" fn friend_send_message(
     FFIFuture::from(async move {
         let f: &Friend = cast_ref(friend);
         let chain = MessageChain::from_ffi(chain);
-        let rq = ricq::msg::MessageChain::from(chain);
         let result = f
-            .send_message(rq)
+            .send_message(chain)
             .await
             .map(|receipt| Managed::from_value(receipt));
 

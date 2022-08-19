@@ -7,9 +7,14 @@ use atri_ffi::{Managed};
 use std::slice::Iter;
 use std::{mem, vec};
 use crate::message::at::At;
-use crate::message::meta::Reply;
+use crate::message::meta::{MessageMetadata};
 
-pub struct MessageChain(Vec<MessageValue>);
+
+#[derive(Default)]
+pub struct MessageChain {
+    meta: MessageMetadata,
+    value: Vec<MessageValue>,
+}
 
 impl MessageChain {
     pub fn iter(&self) -> Iter<'_, MessageValue> {
@@ -22,7 +27,7 @@ impl IntoIterator for MessageChain {
     type IntoIter = vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        self.value.into_iter()
     }
 }
 
@@ -31,7 +36,7 @@ impl<'a> IntoIterator for &'a MessageChain {
     type IntoIter = Iter<'a, MessageValue>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.iter()
+        self.value.iter()
     }
 }
 
@@ -48,7 +53,6 @@ impl ToString for MessageChain {
 pub enum MessageValue {
     Text(String),
     Image(Image),
-    Reply(Reply),
     At(At),
     Unknown(Managed),
 }
@@ -58,7 +62,6 @@ impl MessageValue {
         match self {
             Self::Text(text) => str.push_str(text),
             Self::Image(_) => str.push_str("Image"),
-            Self::Reply(_) => str.push_str(""),
             Self::At(At {
                          display,..
                      }) => str.push_str(display),
@@ -99,7 +102,10 @@ impl MessageChainBuilder {
 
     pub fn build(mut self) -> MessageChain {
         self.flush();
-        MessageChain(self.value)
+        MessageChain {
+            value: self.value,
+            ..Default::default()
+        }
     }
 
     fn flush(&mut self) {
@@ -132,11 +138,5 @@ impl Message for Image {
 impl Message for At {
     fn push_to(self, v: &mut Vec<MessageValue>) {
         v.push(MessageValue::At(self));
-    }
-}
-
-impl Message for Reply {
-    fn push_to(self, v: &mut Vec<MessageValue>) {
-        v.push(MessageValue::Reply(self));
     }
 }

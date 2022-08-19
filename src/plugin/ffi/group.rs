@@ -30,7 +30,7 @@ pub extern "C" fn group_send_message(
     FFIFuture::from(async move {
         let group: &Group = cast_ref(group);
         let result = group
-            .send_message(message::MessageChain::from_ffi(chain).into())
+            .send_message(message::MessageChain::from_ffi(chain))
             .await
             .map(|receipt| Managed::from_value(receipt));
 
