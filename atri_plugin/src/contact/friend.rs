@@ -3,10 +3,10 @@ use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::{MessageChain, MessageReceipt};
 use atri_ffi::ffi::ForFFI;
-use atri_ffi::{Managed, RustStr};
+use atri_ffi::{ManagedCloneable, RustStr};
 use std::slice;
 
-pub struct Friend(pub(crate) Managed);
+pub struct Friend(pub(crate) ManagedCloneable);
 
 impl Friend {
     pub fn id(&self) -> i64 {

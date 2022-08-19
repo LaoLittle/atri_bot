@@ -11,7 +11,7 @@ use tokio::time::error::Elapsed;
 
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
-use crate::contact::member::{AnonymousMember, Member, NamedMember};
+use crate::contact::member::{AnonymousMember, Member};
 use crate::contact::{Contact, HasSubject};
 use crate::message::MessageChain;
 use crate::{Bot, Listener};
@@ -158,22 +158,21 @@ impl GroupMessageEvent {
         F: Fn(&GroupMessageEvent) -> bool,
     {
         tokio::time::timeout(timeout, async move {
-            let (tx, mut rx) = tokio::sync::mpsc::channel(5);
+            let (tx, mut rx) = tokio::sync::mpsc::channel(8);
             let group_id = self.group().id();
             let sender = self.message().from_uin;
 
-            let guard = Listener::listening_on(move |e: GroupMessageEvent| {
+            let guard = Listener::listening_on_always(move |e: GroupMessageEvent| {
                 let tx = tx.clone();
                 async move {
                     if group_id != e.group().id() {
-                        return true;
+                        return;
                     }
                     if sender != e.message().from_uin {
-                        return true;
+                        return;
                     }
 
                     tx.send(e).await.unwrap_or_else(|_| unreachable!());
-                    false
                 }
             })
             .start();

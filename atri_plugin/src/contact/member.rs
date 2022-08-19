@@ -1,5 +1,6 @@
+use crate::bot::Bot;
 use atri_ffi::contact::FFIMember;
-use atri_ffi::{Managed, RustStr, RustString};
+use atri_ffi::{ManagedCloneable, RustStr, RustString};
 use std::mem::ManuallyDrop;
 use std::slice;
 
@@ -26,7 +27,7 @@ impl Member {
     }
 }
 
-pub struct NamedMember(Managed);
+pub struct NamedMember(ManagedCloneable);
 
 impl NamedMember {
     pub fn id(&self) -> i64 {
@@ -58,6 +59,10 @@ impl NamedMember {
         Group(ma)
     }
 
+    pub fn bot(&self) -> Bot {
+        self.group().bot()
+    }
+
     pub async fn change_card_name<S: ToString>(&self, card_name: S) -> Result<(), AtriError> {
         let str = card_name.to_string();
         let rs = RustString::from(str);
@@ -68,4 +73,4 @@ impl NamedMember {
     }
 }
 
-pub struct AnonymousMember(Managed);
+pub struct AnonymousMember(ManagedCloneable);

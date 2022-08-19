@@ -53,8 +53,9 @@ pub struct PluginInfo {
 }
 
 pub fn __get_instance<P: Plugin>(plugin: P) -> PluginInstance {
-    extern "C" fn _new<P: Plugin>() -> Managed {
-        Managed::from_value(P::new())
+    extern "C" fn _new<P: Plugin>() -> *mut () {
+        let b = Box::new(P::new());
+        Box::into_raw(b) as *mut ()
     }
 
     extern "C" fn _enable<P: Plugin>(ptr: *mut ()) {

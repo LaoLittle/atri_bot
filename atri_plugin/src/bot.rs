@@ -1,7 +1,7 @@
 use crate::loader::get_plugin_manager_vtb;
-use atri_ffi::Managed;
+use atri_ffi::ManagedCloneable;
 
-pub struct Bot(pub(crate) Managed);
+pub struct Bot(pub(crate) ManagedCloneable);
 
 impl Bot {
     pub fn id(&self) -> i64 {

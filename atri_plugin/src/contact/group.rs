@@ -4,10 +4,11 @@ use crate::loader::get_plugin_manager_vtb;
 use crate::message::{Image, MessageChain, MessageReceipt};
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::{Managed, RustStr};
+use atri_ffi::{ManagedCloneable, RustStr};
 use std::slice;
 
-pub struct Group(pub(crate) Managed);
+#[derive(Clone)]
+pub struct Group(pub(crate) ManagedCloneable);
 
 impl Group {
     pub fn id(&self) -> i64 {

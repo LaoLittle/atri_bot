@@ -5,7 +5,7 @@ use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::{Managed, RawVec, RustStr};
+use atri_ffi::{Managed, ManagedCloneable, RawVec, RustStr};
 
 pub extern "C" fn group_get_id(group: *const ()) -> i64 {
     let group: &Group = cast_ref(group);
@@ -18,9 +18,9 @@ pub extern "C" fn group_get_name(group: *const ()) -> RustStr {
     RustStr::from(s)
 }
 
-pub extern "C" fn group_get_bot(group: *const ()) -> Managed {
+pub extern "C" fn group_get_bot(group: *const ()) -> ManagedCloneable {
     let group: &Group = cast_ref(group);
-    Managed::from_value(group.bot().clone())
+    ManagedCloneable::from_value(group.bot().clone())
 }
 
 pub extern "C" fn group_send_message(

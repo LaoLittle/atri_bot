@@ -27,7 +27,7 @@ impl PluginInstance {
 
 #[repr(C)]
 pub struct PluginVTable {
-    pub new: extern "C" fn() -> Managed,
+    pub new: extern "C" fn() -> *mut (),
     pub enable: extern "C" fn(*mut ()),
     pub disable: extern "C" fn(*mut ()),
 }

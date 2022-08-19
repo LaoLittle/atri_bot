@@ -1,4 +1,5 @@
 use std::mem::ManuallyDrop;
+use std::ops::Deref;
 use std::{mem, slice};
 
 pub mod closure;
@@ -12,16 +13,11 @@ pub mod plugin;
 #[repr(C)]
 pub struct Managed {
     pub pointer: *mut (),
-    pub vtable: ManagedVTable,
+    pub drop: extern "C" fn(*mut ()),
 }
 
 unsafe impl Send for Managed {}
 unsafe impl Sync for Managed {}
-
-#[repr(C)]
-pub struct ManagedVTable {
-    pub drop: extern "C" fn(*mut ()),
-}
 
 impl Managed {
     pub fn from_value<T>(value: T) -> Self {
@@ -34,7 +30,7 @@ impl Managed {
 
         Self {
             pointer: ptr.cast(),
-            vtable: ManagedVTable { drop: _drop::<T> },
+            drop: _drop::<T>,
         }
     }
 
@@ -45,7 +41,7 @@ impl Managed {
 
         Self {
             pointer: static_ref as *const _ as _,
-            vtable: ManagedVTable { drop: _drop },
+            drop: _drop,
         }
     }
 
@@ -66,7 +62,46 @@ impl Managed {
 
 impl Drop for Managed {
     fn drop(&mut self) {
-        (self.vtable.drop)(self.pointer);
+        (self.drop)(self.pointer);
+    }
+}
+
+#[repr(C)]
+pub struct ManagedCloneable {
+    pub value: Managed,
+    clone: extern "C" fn(this: *const ()) -> ManagedCloneable,
+}
+
+impl ManagedCloneable {
+    pub fn from_value<T: Clone>(value: T) -> Self {
+        extern "C" fn _clone<T: Clone>(this: *const ()) -> ManagedCloneable {
+            let this = unsafe { &*(this as *const T) };
+            ManagedCloneable::from_value(this.clone())
+        }
+
+        let value = Managed::from_value(value);
+        Self {
+            value,
+            clone: _clone::<T>,
+        }
+    }
+
+    pub fn into_value<T>(self) -> T {
+        self.value.into_value()
+    }
+}
+
+impl Clone for ManagedCloneable {
+    fn clone(&self) -> Self {
+        (self.clone)(self.value.pointer)
+    }
+}
+
+impl Deref for ManagedCloneable {
+    type Target = Managed;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
     }
 }
 

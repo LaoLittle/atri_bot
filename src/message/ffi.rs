@@ -23,11 +23,10 @@ impl ForFFI for MessageChain {
     }
 
     fn from_ffi(ffi: Self::FFIValue) -> Self {
-        let v = ffi.inner.into_vec();
-
-        let values: Vec<MessageValue> = v.into_iter().map(MessageValue::from_ffi).collect();
-
         let meta = MessageMetadata::from_ffi(ffi.meta);
+
+        let v = ffi.inner.into_vec();
+        let values: Vec<MessageValue> = v.into_iter().map(MessageValue::from_ffi).collect();
 
         Self {
             meta,

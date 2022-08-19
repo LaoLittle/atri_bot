@@ -5,7 +5,7 @@ use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::{Managed, RustStr};
+use atri_ffi::{Managed, ManagedCloneable, RustStr};
 
 pub extern "C" fn friend_get_id(friend: *const ()) -> i64 {
     let f: &Friend = cast_ref(friend);
@@ -18,9 +18,9 @@ pub extern "C" fn friend_get_nickname(friend: *const ()) -> RustStr {
     RustStr::from(s)
 }
 
-pub extern "C" fn friend_get_bot(friend: *const ()) -> Managed {
+pub extern "C" fn friend_get_bot(friend: *const ()) -> ManagedCloneable {
     let f: &Friend = cast_ref(friend);
-    Managed::from_value(f.bot().clone())
+    ManagedCloneable::from_value(f.bot().clone())
 }
 
 pub extern "C" fn friend_send_message(

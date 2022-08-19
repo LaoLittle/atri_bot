@@ -1,4 +1,4 @@
-use crate::Managed;
+use crate::{Managed, ManagedCloneable};
 use std::mem::ManuallyDrop;
 
 #[repr(C)]
@@ -9,6 +9,6 @@ pub struct FFIMember {
 
 #[repr(C)]
 pub union MemberUnion {
-    pub named: ManuallyDrop<Managed>,
-    pub anonymous: ManuallyDrop<Managed>,
+    pub named: ManuallyDrop<ManagedCloneable>,
+    pub anonymous: ManuallyDrop<ManagedCloneable>,
 }

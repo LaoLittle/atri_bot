@@ -180,7 +180,7 @@ impl PluginManager {
 
             let managed = plugin_instance.instance;
             let ptr = managed.pointer;
-            let drop_fn = managed.vtable.drop;
+            let drop_fn = managed.drop;
 
             mem::forget(managed);
 
@@ -237,13 +237,12 @@ impl Plugin {
 
             match self.instance.compare_exchange(
                 null_mut(),
-                new_instance.pointer,
+                new_instance,
                 Ordering::Acquire,
                 Ordering::Relaxed,
             ) {
                 Ok(_) => {
-                    (self.vtb.enable)(new_instance.pointer);
-                    mem::forget(new_instance);
+                    (self.vtb.enable)(new_instance);
                 }
                 Err(_) => return false,
             }

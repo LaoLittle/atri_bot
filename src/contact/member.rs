@@ -2,7 +2,7 @@ use crate::contact::group::Group;
 use crate::message::MessageChain;
 use crate::{Bot, GroupMemberInfo};
 use atri_ffi::contact::{FFIMember, MemberUnion};
-use atri_ffi::Managed;
+use atri_ffi::{Managed, ManagedCloneable};
 use ricq::structs::MessageReceipt;
 use ricq::{RQError, RQResult};
 use std::mem::ManuallyDrop;
@@ -35,7 +35,7 @@ impl Member {
     pub fn into_ffi(self) -> FFIMember {
         match self {
             Self::Named(named) => {
-                let ma = Managed::from_value(named);
+                let ma = ManagedCloneable::from_value(named);
                 FFIMember {
                     is_named: true,
                     inner: MemberUnion {
@@ -44,7 +44,7 @@ impl Member {
                 }
             }
             Self::Anonymous(ano) => {
-                let ma = Managed::from_value(ano);
+                let ma = ManagedCloneable::from_value(ano);
                 FFIMember {
                     is_named: false,
                     inner: MemberUnion {
