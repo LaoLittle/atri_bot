@@ -1,10 +1,15 @@
 use crate::{Managed, RawVec, RustString};
 use std::mem::ManuallyDrop;
+use crate::message::meta::{FFIMessageMetadata, FFIReply};
+
+pub mod meta;
 
 #[repr(C)]
 pub struct FFIMessageChain {
+    pub meta: FFIMessageMetadata,
     pub inner: RawVec<FFIMessageValue>,
 }
+
 
 #[repr(C)]
 pub struct FFIMessageValue {
@@ -37,12 +42,4 @@ pub union ImageUnion {
 pub struct FFIAt {
     pub target: i64,
     pub display: RustString,
-}
-
-#[repr(C)]
-pub struct FFIReply {
-    pub reply_seq: i32,
-    pub sender: i64,
-    pub time: i32,
-    pub elements: FFIMessageChain,
 }

@@ -1,21 +1,43 @@
 pub mod at;
 pub mod ffi;
 pub mod image;
-pub mod reply;
+pub mod meta;
 
 use crate::message::at::At;
-use crate::message::reply::Reply;
+use crate::message::meta::MessageMetadata;
 use crate::Text;
 use image::Image;
 use ricq::msg::elem::RQElem;
 use ricq::msg::{MessageElem, PushElem};
 
-pub struct MessageChain(Vec<MessageValue>);
+#[derive(Default)]
+pub struct MessageChain {
+    meta: MessageMetadata,
+    elems: Vec<MessageValue>,
+}
+
+impl From<Vec<MessageValue>> for MessageChain {
+    fn from(elems: Vec<MessageValue>) -> Self {
+        Self {
+            elems,
+            ..Default::default()
+        }
+    }
+}
 
 impl From<ricq::msg::MessageChain> for MessageChain {
     fn from(chain: ricq::msg::MessageChain) -> Self {
+        //let mut iter = chain.0.into_iter();
+
+        /*let ano = if let Some(elem) = iter.next() {
+            todo: metadata
+        };*/
+
         let v: Vec<MessageValue> = chain.into_iter().map(MessageValue::from).collect();
-        Self(v)
+        Self {
+            elems: v,
+            ..Default::default()
+        }
     }
 }
 
@@ -29,7 +51,7 @@ impl From<MessageChain> for ricq::msg::MessageChain {
 
 impl PushElem for MessageChain {
     fn push_to(elem: Self, vec: &mut Vec<MessageElem>) {
-        for value in elem.0 {
+        for value in elem.elems {
             MessageValue::push_to(value, vec);
         }
     }
@@ -38,7 +60,6 @@ impl PushElem for MessageChain {
 pub enum MessageValue {
     Text(String),
     Image(Image),
-    Reply(Reply),
     At(At),
     Unknown(RQElem),
 }
@@ -51,23 +72,6 @@ impl From<MessageValue> for RQElem {
                 Image::Friend(img) => RQElem::FriendImage(img),
                 Image::Group(img) => RQElem::GroupImage(img),
             },
-            MessageValue::Reply(reply) => RQElem::Other({
-                let Reply {
-                    reply_seq,
-                    sender,
-                    time,
-                    elements,
-                } = reply;
-
-                let rq = ricq::msg::elem::Reply {
-                    reply_seq,
-                    sender,
-                    time,
-                    elements: ricq::msg::MessageChain::from(elements),
-                };
-
-                Box::new(rq.into())
-            }),
             MessageValue::At(At { target, display }) => {
                 RQElem::At(ricq::msg::elem::At { target, display })
             }
@@ -96,7 +100,6 @@ impl PushElem for MessageValue {
         match elem {
             Self::Text(s) => PushElem::push_to(Text::new(s), vec),
             Self::Image(img) => PushElem::push_to(img, vec),
-            Self::Reply(reply) => PushElem::push_to(reply, vec),
             Self::At(at) => PushElem::push_to(at, vec),
             _ => {}
         }

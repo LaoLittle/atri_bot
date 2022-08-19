@@ -1,4 +1,4 @@
-pub mod reply;
+pub mod meta;
 mod ffi;
 pub mod at;
 
@@ -7,7 +7,7 @@ use atri_ffi::{Managed};
 use std::slice::Iter;
 use std::{mem, vec};
 use crate::message::at::At;
-use crate::message::reply::Reply;
+use crate::message::meta::Reply;
 
 pub struct MessageChain(Vec<MessageValue>);
 

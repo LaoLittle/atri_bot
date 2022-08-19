@@ -4,7 +4,7 @@ use atri_ffi::message::{FFIAt, FFIMessageChain, FFIMessageValue, FFIReply, Messa
 use atri_ffi::{RawVec, RustString};
 use crate::message::{Image, MessageChain, MessageValue};
 use crate::message::at::At;
-use crate::message::reply::Reply;
+use crate::message::meta::Reply;
 
 impl ForFFI for MessageChain {
     type FFIValue = FFIMessageChain;
