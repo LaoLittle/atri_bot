@@ -1,6 +1,6 @@
-use std::mem::MaybeUninit;
-use crate::{RawVec, RustString};
 use crate::message::FFIMessageValue;
+use crate::{RawVec, RustString};
+use std::mem::MaybeUninit;
 
 pub const NONE_META: u8 = 0;
 pub const ANONYMOUS_FLAG: u8 = 1;
@@ -11,7 +11,7 @@ pub const ALL_META: u8 = ANONYMOUS_FLAG | REPLY_FLAG;
 pub struct FFIMessageMetadata {
     pub flags: u8,
     pub anonymous: MaybeUninit<FFIAnonymous>,
-    pub reply: MaybeUninit<FFIReply>
+    pub reply: MaybeUninit<FFIReply>,
 }
 
 #[repr(C)]

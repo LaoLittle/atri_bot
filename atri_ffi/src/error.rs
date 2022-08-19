@@ -51,8 +51,8 @@ impl<T> From<FFIResult<T>> for Result<T, String> {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
     use crate::error::FFIResult;
+    use std::str::FromStr;
 
     #[test]
     fn result() {

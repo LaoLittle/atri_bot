@@ -46,8 +46,6 @@ pub struct PluginInfo {
     pub name: &'static str,
     /// 插件作者
     pub author: &'static str,
-    /// 插件依赖, 固定./plugins作为根目录
-    pub dependencies: &'static [&'static str],
     /// 是否应该在插件被禁用后销毁插件实例
     ///
     /// 若为`false`，则插件只会在卸载时销毁实例

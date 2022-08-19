@@ -1,6 +1,6 @@
+use crate::message::meta::{FFIMessageMetadata, FFIReply};
 use crate::{Managed, RawVec, RustString};
 use std::mem::ManuallyDrop;
-use crate::message::meta::{FFIMessageMetadata, FFIReply};
 
 pub mod meta;
 

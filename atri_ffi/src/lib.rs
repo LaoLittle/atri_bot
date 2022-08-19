@@ -2,12 +2,12 @@ use std::mem::ManuallyDrop;
 use std::{mem, slice};
 
 pub mod closure;
+pub mod contact;
 pub mod error;
 pub mod ffi;
 pub mod future;
 pub mod message;
 pub mod plugin;
-pub mod contact;
 
 #[repr(C)]
 pub struct Managed {
@@ -187,11 +187,11 @@ mod tests {
 
     #[test]
     fn vec() {
-        let v = vec![1,1,4,5,1,4];
+        let v = vec![1, 1, 4, 5, 1, 4];
         let raw = RawVec::from(v);
         let v = raw.into_vec();
 
-        assert_eq!(v, [1,1,4,5,1,4]);
+        assert_eq!(v, [1, 1, 4, 5, 1, 4]);
     }
 
     #[test]
@@ -206,7 +206,6 @@ mod tests {
         let raw = RustStr::from(slice);
         let slice = raw.as_ref();
 
-
         assert_eq!(slice, "14514");
     }
 
@@ -216,13 +215,17 @@ mod tests {
         struct Test {
             a: i32,
             b: usize,
-            c: Option<Box<(Test, Test)>>
+            c: Option<Box<(Test, Test)>>,
         }
 
         impl PartialEq for Test {
             fn eq(&self, other: &Self) -> bool {
-                if self.a != other.a { return false; }
-                if self.b != other.b { return false; }
+                if self.a != other.a {
+                    return false;
+                }
+                if self.b != other.b {
+                    return false;
+                }
 
                 self.c == other.c
             }
@@ -232,9 +235,17 @@ mod tests {
             a: 233,
             b: 114514,
             c: Some(Box::new((
-                Test { a: 23114, b: 114514, c: None },
-                Test { a: 114514, b: 2333, c: None }
-            )))
+                Test {
+                    a: 23114,
+                    b: 114514,
+                    c: None,
+                },
+                Test {
+                    a: 114514,
+                    b: 2333,
+                    c: None,
+                },
+            ))),
         };
         let test0 = test.clone();
         let managed = Managed::from_value(test);

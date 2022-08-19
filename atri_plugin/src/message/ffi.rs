@@ -1,11 +1,13 @@
-use std::mem::{ManuallyDrop, MaybeUninit};
-use atri_ffi::ffi::ForFFI;
-use atri_ffi::message::{FFIAt, FFIMessageChain, FFIMessageValue, MessageValueUnion};
-use atri_ffi::{RawVec, RustString};
-use atri_ffi::message::meta::{ANONYMOUS_FLAG, FFIAnonymous, FFIMessageMetadata, FFIReply, NONE_META, REPLY_FLAG};
-use crate::message::{Image, MessageChain, MessageValue};
 use crate::message::at::At;
 use crate::message::meta::{Anonymous, MessageMetadata, Reply};
+use crate::message::{Image, MessageChain, MessageValue};
+use atri_ffi::ffi::ForFFI;
+use atri_ffi::message::meta::{
+    FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
+};
+use atri_ffi::message::{FFIAt, FFIMessageChain, FFIMessageValue, MessageValueUnion};
+use atri_ffi::{RawVec, RustString};
+use std::mem::{ManuallyDrop, MaybeUninit};
 
 impl ForFFI for MessageChain {
     type FFIValue = FFIMessageChain;
@@ -16,7 +18,7 @@ impl ForFFI for MessageChain {
         let raw = RawVec::from(v);
         FFIMessageChain {
             meta: self.meta.into_ffi(),
-            inner: raw
+            inner: raw,
         }
     }
 
@@ -25,7 +27,7 @@ impl ForFFI for MessageChain {
         let value = v.into_iter().map(MessageValue::from_ffi).collect();
         Self {
             meta: MessageMetadata::from_ffi(ffi.meta),
-            value
+            value,
         }
     }
 }
@@ -47,19 +49,14 @@ impl ForFFI for MessageValue {
                     image: ManuallyDrop::new(img.0),
                 },
             },
-            MessageValue::At(At {
-                                 target, display
-                             }) => FFIMessageValue {
+            MessageValue::At(At { target, display }) => FFIMessageValue {
                 t: 3,
                 union: MessageValueUnion {
                     at: ManuallyDrop::new({
                         let display = RustString::from(display);
-                        FFIAt {
-                            target,
-                            display
-                        }
-                    })
-                }
+                        FFIAt { target, display }
+                    }),
+                },
             },
             MessageValue::Unknown(ma) => FFIMessageValue {
                 t: 255,
@@ -76,14 +73,10 @@ impl ForFFI for MessageValue {
                 0 => Self::Text(ManuallyDrop::into_inner(value.union.text).into()),
                 1 => Self::Image(Image(ManuallyDrop::into_inner(value.union.image))),
                 3 => {
-                    let FFIAt {
-                        target,display
-                    } = ManuallyDrop::into_inner(value.union.at);
+                    let FFIAt { target, display } = ManuallyDrop::into_inner(value.union.at);
                     let display = String::from(display);
 
-                    Self::At(At {
-                        target,display
-                    })
+                    Self::At(At { target, display })
                 }
                 _ => Self::Unknown(ManuallyDrop::into_inner(value.union.unknown)),
             }
@@ -95,24 +88,20 @@ impl ForFFI for At {
     type FFIValue = FFIAt;
 
     fn into_ffi(self) -> Self::FFIValue {
-        let At {
-            target,display
-        } = self;
+        let At { target, display } = self;
 
         FFIAt {
             target,
-            display: RustString::from(display)
+            display: RustString::from(display),
         }
     }
 
     fn from_ffi(value: Self::FFIValue) -> Self {
-        let FFIAt {
-            target,display
-        } = value;
+        let FFIAt { target, display } = value;
 
         Self {
             target,
-            display: String::from(display)
+            display: String::from(display),
         }
     }
 }
@@ -121,9 +110,7 @@ impl ForFFI for MessageMetadata {
     type FFIValue = FFIMessageMetadata;
 
     fn into_ffi(self) -> Self::FFIValue {
-        let Self {
-            anonymous, reply
-        } = self;
+        let Self { anonymous, reply } = self;
 
         let mut flags = NONE_META;
 
@@ -155,8 +142,16 @@ impl ForFFI for MessageMetadata {
 
         unsafe {
             Self {
-                anonymous: if flags & ANONYMOUS_FLAG != 0 { Some(Anonymous::from_ffi(anonymous.assume_init())) } else { None },
-                reply: if flags & REPLY_FLAG != 0 { Some(Reply::from_ffi(reply.assume_init())) } else { None },
+                anonymous: if flags & ANONYMOUS_FLAG != 0 {
+                    Some(Anonymous::from_ffi(anonymous.assume_init()))
+                } else {
+                    None
+                },
+                reply: if flags & REPLY_FLAG != 0 {
+                    Some(Reply::from_ffi(reply.assume_init()))
+                } else {
+                    None
+                },
             }
         }
     }
@@ -170,17 +165,18 @@ impl ForFFI for Reply {
             reply_seq,
             sender,
             time,
-            elements
+            elements,
         } = self;
 
-        let ffi_value: Vec<FFIMessageValue> = elements.into_iter().map(|value| value.into_ffi()).collect();
+        let ffi_value: Vec<FFIMessageValue> =
+            elements.into_iter().map(|value| value.into_ffi()).collect();
         let raw = RawVec::from(ffi_value);
 
         FFIReply {
             reply_seq,
             sender,
             time,
-            elements: raw
+            elements: raw,
         }
     }
 
@@ -199,7 +195,7 @@ impl ForFFI for Reply {
             reply_seq,
             sender,
             time,
-            elements: value
+            elements: value,
         }
     }
 }
@@ -209,7 +205,12 @@ impl ForFFI for Anonymous {
 
     fn into_ffi(self) -> Self::FFIValue {
         let Self {
-            anon_id, nick, portrait_index, bubble_index, expire_time, color
+            anon_id,
+            nick,
+            portrait_index,
+            bubble_index,
+            expire_time,
+            color,
         } = self;
 
         let anon_id = RawVec::from(anon_id);
@@ -222,7 +223,7 @@ impl ForFFI for Anonymous {
             portrait_index,
             bubble_index,
             expire_time,
-            color
+            color,
         }
     }
 
@@ -233,7 +234,7 @@ impl ForFFI for Anonymous {
             portrait_index,
             bubble_index,
             expire_time,
-            color
+            color,
         } = ffi;
 
         let anon_id = anon_id.into_vec();
@@ -246,7 +247,7 @@ impl ForFFI for Anonymous {
             portrait_index,
             bubble_index,
             expire_time,
-            color
+            color,
         }
     }
 }

@@ -15,7 +15,8 @@ impl Listener {
         Fu: Future<Output = bool>,
         Fu: Send + 'static,
     {
-        let f = FFIFn::from_static(move |ffi| FFIFuture::from_static(handler(Event::from_ffi(ffi))));
+        let f =
+            FFIFn::from_static(move |ffi| FFIFuture::from_static(handler(Event::from_ffi(ffi))));
         let ma = (get_plugin_manager_vtb().new_listener)(f);
         ListenerGuard(ma)
     }

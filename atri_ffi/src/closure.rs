@@ -23,7 +23,7 @@ impl<Arg, R> FFIFn<Arg, R> {
     pub fn from_static<F>(closure: F) -> Self
     where
         F: Fn(Arg) -> R,
-        F: Send + 'static
+        F: Send + 'static,
     {
         Self::from(closure)
     }

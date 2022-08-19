@@ -25,10 +25,10 @@ impl<T> FFIFuture<T> {
 
     #[inline]
     pub fn from_static<F>(fu: F) -> Self
-        where
-            F: Future<Output = T>,
-            F: Send + 'static,
-            F::Output: Send + 'static
+    where
+        F: Future<Output = T>,
+        F: Send + 'static,
+        F::Output: Send + 'static,
     {
         Self::from(fu)
     }

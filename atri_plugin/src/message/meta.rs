@@ -1,4 +1,4 @@
-use crate::message::{MessageValue};
+use crate::message::MessageValue;
 
 #[derive(Default)]
 pub struct MessageMetadata {

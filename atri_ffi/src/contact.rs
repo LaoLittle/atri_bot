@@ -1,5 +1,5 @@
-use std::mem::ManuallyDrop;
 use crate::Managed;
+use std::mem::ManuallyDrop;
 
 #[repr(C)]
 pub struct FFIMember {

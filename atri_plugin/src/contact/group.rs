@@ -2,10 +2,10 @@ use crate::bot::Bot;
 use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::{Image, MessageChain, MessageReceipt};
+use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::FFIMessageChain;
 use atri_ffi::{Managed, RustStr};
 use std::slice;
-use atri_ffi::ffi::ForFFI;
 
 pub struct Group(pub(crate) Managed);
 

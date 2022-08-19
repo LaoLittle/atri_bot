@@ -1,11 +1,11 @@
+use crate::error::{AtriError, AtriResult};
+use atri_ffi::error::FFIResult;
+use atri_ffi::future::FFIFuture;
+use atri_ffi::Managed;
 use std::future::Future;
 use std::marker::PhantomData;
 use std::pin::Pin;
 use std::task::{Context, Poll};
-use atri_ffi::error::FFIResult;
-use atri_ffi::future::FFIFuture;
-use atri_ffi::Managed;
-use crate::error::{AtriError, AtriResult};
 
 pub mod manager;
 
@@ -35,10 +35,10 @@ impl<T> Future for JoinHandle<T> {
             Poll::Ready(ffi) => {
                 let result = match Result::from(ffi) {
                     Ok(val) => Ok(val.into_value()),
-                    Err(s) => Err(AtriError::JoinError(s))
+                    Err(s) => Err(AtriError::JoinError(s)),
                 };
                 Poll::Ready(result)
-            },
+            }
             Poll::Pending => Poll::Pending,
         }
     }

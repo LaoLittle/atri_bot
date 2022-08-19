@@ -1,14 +1,13 @@
-pub mod meta;
-mod ffi;
 pub mod at;
+mod ffi;
+pub mod meta;
 
-use atri_ffi::{Managed};
+use atri_ffi::Managed;
 
+use crate::message::at::At;
+use crate::message::meta::MessageMetadata;
 use std::slice::Iter;
 use std::{mem, vec};
-use crate::message::at::At;
-use crate::message::meta::{MessageMetadata};
-
 
 #[derive(Default)]
 pub struct MessageChain {
@@ -19,6 +18,10 @@ pub struct MessageChain {
 impl MessageChain {
     pub fn iter(&self) -> Iter<'_, MessageValue> {
         self.into_iter()
+    }
+
+    pub fn metadata(&self) -> &MessageMetadata {
+        &self.meta
     }
 }
 
@@ -62,9 +65,7 @@ impl MessageValue {
         match self {
             Self::Text(text) => str.push_str(text),
             Self::Image(_) => str.push_str("Image"),
-            Self::At(At {
-                         display,..
-                     }) => str.push_str(display),
+            Self::At(At { display, .. }) => str.push_str(display),
             Self::Unknown(_) => {}
         }
     }

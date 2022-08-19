@@ -29,7 +29,7 @@ pub struct AtriVTable {
     pub group_upload_image:
         extern "C" fn(group: *const (), data: RawVec<u8>) -> FFIFuture<FFIResult<Managed>>,
     pub group_quit: extern "C" fn(group: *const ()) -> FFIFuture<bool>,
-    
+
     pub friend_message_event_get_friend: extern "C" fn(event: *const ()) -> Managed,
     pub friend_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
     pub friend_get_id: extern "C" fn(friend: *const ()) -> i64,
@@ -42,7 +42,8 @@ pub struct AtriVTable {
     pub named_member_get_nickname: extern "C" fn(named: *const ()) -> RustStr,
     pub named_member_get_card_name: extern "C" fn(named: *const ()) -> RustStr,
     pub named_member_get_group: extern "C" fn(named: *const ()) -> Managed,
-    pub named_member_change_card_name: extern "C" fn(named: *const (), card: RustString) -> FFIFuture<FFIResult<()>>,
+    pub named_member_change_card_name:
+        extern "C" fn(named: *const (), card: RustString) -> FFIFuture<FFIResult<()>>,
 
     pub log_info: extern "C" fn(handle: usize, manager: *const (), log: RustString),
 }

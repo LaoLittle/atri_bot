@@ -1,10 +1,10 @@
-use std::slice;
-use atri_ffi::ffi::ForFFI;
-use atri_ffi::{Managed, RustStr};
 use crate::bot::Bot;
 use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::{MessageChain, MessageReceipt};
+use atri_ffi::ffi::ForFFI;
+use atri_ffi::{Managed, RustStr};
+use std::slice;
 
 pub struct Friend(pub(crate) Managed);
 
@@ -13,10 +13,8 @@ impl Friend {
         (get_plugin_manager_vtb().friend_get_id)(self.0.pointer)
     }
 
-    pub fn nickname(&self) -> &str{
-        let RustStr {
-            slice,len
-        } = (get_plugin_manager_vtb().friend_get_nickname)(self.0.pointer);
+    pub fn nickname(&self) -> &str {
+        let RustStr { slice, len } = (get_plugin_manager_vtb().friend_get_nickname)(self.0.pointer);
 
         unsafe {
             let slice = slice::from_raw_parts(slice, len);
@@ -38,7 +36,7 @@ impl Friend {
         let result = Result::from(fu.await);
         match result {
             Ok(ma) => Ok(MessageReceipt(ma)),
-            Err(s) => Err(AtriError::RQError(s))
+            Err(s) => Err(AtriError::RQError(s)),
         }
     }
 }
