@@ -1,4 +1,4 @@
-use crate::{Managed, ManagedCloneable};
+use crate::ManagedCloneable;
 use std::mem::ManuallyDrop;
 
 #[repr(C)]

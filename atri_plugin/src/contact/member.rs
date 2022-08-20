@@ -8,6 +8,7 @@ use crate::contact::group::Group;
 use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
 
+#[derive(Clone)]
 pub enum Member {
     Named(NamedMember),
     Anonymous(AnonymousMember),
@@ -27,6 +28,7 @@ impl Member {
     }
 }
 
+#[derive(Clone)]
 pub struct NamedMember(ManagedCloneable);
 
 impl NamedMember {
@@ -73,4 +75,5 @@ impl NamedMember {
     }
 }
 
+#[derive(Clone)]
 pub struct AnonymousMember(ManagedCloneable);

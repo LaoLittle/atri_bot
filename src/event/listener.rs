@@ -2,6 +2,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use tokio::sync::Mutex;
 
@@ -103,7 +104,35 @@ impl Listener {
         })
     }
 
-    pub async fn next_event() {}
+    pub async fn next_event<E, F>(&self, timeout: Duration, filter: F) -> Option<E>
+    where
+        E: FromEvent,
+        E: Send + 'static,
+        F: Fn(&E) -> bool,
+    {
+        tokio::time::timeout(timeout, async {
+            let (tx, mut rx) = tokio::sync::mpsc::channel(8);
+            let _guard = Listener::listening_on_always(move |e: E| {
+                let tx = tx.clone();
+                async move {
+                    let _ = tx.send(e).await;
+                }
+            })
+            .start();
+
+            while let Some(e) = rx.recv().await {
+                if !filter(&e) {
+                    continue;
+                }
+
+                return e;
+            }
+
+            unreachable!()
+        })
+        .await
+        .ok()
+    }
 
     pub fn name(&self) -> &str {
         &self.name
