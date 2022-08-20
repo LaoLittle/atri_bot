@@ -11,7 +11,7 @@ use tokio::time::error::Elapsed;
 
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
-use crate::contact::member::{AnonymousMember, Member};
+use crate::contact::member::{Member};
 use crate::contact::{Contact, HasSubject};
 use crate::message::MessageChain;
 use crate::{Bot, Listener};
@@ -134,15 +134,15 @@ impl GroupMessageEvent {
     pub async fn sender(&self) -> Member {
         let id = self.message().from_uin;
         if id == 80000000 {
-            let an = AnonymousMember::from(self.group().clone(), id);
-            return Member::Anonymous(an);
+            //let an = AnonymousMember::from(self.group().clone(), id);
+            //return Member::Anonymous(an);
         }
 
         self.group()
             .find_member(id)
             .await
             .map(|named| Member::Named(named))
-            .expect("Cannot get sender")
+            .expect("Cannot find member")
     }
 
     pub fn message(&self) -> &GroupMessage {

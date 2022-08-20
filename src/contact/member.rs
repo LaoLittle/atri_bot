@@ -2,12 +2,13 @@ use crate::contact::group::Group;
 use crate::message::MessageChain;
 use crate::{Bot, GroupMemberInfo};
 use atri_ffi::contact::{FFIMember, MemberUnion};
-use atri_ffi::{Managed, ManagedCloneable};
+use atri_ffi::ManagedCloneable;
 use ricq::structs::MessageReceipt;
 use ricq::{RQError, RQResult};
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::time::Duration;
+use crate::message::meta::Anonymous;
 
 #[derive(Clone)]
 pub enum Member {
@@ -19,7 +20,7 @@ impl Member {
     pub fn id(&self) -> i64 {
         match self {
             Self::Named(named) => named.id(),
-            Self::Anonymous(an) => an.id(),
+            Self::Anonymous(an) => AnonymousMember::ID,
         }
     }
 
@@ -101,8 +102,9 @@ impl NamedMember {
             .await
     }
 
-    pub async fn kick<M: KickMessage>(&self, msg: M) -> RQResult<()> {
-        let (msg, block) = msg.to_kick_message();
+    pub async fn kick<S: AsRef<str>>(&self, msg: Option<S>, block: bool) -> RQResult<()> {
+        let msg = msg.as_ref().map(AsRef::<str>::as_ref).unwrap_or("");
+
         self.group()
             .bot()
             .client()
@@ -136,36 +138,26 @@ impl NamedMember {
     }
 }
 
-pub trait KickMessage: Sized {
-    fn to_kick_message(&self) -> (&str, bool);
-}
-
-impl KickMessage for bool {
-    fn to_kick_message(&self) -> (&str, bool) {
-        ("", *self)
-    }
-}
-
-impl<S: AsRef<str>> KickMessage for (S, bool) {
-    fn to_kick_message(&self) -> (&str, bool) {
-        (self.0.as_ref(), self.1)
-    }
-}
-
 #[derive(Clone)]
 pub struct AnonymousMember(Arc<imp::AnonymousMember>);
 
 impl AnonymousMember {
-    pub(crate) fn from(group: Group, id: i64) -> Self {
-        let inner = imp::AnonymousMember { id, group };
+    pub(crate) fn from(group: Group, info: Anonymous) -> Self {
+        let inner = imp::AnonymousMember { group, info };
 
         Self(inner.into())
     }
 }
 
 impl AnonymousMember {
-    pub fn id(&self) -> i64 {
-        self.0.id
+    pub const ID: i64 = 80000000;
+
+    pub fn id(&self) -> &[u8] {
+        &self.0.info.anon_id
+    }
+
+    pub fn nick(&self) -> &str {
+        &self.0.info.nick
     }
 
     pub fn group(&self) -> &Group {
@@ -175,19 +167,12 @@ impl AnonymousMember {
     pub fn bot(&self) -> &Bot {
         self.group().bot()
     }
-
-    pub async fn mute(&self, duration: Duration) -> RQResult<()> {
-        self.group()
-            .bot()
-            .client()
-            .group_mute(self.group().id(), self.id(), duration)
-            .await
-    }
 }
 
 mod imp {
     use crate::contact::group::Group;
     use crate::GroupMemberInfo;
+    use crate::message::meta::Anonymous;
 
     pub struct NamedMember {
         pub group: Group,
@@ -196,6 +181,6 @@ mod imp {
 
     pub struct AnonymousMember {
         pub group: Group,
-        pub id: i64,
+        pub info: Anonymous,
     }
 }

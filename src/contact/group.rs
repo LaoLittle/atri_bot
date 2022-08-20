@@ -17,7 +17,6 @@ pub struct Group(Arc<imp::Group>);
 impl Group {
     pub fn from(bot: Bot, info: GroupInfo) -> Self {
         let imp = imp::Group {
-            id: info.code,
             bot,
             info,
             members: DashMap::new(),
@@ -27,7 +26,7 @@ impl Group {
     }
 
     pub fn id(&self) -> i64 {
-        self.0.id
+        self.0.info.code
     }
 
     pub fn bot(&self) -> &Bot {
@@ -90,6 +89,21 @@ impl Group {
             })
     }
 
+    pub async fn kick<M: ToKickMember, S: AsRef<str>>(
+        &self,
+        member: M,
+        msg: Option<S>,
+        block: bool,
+    ) -> RQResult<()> {
+        let members = member.to_member_vec();
+        let msg = msg.as_ref().map(AsRef::<str>::as_ref).unwrap_or("");
+
+        self.bot()
+            .client()
+            .group_kick(self.id(), members, msg, block)
+            .await
+    }
+
     pub async fn quit(&self) -> bool {
         let result = self.bot().client().group_quit(self.id()).await;
         if let Err(e) = result {
@@ -117,9 +131,36 @@ mod imp {
     use crate::Bot;
 
     pub struct Group {
-        pub id: i64,
         pub bot: Bot,
         pub info: GroupInfo,
         pub members: DashMap<i64, NamedMember>,
+    }
+}
+
+pub trait ToKickMember {
+    fn to_member_vec(self) -> Vec<i64>;
+}
+
+impl ToKickMember for i64 {
+    fn to_member_vec(self) -> Vec<i64> {
+        vec![self]
+    }
+}
+
+impl ToKickMember for Vec<i64> {
+    fn to_member_vec(self) -> Vec<i64> {
+        self
+    }
+}
+
+impl<const N: usize> ToKickMember for [i64; N] {
+    fn to_member_vec(self) -> Vec<i64> {
+        self.to_vec()
+    }
+}
+
+impl<const N: usize> ToKickMember for &[i64; N] {
+    fn to_member_vec(self) -> Vec<i64> {
+        self.to_vec()
     }
 }
