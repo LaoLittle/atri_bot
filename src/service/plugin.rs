@@ -23,8 +23,16 @@ use atri_ffi::plugin::{PluginInstance, PluginVTable};
 
 use crate::plugin::ffi::get_plugin_vtable;
 
+#[cfg(target_os = "macos")]
+const EXTENSION: &str = "dylib";
+#[cfg(target_os = "windows")]
+const EXTENSION: &str = "dll";
+#[cfg(any(target_os = "linux", target_os = "android"))]
+const EXTENSION: &str = "so";
+
 pub struct PluginManager {
     plugins: HashMap<usize, Plugin>,
+    dependencies: Vec<Library>,
     plugins_path: PathBuf,
     async_runtime: Runtime,
     _mark: PhantomPinned, // move in memory is unsafe because plugin have a pointer to it
@@ -47,6 +55,7 @@ impl PluginManager {
 
         Self {
             plugins: HashMap::new(),
+            dependencies: vec![],
             plugins_path,
             async_runtime,
             _mark: PhantomPinned,
@@ -66,24 +75,30 @@ impl PluginManager {
         self.plugins.get(&handle)
     }
 
-    pub fn unload_plugin(&self, name: &str) {
+    pub fn unload_plugin(&self, _name: &str) {
         todo!()
     }
 
     pub fn load_plugins(&mut self) -> io::Result<()> {
-        let plugins_path = self.plugins_path.as_path();
+        let mut plugins_path = self.plugins_path.to_path_buf();
         if !plugins_path.is_dir() {
-            fs::create_dir_all(plugins_path)?;
+            fs::create_dir_all(&plugins_path)?;
+            plugins_path.push("dependencies");
+            fs::create_dir(&plugins_path)?;
             return Ok(());
         }
-        let dir = fs::read_dir(plugins_path)?;
+        plugins_path.push("dependencies");
+        if !plugins_path.is_dir() {
+            fs::create_dir(&plugins_path)?;
+        }
+        unsafe {
+            self.load_dependencies(&plugins_path)?;
+            info!("已加载{}个依赖", self.dependencies.len());
+        }
+        plugins_path.pop();
 
-        #[cfg(target_os = "macos")]
-        const EXTENSION: &str = "dylib";
-        #[cfg(target_os = "windows")]
-        const EXTENSION: &str = "dll";
-        #[cfg(any(target_os = "linux", target_os = "android"))]
-        const EXTENSION: &str = "so";
+        let dir = fs::read_dir(&plugins_path)?;
+
         for entry in dir {
             match entry {
                 Ok(entry) => {
@@ -137,6 +152,8 @@ impl PluginManager {
                 }
             }
         }
+
+        info!("已加载{}个插件", self.plugins.len());
 
         Ok(())
     }
@@ -203,6 +220,39 @@ impl PluginManager {
         trace!("正在启用插件");
 
         Ok(catch)
+    }
+
+    unsafe fn load_dependencies<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
+        let path = path.as_ref();
+        let mut p = path.to_path_buf();
+
+        unsafe fn _read(path: &Path, deps: &mut Vec<Library>, p: &mut PathBuf) -> io::Result<()> {
+            let dir = fs::read_dir(path)?;
+            for entry in dir {
+                let entry = entry?;
+                p.push(entry.file_name());
+                if p.is_file() {
+                    if let Some(EXTENSION) = p.extension().map(|os| os.to_str().unwrap_or("")) {
+                        match Library::new(&p) {
+                            Ok(lib) => {
+                                deps.push(lib);
+                                info!("加载依赖({:?})", p);
+                            },
+                            Err(e) => {
+                                error!("加载依赖动态库失败: {}, 跳过", e);
+                            }
+                        }
+                    }
+                } else if p.is_dir() {
+                    _read(&p.clone(), deps, p)?;
+                }
+                p.pop();
+            }
+            Ok(())
+        }
+
+        _read(path, &mut self.dependencies, &mut p)?;
+        Ok(())
     }
 }
 

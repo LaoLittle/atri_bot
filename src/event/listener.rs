@@ -11,7 +11,7 @@ use crate::service::listeners::get_global_worker;
 use crate::{get_listener_runtime, Event};
 
 pub struct Listener {
-    pub(crate) name: Arc<String>,
+    pub name: Arc<String>,
     pub(crate) concurrent_mutex: Option<Mutex<()>>,
     pub(crate) handler:
         Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output = bool> + Send + 'static>> + Send + 'static>,
@@ -104,7 +104,7 @@ impl Listener {
         })
     }
 
-    pub async fn next_event<E, F>(&self, timeout: Duration, filter: F) -> Option<E>
+    pub async fn next_event<E, F>(timeout: Duration, filter: F) -> Option<E>
     where
         E: FromEvent,
         E: Send + 'static,

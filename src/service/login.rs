@@ -133,13 +133,14 @@ async fn login_bot(
             //error!("Bot({})登陆失败: {:?}", account, e);
             if let Some(pwd) = password {
                 info!("{}尝试密码登陆", bot);
-                let mut resp = bot.client().password_login(account, pwd).await?;
+                let mut resp = bot.client()
+                    .password_login(account, pwd)
+                    .await?;
 
                 loop {
                     match resp {
                         LoginResponse::DeviceLockLogin(..) => {
-                            let r = bot.client().device_lock_login().await?;
-                            resp = r;
+                            resp = bot.client().device_lock_login().await?;
                         }
                         LoginResponse::Success(..) => {
                             info!("{}登陆成功", bot);
@@ -163,8 +164,8 @@ async fn login_bot(
                             error!("{}登陆失败: 账号被冻结", bot);
                             return Err(e);
                         }
-                        _ => {
-                            error!("{}登陆失败: {:?}", bot, resp);
+                        or => {
+                            error!("{}登陆失败, 服务器返回: {:?}", bot, or);
                             return Err(e);
                         }
                     }

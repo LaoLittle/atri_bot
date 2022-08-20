@@ -7,7 +7,6 @@ use ricq::structs::{FriendMessage, GroupMessage};
 
 use atri_ffi::ffi::FFIEvent;
 use atri_ffi::Managed;
-use tokio::time::error::Elapsed;
 
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
@@ -109,6 +108,15 @@ impl<T> EventInner<T> {
     pub fn is_intercepted(&self) -> bool {
         self.intercepted.load(Ordering::Relaxed)
     }
+
+    pub fn into_inner(self) -> Result<T, Self> {
+        let e = Arc::try_unwrap(self.event);
+
+        e.map_err(|arc| Self {
+            intercepted: self.intercepted,
+            event: arc
+        })
+    }
 }
 
 impl<T> Clone for EventInner<T> {
@@ -153,11 +161,11 @@ impl GroupMessageEvent {
         &self,
         timeout: Duration,
         filter: F,
-    ) -> Result<GroupMessageEvent, Elapsed>
+    ) -> Option<GroupMessageEvent>
     where
         F: Fn(&GroupMessageEvent) -> bool,
     {
-        tokio::time::timeout(timeout, async move {
+        /*tokio::time::timeout(timeout, async move {
             let (tx, mut rx) = tokio::sync::mpsc::channel(8);
             let group_id = self.group().id();
             let sender = self.message().from_uin;
@@ -188,14 +196,29 @@ impl GroupMessageEvent {
 
             unreachable!()
         })
-        .await
+        .await*/
+
+        let group_id = self.group().id();
+        let sender_id = self.sender().await.id();
+
+        Listener::next_event(timeout, |e: &GroupMessageEvent| {
+            if e.group().id() != group_id {
+                return false;
+            }
+
+            if e.message().from_uin != sender_id {
+                return false;
+            }
+
+            filter(e)
+        }).await
     }
 
     pub async fn next_message<F>(
         &self,
         timeout: Duration,
         filter: F,
-    ) -> Result<MessageChain, Elapsed>
+    ) -> Option<MessageChain>
     where
         F: Fn(&MessageChain) -> bool,
     {

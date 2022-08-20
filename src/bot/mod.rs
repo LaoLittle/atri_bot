@@ -152,6 +152,20 @@ impl Bot {
         None
     }
 
+    pub fn groups(&self) -> Vec<Group> {
+        self.0.group_list
+            .iter()
+            .map(|g| g.clone())
+            .collect()
+    }
+
+    pub fn friends(&self) -> Vec<Friend> {
+        self.0.friend_list
+            .iter()
+            .map(|f| f.clone())
+            .collect()
+    }
+
     pub(crate) fn client(&self) -> &Client {
         &self.0.client
     }
