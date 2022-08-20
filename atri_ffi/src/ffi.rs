@@ -13,8 +13,10 @@ pub struct AtriVTable {
     pub plugin_manager_block_on: extern "C" fn(manager: *const (), FFIFuture<Managed>) -> Managed,
 
     pub new_listener: extern "C" fn(FFIFn<FFIEvent, FFIFuture<bool>>) -> Managed,
+
     pub event_intercept: extern "C" fn(intercepted: *const ()),
     pub event_is_intercepted: extern "C" fn(intercepted: *const ()) -> bool,
+
     pub bot_get_id: extern "C" fn(bot: *const ()) -> i64,
 
     pub group_message_event_get_group: extern "C" fn(event: *const ()) -> ManagedCloneable,
