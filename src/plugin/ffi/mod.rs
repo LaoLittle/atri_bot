@@ -23,7 +23,7 @@ use crate::plugin::ffi::listener::new_listener;
 
 use crate::plugin::cast_ref;
 use crate::plugin::ffi::friend::{
-    friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message,
+    friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message, friend_upload_image,
 };
 use crate::plugin::ffi::log::log_info;
 use crate::plugin::ffi::member::{
@@ -60,6 +60,7 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
         friend_get_nickname,
         friend_get_bot,
         friend_send_message,
+        friend_upload_image,
         named_member_get_id,
         named_member_get_nickname,
         named_member_get_card_name,

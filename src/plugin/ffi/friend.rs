@@ -5,7 +5,7 @@ use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::{Managed, ManagedCloneable, RustStr};
+use atri_ffi::{Managed, ManagedCloneable, RawVec, RustStr};
 
 pub extern "C" fn friend_get_id(friend: *const ()) -> i64 {
     let f: &Friend = cast_ref(friend);
@@ -35,6 +35,22 @@ pub extern "C" fn friend_send_message(
             .await
             .map(|receipt| Managed::from_value(receipt));
 
+        FFIResult::from(result)
+    })
+}
+
+pub extern "C" fn friend_upload_image(
+    friend: *const (),
+    img: RawVec<u8>,
+) -> FFIFuture<FFIResult<Managed>> {
+    FFIFuture::from(async {
+        let f: &Friend = cast_ref(friend);
+        let img = img.into_vec();
+
+        let result = f
+            .upload_image(img)
+            .await
+            .map(|img| Managed::from_value(img));
         FFIResult::from(result)
     })
 }

@@ -37,6 +37,8 @@ pub struct AtriVTable {
     pub friend_get_bot: extern "C" fn(friend: *const ()) -> ManagedCloneable,
     pub friend_send_message:
         extern "C" fn(friend: *const (), chain: FFIMessageChain) -> FFIFuture<FFIResult<Managed>>,
+    pub friend_upload_image:
+        extern "C" fn(friend: *const (), img: RawVec<u8>) -> FFIFuture<FFIResult<Managed>>,
 
     pub named_member_get_id: extern "C" fn(named: *const ()) -> i64,
     pub named_member_get_nickname: extern "C" fn(named: *const ()) -> RustStr,
