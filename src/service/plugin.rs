@@ -93,8 +93,13 @@ impl PluginManager {
         }
         unsafe {
             self.load_dependencies(&plugins_path)?;
-            info!("已加载{}个依赖", self.dependencies.len());
         }
+
+        let dep_len = self.dependencies.len();
+        if dep_len != 0 {
+            info!("已加载{}个依赖", dep_len);
+        }
+
         plugins_path.pop();
 
         let dir = fs::read_dir(&plugins_path)?;
