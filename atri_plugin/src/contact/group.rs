@@ -4,8 +4,8 @@ use crate::loader::get_plugin_manager_vtb;
 use crate::message::{Image, MessageChain, MessageReceipt};
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::{ManagedCloneable, RustStr};
-use std::slice;
+use atri_ffi::ManagedCloneable;
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
 pub struct Group(pub(crate) ManagedCloneable);
@@ -21,13 +21,9 @@ impl Group {
     }
 
     pub fn name(&self) -> &str {
-        let rstr = (get_plugin_manager_vtb().group_get_name)(self.0.pointer);
-        let RustStr { slice, len } = rstr;
+        let rs = (get_plugin_manager_vtb().group_get_name)(self.0.pointer);
         // Safety: this slice should live as long as self(Group)
-        unsafe {
-            let slice = slice::from_raw_parts(slice, len);
-            std::str::from_utf8_unchecked(slice)
-        }
+        rs.as_str()
     }
 
     pub async fn send_message(&self, chain: MessageChain) -> Result<MessageReceipt, AtriError> {
@@ -55,5 +51,11 @@ impl Group {
 
     pub async fn quit(&self) {
         (get_plugin_manager_vtb().group_quit)(self.0.pointer).await;
+    }
+}
+
+impl Display for Group {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Group({})", self.id())
     }
 }

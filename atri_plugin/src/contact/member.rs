@@ -1,8 +1,8 @@
 use crate::bot::Bot;
 use atri_ffi::contact::FFIMember;
-use atri_ffi::{ManagedCloneable, RustStr, RustString};
+use atri_ffi::{ManagedCloneable, RustString};
+use std::fmt::{Display, Formatter};
 use std::mem::ManuallyDrop;
-use std::slice;
 
 use crate::contact::group::Group;
 use crate::error::AtriError;
@@ -37,23 +37,15 @@ impl NamedMember {
     }
 
     pub fn nickname(&self) -> &str {
-        let RustStr { slice, len } =
-            (get_plugin_manager_vtb().named_member_get_nickname)(self.0.pointer);
+        let rs = (get_plugin_manager_vtb().named_member_get_nickname)(self.0.pointer);
 
-        unsafe {
-            let slice = slice::from_raw_parts(slice, len);
-            std::str::from_utf8_unchecked(slice)
-        }
+        rs.as_str()
     }
 
     pub fn card_name(&self) -> &str {
-        let RustStr { slice, len } =
-            (get_plugin_manager_vtb().named_member_get_card_name)(self.0.pointer);
+        let rs = (get_plugin_manager_vtb().named_member_get_card_name)(self.0.pointer);
 
-        unsafe {
-            let slice = slice::from_raw_parts(slice, len);
-            std::str::from_utf8_unchecked(slice)
-        }
+        rs.as_str()
     }
 
     pub fn group(&self) -> Group {
@@ -72,6 +64,12 @@ impl NamedMember {
         let result =
             (get_plugin_manager_vtb().named_member_change_card_name)(self.0.pointer, rs).await;
         Result::from(result).map_err(|s| AtriError::RQError(s))
+    }
+}
+
+impl Display for NamedMember {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "NamedMember({})", self.id())
     }
 }
 

@@ -167,6 +167,15 @@ pub struct RustStr {
     pub len: usize,
 }
 
+impl RustStr {
+    pub fn as_str<'a>(&self) -> &'a str {
+        unsafe {
+            let slice = slice::from_raw_parts(self.slice, self.len);
+            std::str::from_utf8_unchecked(slice)
+        }
+    }
+}
+
 impl From<&str> for RustStr {
     fn from(s: &str) -> Self {
         Self {

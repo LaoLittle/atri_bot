@@ -3,8 +3,8 @@ use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::{Image, MessageChain, MessageReceipt};
 use atri_ffi::ffi::ForFFI;
-use atri_ffi::{ManagedCloneable, RawVec, RustStr};
-use std::slice;
+use atri_ffi::{ManagedCloneable, RawVec};
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
 pub struct Friend(pub(crate) ManagedCloneable);
@@ -15,12 +15,9 @@ impl Friend {
     }
 
     pub fn nickname(&self) -> &str {
-        let RustStr { slice, len } = (get_plugin_manager_vtb().friend_get_nickname)(self.0.pointer);
+        let rs = (get_plugin_manager_vtb().friend_get_nickname)(self.0.pointer);
 
-        unsafe {
-            let slice = slice::from_raw_parts(slice, len);
-            std::str::from_utf8_unchecked(slice)
-        }
+        rs.as_str()
     }
 
     pub fn bot(&self) -> Bot {
@@ -50,5 +47,11 @@ impl Friend {
             Ok(ma) => Ok(Image(ma)),
             Err(s) => Err(AtriError::RQError(s)),
         }
+    }
+}
+
+impl Display for Friend {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Friend({})", self.id())
     }
 }

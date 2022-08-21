@@ -6,6 +6,7 @@ use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tracing::info;
 
+use crate::contact::member::{AnonymousMember, NamedMember};
 use crate::event::{BotOnlineEvent, Event, EventInner, FriendMessageEvent, GroupMessageEvent};
 use crate::service::listeners::get_global_worker;
 use crate::{get_app, get_listener_runtime, Bot};
@@ -66,14 +67,31 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     return;
                 };
 
-                let group = bot.find_group(e.inner.group_code).await.unwrap();
+                let group_id = e.inner.group_code;
+                let group = bot.find_group(group_id).await.unwrap();
 
                 let filter = get_filter_regex();
 
+                let sender = e.inner.from_uin;
+
+                let member: NamedMember;
+                let nick = if sender == AnonymousMember::ID {
+                    "匿名"
+                } else {
+                    if let Some(named) = group.find_member(sender).await {
+                        member = named;
+                        member.nickname()
+                    } else {
+                        ""
+                    }
+                };
+
                 info!(
-                    "群 {}({}) >> {bot}: {}",
+                    "{}({}) >> 群 {}({}) >> {bot}: {}",
+                    nick,
+                    sender,
                     filter.replace_all(group.name(), ""),
-                    group.id(),
+                    group_id,
                     e.inner.elements,
                 );
 

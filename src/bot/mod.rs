@@ -43,6 +43,9 @@ impl Bot {
             if let LoginResponse::Success(..) = resp {
                 after_login(&self.0.client).await;
 
+                let info = self.0.account_info().await;
+                self.0.info.get_or_init(|| info);
+
                 let rq = self.client().gen_token().await;
                 let token = Token::from(rq);
 
@@ -84,12 +87,12 @@ impl Bot {
         self.0.id
     }
 
-    pub async fn nickname(&self) -> String {
-        self.0.nickname().await
+    pub fn nickname(&self) -> &str {
+        &self.account_info().nickname
     }
 
-    pub async fn account_info(&self) -> AccountInfo {
-        self.0.account_info().await
+    pub fn account_info(&self) -> &AccountInfo {
+        self.0.info.get().unwrap()
     }
 
     pub async fn refresh_friend_list(&self) -> RQResult<()> {
@@ -211,7 +214,7 @@ impl Display for Bot {
 mod imp {
     use std::path::{Path, PathBuf};
     use std::sync::atomic::AtomicBool;
-    use std::sync::Arc;
+    use std::sync::{Arc, OnceLock};
 
     use dashmap::DashMap;
     use ricq::device::Device;
@@ -230,6 +233,7 @@ mod imp {
 
     pub struct Bot {
         pub id: i64,
+        pub info: OnceLock<AccountInfo>,
         pub enable: AtomicBool,
         pub client: Arc<Client>,
         pub friend_list: DashMap<i64, Friend>,
@@ -302,6 +306,7 @@ mod imp {
 
             Self {
                 id,
+                info: OnceLock::new(),
                 enable: AtomicBool::new(false),
                 friend_list: DashMap::new(),
                 group_list: DashMap::new(),
@@ -322,10 +327,6 @@ mod imp {
             yield_now().await;
 
             Ok(())
-        }
-
-        pub async fn nickname(&self) -> String {
-            self.client.account_info.read().await.nickname.clone()
         }
 
         pub async fn account_info(&self) -> AccountInfo {

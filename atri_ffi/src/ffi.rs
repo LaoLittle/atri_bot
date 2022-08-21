@@ -18,6 +18,7 @@ pub struct AtriVTable {
     pub event_is_intercepted: extern "C" fn(intercepted: *const ()) -> bool,
 
     pub bot_get_id: extern "C" fn(bot: *const ()) -> i64,
+    pub bot_get_nickname: extern "C" fn(bot: *const ()) -> RustStr,
 
     pub group_message_event_get_group: extern "C" fn(event: *const ()) -> ManagedCloneable,
     pub group_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
