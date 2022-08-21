@@ -2,9 +2,25 @@
 name = "atri_plugin"
 version = "0.1.0"
 edition = "2021"
+authors = ["LaoLittle"]
+description = "AtriQQ plugin"
+readme = "README.md"
+keywords = [
+    "Atri",
+    "macro",
+    "plugin",
+    "oicq"
+]
+license = "AGPL-3.0"
+homepage = "https://github.com/LaoLittle/atri_qq"
+repository = "https://github.com/LaoLittle/atri_qq"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-atri_ffi = { path = "../atri_ffi" }
-atri_macros = { path = "../atri_macros" }
+[dependencies.atri_ffi]
+version = "0"
+path = "../atri_ffi"
+
+[dependencies.atri_macros]
+version = "0"
+path = "../atri_macros"

@@ -3,7 +3,7 @@ name = "atri_ffi"
 version = "0.1.0"
 edition = "2021"
 authors = ["LaoLittle"]
-description = "FFI structs"
+description = "AtriQQ FFI structs"
 readme = "README.md"
 keywords = [
     "Atri",
