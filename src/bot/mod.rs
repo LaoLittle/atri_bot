@@ -1,15 +1,18 @@
+mod token;
+
 use std::fmt::{Debug, Display, Formatter};
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use ricq::client::Token;
 use ricq::ext::common::after_login;
 use ricq::structs::AccountInfo;
 use ricq::{Client, LoginResponse, RQError, RQResult};
 
+use crate::bot::token::Token;
 use crate::contact::friend::Friend;
-use tokio::{fs, io};
+use tokio::io;
 use tracing::error;
 
 use crate::contact::group::Group;
@@ -27,17 +30,35 @@ impl Bot {
         let p = self.0.work_dir.join("token.json");
 
         if p.is_file() {
-            let s = fs::read_to_string(&p).await.expect("Cannot open file");
+            //let s = tokio::fs::read_to_string(&p).await.expect("Cannot open file");
+            //let token: ricq::client::Token = serde_json::from_str(&s).expect("Cannot read token from file");
 
-            let token: Token = serde_json::from_str(&s).expect("Cannot read token from file");
+            let token: ricq::client::Token = tokio::task::block_in_place(|| {
+                let file = std::fs::File::open(&p).unwrap();
+                serde_json::from_reader(&file).expect("Cannot read token from file")
+            });
 
             let resp = self.0.client.token_login(token).await?;
 
             if let LoginResponse::Success(..) = resp {
                 after_login(&self.0.client).await;
-                let client = self.0.client.clone();
-                tokio::spawn(async move {
-                    client.do_heartbeat().await;
+
+                let rq = self.client().gen_token().await;
+                let token = Token::from(rq);
+
+                tokio::task::spawn_blocking(move || {
+                    let mut p = p;
+
+                    if let Ok(file) = std::fs::File::create(&p) {
+                        let _ = serde_json::to_writer_pretty(&file, &token);
+                    }
+                    p.pop();
+                    p.push("token.bin");
+
+                    if let Ok(mut file) = std::fs::File::create(&p) {
+                        let proto = prost::Message::encode_to_vec(&token);
+                        let _ = file.write_all(&proto);
+                    }
                 });
 
                 self.0.enable.swap(true, Ordering::Relaxed);
@@ -153,17 +174,11 @@ impl Bot {
     }
 
     pub fn groups(&self) -> Vec<Group> {
-        self.0.group_list
-            .iter()
-            .map(|g| g.clone())
-            .collect()
+        self.0.group_list.iter().map(|g| g.clone()).collect()
     }
 
     pub fn friends(&self) -> Vec<Friend> {
-        self.0.friend_list
-            .iter()
-            .map(|f| f.clone())
-            .collect()
+        self.0.friend_list.iter().map(|f| f.clone()).collect()
     }
 
     pub(crate) fn client(&self) -> &Client {
