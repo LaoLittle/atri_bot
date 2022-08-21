@@ -58,6 +58,7 @@ dependencies = [
  "crossbeam-deque",
  "dashmap",
  "libloading",
+ "prost",
  "rand",
  "regex",
  "ricq",

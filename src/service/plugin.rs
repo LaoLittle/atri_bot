@@ -237,7 +237,7 @@ impl PluginManager {
                             Ok(lib) => {
                                 deps.push(lib);
                                 info!("加载依赖({:?})", p);
-                            },
+                            }
                             Err(e) => {
                                 error!("加载依赖动态库失败: {}, 跳过", e);
                             }

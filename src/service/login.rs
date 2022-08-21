@@ -133,9 +133,7 @@ async fn login_bot(
             //error!("Bot({})登陆失败: {:?}", account, e);
             if let Some(pwd) = password {
                 info!("{}尝试密码登陆", bot);
-                let mut resp = bot.client()
-                    .password_login(account, pwd)
-                    .await?;
+                let mut resp = bot.client().password_login(account, pwd).await?;
 
                 loop {
                     match resp {

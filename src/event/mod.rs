@@ -10,7 +10,7 @@ use atri_ffi::Managed;
 
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
-use crate::contact::member::{Member};
+use crate::contact::member::Member;
 use crate::contact::{Contact, HasSubject};
 use crate::message::MessageChain;
 use crate::{Bot, Listener};
@@ -114,7 +114,7 @@ impl<T> EventInner<T> {
 
         e.map_err(|arc| Self {
             intercepted: self.intercepted,
-            event: arc
+            event: arc,
         })
     }
 }
@@ -157,11 +157,7 @@ impl GroupMessageEvent {
         &self.event.message
     }
 
-    pub async fn next_event<F>(
-        &self,
-        timeout: Duration,
-        filter: F,
-    ) -> Option<GroupMessageEvent>
+    pub async fn next_event<F>(&self, timeout: Duration, filter: F) -> Option<GroupMessageEvent>
     where
         F: Fn(&GroupMessageEvent) -> bool,
     {
@@ -211,14 +207,11 @@ impl GroupMessageEvent {
             }
 
             filter(e)
-        }).await
+        })
+        .await
     }
 
-    pub async fn next_message<F>(
-        &self,
-        timeout: Duration,
-        filter: F,
-    ) -> Option<MessageChain>
+    pub async fn next_message<F>(&self, timeout: Duration, filter: F) -> Option<MessageChain>
     where
         F: Fn(&MessageChain) -> bool,
     {

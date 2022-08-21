@@ -1,4 +1,5 @@
 use crate::contact::group::Group;
+use crate::message::meta::Anonymous;
 use crate::message::MessageChain;
 use crate::{Bot, GroupMemberInfo};
 use atri_ffi::contact::{FFIMember, MemberUnion};
@@ -8,7 +9,6 @@ use ricq::{RQError, RQResult};
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::time::Duration;
-use crate::message::meta::Anonymous;
 
 #[derive(Clone)]
 pub enum Member {
@@ -171,8 +171,8 @@ impl AnonymousMember {
 
 mod imp {
     use crate::contact::group::Group;
-    use crate::GroupMemberInfo;
     use crate::message::meta::Anonymous;
+    use crate::GroupMemberInfo;
 
     pub struct NamedMember {
         pub group: Group,
