@@ -2,5 +2,16 @@
 name = "atri_ffi"
 version = "0.1.0"
 edition = "2021"
+authors = ["LaoLittle"]
+description = "FFI structs"
+readme = "README.md"
+keywords = [
+    "Atri",
+    "FFI",
+    "oicq"
+]
+license = "AGPL-3.0"
+homepage = "https://github.com/LaoLittle/atri_qq"
+repository = "https://github.com/LaoLittle/atri_qq"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
