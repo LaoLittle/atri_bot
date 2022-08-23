@@ -122,7 +122,7 @@ impl NamedMember {
 
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
         let bot = self.group().bot();
-        if let Some(f) = bot.find_friend(self.id()).await {
+        if let Some(f) = bot.find_friend(self.id()) {
             f.send_message(chain).await
         } else {
             bot.client()

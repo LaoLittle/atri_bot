@@ -1,6 +1,7 @@
 use std::mem::ManuallyDrop;
 use std::ops::Deref;
 use std::{mem, slice};
+use std::ptr::{null, null_mut};
 
 pub mod closure;
 pub mod contact;
@@ -58,6 +59,16 @@ impl Managed {
         mem::forget(self);
         *unsafe { Box::from_raw(ptr as _) }
     }
+    
+    /// for option
+    pub unsafe fn null() -> Self {
+        extern "C" fn _drop_null(_: *mut ()) {}
+        
+        Self {
+            pointer: null_mut(),
+            drop: _drop_null,
+        }
+    }
 }
 
 impl Drop for Managed {
@@ -88,6 +99,18 @@ impl ManagedCloneable {
 
     pub fn into_value<T>(self) -> T {
         self.value.into_value()
+    }
+
+    /// for option
+    pub unsafe fn null() -> Self {
+        extern "C" fn _clone_null(_: *const ()) -> ManagedCloneable {
+            panic!("Shouldn't call this because this is null");
+        }
+
+        Self {
+            value: Managed::null(),
+            clone: _clone_null,
+        }
     }
 }
 

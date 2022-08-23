@@ -47,6 +47,6 @@ path = "atri_ffi"
 version = "<= 1.0.59"
 
 [profile.release]
-lto = "thin"
+lto = true
 strip = true
 codegen-units = 1

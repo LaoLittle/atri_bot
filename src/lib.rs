@@ -85,7 +85,6 @@ pub fn get_listener_runtime() -> &'static Runtime {
 pub struct App {
     bots: DashMap<i64, Bot>,
     group_bot: DashMap<i64, i64>,
-    group_members_info: DashMap<i64, Arc<GroupMemberInfo>>,
 }
 
 impl App {
@@ -93,7 +92,6 @@ impl App {
         Self {
             bots: DashMap::new(),
             group_bot: DashMap::new(),
-            group_members_info: DashMap::new(),
         }
     }
 

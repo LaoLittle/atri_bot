@@ -6,7 +6,7 @@ use ricq::handler::QEvent;
 use ricq::structs::{FriendMessage, GroupMessage};
 
 use atri_ffi::ffi::FFIEvent;
-use atri_ffi::Managed;
+use atri_ffi::{Managed, ManagedCloneable};
 
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
@@ -31,7 +31,7 @@ impl Event {
             ($($e:ident => $t:expr);* $(;)?) => {
                 match self {
                     $(
-                    Self::$e(e) => ($t, &*e.intercepted as *const AtomicBool, Managed::from_value(e)),
+                    Self::$e(e) => ($t, &*e.intercepted as *const AtomicBool, ManagedCloneable::from_value(e)),
                     )*
                 }
             };

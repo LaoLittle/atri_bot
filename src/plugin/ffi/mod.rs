@@ -10,7 +10,9 @@ mod message;
 use atri_ffi::error::FFIResult;
 use std::sync::OnceLock;
 
-use crate::plugin::ffi::bot::{bot_get_id, bot_get_nickname};
+use crate::plugin::ffi::bot::{
+    bot_find_friend, bot_find_group, bot_get_id, bot_get_list, bot_get_nickname, find_bot,
+};
 use crate::plugin::ffi::event::{
     event_intercept, event_is_intercepted, friend_message_event_get_friend,
     friend_message_event_get_message, group_message_event_get_group,
@@ -46,6 +48,10 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
         event_is_intercepted,
         bot_get_id,
         bot_get_nickname,
+        bot_get_list,
+        find_bot,
+        bot_find_group,
+        bot_find_friend,
         group_message_event_get_group,
         group_message_event_get_message,
         group_message_event_get_sender,

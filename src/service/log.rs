@@ -15,7 +15,7 @@ pub fn init_logger() {
 
     let builder = FmtSubscriber::builder()
         .with_max_level(Level::DEBUG)
-        .with_target(true)
+        .with_target(false)
         .with_writer(LogWriter::default);
 
     if let Ok(ofs) = time::UtcOffset::current_local_offset() {

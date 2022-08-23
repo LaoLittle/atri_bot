@@ -68,7 +68,14 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 };
 
                 let group_id = e.inner.group_code;
-                let group = bot.find_group(group_id).await.unwrap();
+                let group = if let Some(g) = bot.find_group(group_id) {
+                    g
+                } else {
+                    bot.refresh_group_info(group_id)
+                        .await
+                        .expect("Cannot refresh");
+                    return;
+                };
 
                 let filter = get_filter_regex();
 
@@ -92,7 +99,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     sender,
                     filter.replace_all(group.name(), ""),
                     group_id,
-                    e.inner.elements,
+                    e.inner.elements.to_string().replace('\n', "\\n"),
                 );
 
                 let base = GroupMessageEvent::from(group, e);
@@ -109,9 +116,10 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     return;
                 };
 
-                let friend = if let Some(f) = bot.find_friend(e.inner.from_uin).await {
+                let friend = if let Some(f) = bot.find_friend(e.inner.from_uin) {
                     f
                 } else {
+                    bot.refresh_friend_list().await.expect("Cannot refresh");
                     return;
                 };
 

@@ -19,6 +19,10 @@ pub struct AtriVTable {
 
     pub bot_get_id: extern "C" fn(bot: *const ()) -> i64,
     pub bot_get_nickname: extern "C" fn(bot: *const ()) -> RustStr,
+    pub bot_get_list: extern "C" fn() -> RawVec<ManagedCloneable>,
+    pub find_bot: extern "C" fn(id: i64) -> ManagedCloneable,
+    pub bot_find_group: extern "C" fn(bot: *const (), id: i64) -> ManagedCloneable,
+    pub bot_find_friend: extern "C" fn(bot: *const (), id: i64) -> ManagedCloneable,
 
     pub group_message_event_get_group: extern "C" fn(event: *const ()) -> ManagedCloneable,
     pub group_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
@@ -62,13 +66,13 @@ pub struct AtriManager {
 
 #[repr(C)]
 pub struct FFIEvent {
-    t: u8,
-    intercepted: *const (),
-    base: Managed,
+    pub t: u8,
+    pub intercepted: *const (),
+    pub base: ManagedCloneable,
 }
 
 impl FFIEvent {
-    pub fn from(t: u8, intercepted: *const (), base: Managed) -> Self {
+    pub fn from(t: u8, intercepted: *const (), base: ManagedCloneable) -> Self {
         Self {
             t,
             intercepted,
@@ -76,7 +80,7 @@ impl FFIEvent {
         }
     }
 
-    pub fn get(self) -> (u8, *const (), Managed) {
+    pub fn get(self) -> (u8, *const (), ManagedCloneable) {
         (self.t, self.intercepted, self.base)
     }
 }

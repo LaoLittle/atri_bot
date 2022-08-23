@@ -16,6 +16,7 @@ use tokio::io;
 use tracing::error;
 
 use crate::contact::group::Group;
+use crate::get_app;
 
 #[derive(Clone)]
 pub struct Bot(Arc<imp::Bot>);
@@ -91,8 +92,28 @@ impl Bot {
         &self.account_info().nickname
     }
 
+    pub fn age(&self) -> u8 {
+        self.account_info().age
+    }
+
+    pub fn gender(&self) -> u8 {
+        self.account_info().gender
+    }
+
     pub fn account_info(&self) -> &AccountInfo {
         self.0.info.get().unwrap()
+    }
+
+    pub fn is_online(&self) -> bool {
+        self.client().online.load(Ordering::Relaxed)
+    }
+
+    pub fn list() -> Vec<Bot> {
+        get_app().bots.iter().map(|bot| bot.clone()).collect()
+    }
+
+    pub fn find(id: i64) -> Option<Self> {
+        get_app().bots.get(&id).map(|b| b.clone())
     }
 
     pub async fn refresh_friend_list(&self) -> RQResult<()> {
@@ -147,28 +168,15 @@ impl Bot {
         self.0.work_dir.clone()
     }
 
-    pub async fn find_group(&self, id: i64) -> Option<Group> {
+    pub fn find_group(&self, id: i64) -> Option<Group> {
         if let Some(g) = self.0.group_list.get(&id) {
             return Some(g.clone());
         }
 
-        let result = self.client().get_group_info(id).await;
-
-        match result {
-            Ok(Some(info)) => {
-                let group = Group::from(self.clone(), info);
-                self.0.group_list.insert(id, group.clone());
-                Some(group)
-            }
-            Ok(None) => None,
-            Err(e) => {
-                error!("获取群({})信息时发生意料之外的错误: {:?}", id, e);
-                None
-            }
-        }
+        None
     }
 
-    pub async fn find_friend(&self, id: i64) -> Option<Friend> {
+    pub fn find_friend(&self, id: i64) -> Option<Friend> {
         if let Some(f) = self.0.friend_list.get(&id) {
             return Some(f.clone());
         }

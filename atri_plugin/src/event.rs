@@ -5,10 +5,10 @@ use crate::contact::member::Member;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::MessageChain;
 use atri_ffi::ffi::{FFIEvent, ForFFI};
-use atri_ffi::Managed;
+use atri_ffi::ManagedCloneable;
 use std::ops::Deref;
-use std::sync::Arc;
 
+#[derive(Clone)]
 pub enum Event {
     BotOnlineEvent(BotOnlineEvent),
     GroupMessageEvent(GroupMessageEvent),
@@ -19,10 +19,9 @@ pub enum Event {
 impl Event {
     pub fn from_ffi(ffi: FFIEvent) -> Self {
         let (t, intercepted, m) = ffi.get();
-        let arc = Arc::new(m);
         let inner = EventInner {
             intercepted,
-            event: arc,
+            event: m,
         };
 
         match t {
@@ -43,7 +42,7 @@ impl FromEvent for Event {
 #[derive(Clone)]
 pub struct EventInner {
     intercepted: *const (), // owned by event
-    event: Arc<Managed>,
+    event: ManagedCloneable,
 }
 
 impl EventInner {
