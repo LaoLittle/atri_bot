@@ -1,5 +1,6 @@
 use dashmap::DashMap;
 use std::fmt::{Display, Formatter};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use ricq::structs::{GroupInfo, MessageReceipt};
@@ -9,7 +10,7 @@ use tracing::error;
 use crate::contact::member::NamedMember;
 use crate::message::image::Image;
 use crate::message::MessageChain;
-use crate::Bot;
+use crate::{Bot, GroupMemberInfo};
 
 #[derive(Clone)]
 pub struct Group(Arc<imp::Group>);
@@ -19,6 +20,7 @@ impl Group {
         let imp = imp::Group {
             bot,
             info,
+            member_list_refreshed: AtomicBool::new(false),
             members: DashMap::new(),
         };
 
@@ -37,21 +39,62 @@ impl Group {
         &self.0.info.name
     }
 
-    pub async fn find_member(&self, id: i64) -> Option<NamedMember> {
+    pub fn find_member(&self, id: i64) -> Option<NamedMember> {
         if let Some(member) = self.0.members.get(&id) {
             return Some(member.clone());
         }
 
-        self.bot()
+        None
+    }
+
+    pub async fn members(&self) -> Vec<NamedMember> {
+        if self.0.member_list_refreshed.load(Ordering::Relaxed) {
+            self.0.members.iter().map(|named| named.clone()).collect()
+        } else {
+            let owner = self.0.info.owner_uin;
+            self.bot()
+                .client()
+                .get_group_member_list(self.id(), owner)
+                .await
+                .map(|r| {
+                    self.0.member_list_refreshed.swap(true, Ordering::Release);
+                    r
+                })
+                .unwrap_or_else(|e| {
+                    error!("刷新群聊成员信息时出现错误");
+                    vec![]
+                })
+                .into_iter()
+                .map(|info| {
+                    let named = NamedMember::from(self.clone(), info);
+                    self.0.members.insert(named.id(), named.clone());
+                    named
+                })
+                .collect()
+        }
+    }
+
+    pub async fn get_named_member(&self, id: i64) -> Option<NamedMember> {
+        if let Some(named) = self.find_member(id) {
+            return Some(named);
+        }
+
+        let named = self
+            .bot()
             .client()
             .get_group_member_info(self.id(), id)
             .await
-            .ok()
-            .map(|info| NamedMember::from(self.clone(), info))
-            .map(|member| {
-                self.0.members.insert(id, member.clone());
-                member
-            })
+            .map(|info| {
+                if info.join_time == 0 {
+                    return None;
+                }
+
+                let named = NamedMember::from(self.clone(), info);
+                self.0.members.insert(id, named.clone());
+                Some(named)
+            });
+
+        named.unwrap_or(None)
     }
 
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
@@ -87,6 +130,10 @@ impl Group {
                 );
                 err
             })
+    }
+
+    pub async fn change_name(&self, name: String) -> RQResult<()> {
+        self.bot().client().update_group_name(self.id(), name).await
     }
 
     pub async fn kick<M: ToKickMember, S: AsRef<str>>(
@@ -126,6 +173,7 @@ impl Display for Group {
 mod imp {
     use dashmap::DashMap;
     use ricq::structs::GroupInfo;
+    use std::sync::atomic::AtomicBool;
 
     use crate::contact::member::NamedMember;
     use crate::Bot;
@@ -133,6 +181,7 @@ mod imp {
     pub struct Group {
         pub bot: Bot,
         pub info: GroupInfo,
+        pub member_list_refreshed: AtomicBool,
         pub members: DashMap<i64, NamedMember>,
     }
 }

@@ -11,7 +11,8 @@ use atri_ffi::error::FFIResult;
 use std::sync::OnceLock;
 
 use crate::plugin::ffi::bot::{
-    bot_find_friend, bot_find_group, bot_get_id, bot_get_list, bot_get_nickname, find_bot,
+    bot_find_friend, bot_find_group, bot_get_friends, bot_get_groups, bot_get_id, bot_get_list,
+    bot_get_nickname, find_bot,
 };
 use crate::plugin::ffi::event::{
     event_intercept, event_is_intercepted, friend_message_event_get_friend,
@@ -19,7 +20,8 @@ use crate::plugin::ffi::event::{
     group_message_event_get_message, group_message_event_get_sender,
 };
 use crate::plugin::ffi::group::{
-    group_get_bot, group_get_id, group_get_name, group_quit, group_send_message, group_upload_image,
+    group_change_name, group_find_member, group_get_bot, group_get_id, group_get_members,
+    group_get_name, group_get_named_member, group_quit, group_send_message, group_upload_image,
 };
 use crate::plugin::ffi::listener::new_listener;
 
@@ -52,15 +54,21 @@ pub fn get_plugin_vtable() -> *const AtriVTable {
         find_bot,
         bot_find_group,
         bot_find_friend,
+        bot_get_groups,
+        bot_get_friends,
         group_message_event_get_group,
         group_message_event_get_message,
         group_message_event_get_sender,
         group_get_id,
         group_get_name,
         group_get_bot,
+        group_get_members,
+        group_find_member,
+        group_get_named_member,
         group_send_message,
         group_upload_image,
         group_quit,
+        group_change_name,
         friend_message_event_get_friend,
         friend_message_event_get_message,
         friend_get_id,

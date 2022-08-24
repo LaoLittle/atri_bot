@@ -230,6 +230,8 @@ pub struct RawVec<T> {
     capacity: usize,
 }
 
+unsafe impl<T> Send for RawVec<T> {}
+
 impl<T> RawVec<T> {
     pub fn into_vec(self) -> Vec<T> {
         unsafe { Vec::from_raw_parts(self.ptr, self.len, self.capacity) }

@@ -40,3 +40,23 @@ pub extern "C" fn bot_find_friend(bot: *const (), id: i64) -> ManagedCloneable {
         .map(|f| ManagedCloneable::from_value(f))
         .unwrap_or(unsafe { ManagedCloneable::null() })
 }
+
+pub extern "C" fn bot_get_groups(bot: *const ()) -> RawVec<ManagedCloneable> {
+    let b: &Bot = cast_ref(bot);
+    let ma: Vec<ManagedCloneable> = b
+        .groups()
+        .into_iter()
+        .map(ManagedCloneable::from_value)
+        .collect();
+    RawVec::from(ma)
+}
+
+pub extern "C" fn bot_get_friends(bot: *const ()) -> RawVec<ManagedCloneable> {
+    let b: &Bot = cast_ref(bot);
+    let ma: Vec<ManagedCloneable> = b
+        .friends()
+        .into_iter()
+        .map(ManagedCloneable::from_value)
+        .collect();
+    RawVec::from(ma)
+}

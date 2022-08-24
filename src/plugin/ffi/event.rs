@@ -29,12 +29,10 @@ pub extern "C" fn group_message_event_get_message(event: *const ()) -> FFIMessag
     chain.into_ffi()
 }
 
-pub extern "C" fn group_message_event_get_sender(event: *const ()) -> FFIFuture<FFIMember> {
-    FFIFuture::from(async {
-        let event: &GroupMessageEvent = cast_ref(event);
-        let sender = event.sender().await;
-        sender.into_ffi()
-    })
+pub extern "C" fn group_message_event_get_sender(event: *const ()) -> FFIMember {
+    let event: &GroupMessageEvent = cast_ref(event);
+    let sender = event.sender();
+    sender.into_ffi()
 }
 
 pub extern "C" fn friend_message_event_get_friend(event: *const ()) -> ManagedCloneable {

@@ -139,7 +139,7 @@ impl GroupMessageEvent {
         self.group().bot()
     }
 
-    pub async fn sender(&self) -> Member {
+    pub fn sender(&self) -> Member {
         let id = self.message().from_uin;
         if id == 80000000 {
             //let an = AnonymousMember::from(self.group().clone(), id);
@@ -148,7 +148,6 @@ impl GroupMessageEvent {
 
         self.group()
             .find_member(id)
-            .await
             .map(|named| Member::Named(named))
             .expect("Cannot find member")
     }
@@ -195,7 +194,7 @@ impl GroupMessageEvent {
         .await*/
 
         let group_id = self.group().id();
-        let sender_id = self.sender().await.id();
+        let sender_id = self.sender().id();
 
         Listener::next_event(timeout, |e: &GroupMessageEvent| {
             if e.group().id() != group_id {

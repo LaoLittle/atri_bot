@@ -5,6 +5,7 @@ use crate::message::{Image, MessageChain, MessageReceipt};
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::{ManagedCloneable, RawVec};
 use std::fmt::{Display, Formatter};
+use crate::runtime::manager::PluginManager;
 
 #[derive(Clone)]
 pub struct Friend(pub(crate) ManagedCloneable);
@@ -31,7 +32,7 @@ impl Friend {
             (get_plugin_manager_vtb().friend_send_message)(self.0.pointer, ffi)
         };
 
-        let result = Result::from(fu.await);
+        let result = Result::from(PluginManager.spawn(fu).await.unwrap());
         match result {
             Ok(ma) => Ok(MessageReceipt(ma)),
             Err(s) => Err(AtriError::RQError(s)),
@@ -41,7 +42,7 @@ impl Friend {
     pub async fn upload_image(&self, img: Vec<u8>) -> Result<Image, AtriError> {
         let fu =
             { (get_plugin_manager_vtb().friend_upload_image)(self.0.pointer, RawVec::from(img)) };
-        let result = fu.await;
+        let result = PluginManager.spawn(fu).await.unwrap();
 
         match Result::from(result) {
             Ok(ma) => Ok(Image(ma)),

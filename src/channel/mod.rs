@@ -85,12 +85,13 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let nick = if sender == AnonymousMember::ID {
                     "匿名"
                 } else {
-                    if let Some(named) = group.find_member(sender).await {
-                        member = named;
-                        member.nickname()
+                    let named = if let Some(named) = group.find_member(sender) {
+                        named
                     } else {
-                        ""
-                    }
+                        group.get_named_member(sender).await.unwrap()
+                    };
+                    member = named;
+                    member.nickname()
                 };
 
                 info!(

@@ -75,10 +75,10 @@ impl GroupMessageEvent {
         self.group().bot()
     }
 
-    pub async fn sender(&self) -> Member {
-        let fu = { (get_plugin_manager_vtb().group_message_event_get_sender)(self.event.pointer) };
+    pub fn sender(&self) -> Member {
+        let ffi = (get_plugin_manager_vtb().group_message_event_get_sender)(self.event.pointer);
 
-        Member::from_ffi(fu.await)
+        Member::from_ffi(ffi)
     }
 
     pub fn message(&self) -> MessageChain {
