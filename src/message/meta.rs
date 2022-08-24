@@ -1,8 +1,12 @@
 use crate::message::{MessageChain, MessageValue};
 use ricq::msg::{MessageElem, PushElem};
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct MessageMetadata {
+    pub seqs: Vec<i32>,
+    pub rands: Vec<i32>,
+    pub time: i32,
+    pub sender: i64,
     pub anonymous: Option<Anonymous>,
     pub reply: Option<Reply>,
 }
@@ -69,6 +73,7 @@ impl PushElem for Anonymous {
     }
 }
 
+#[derive(Clone)]
 pub struct Reply {
     pub reply_seq: i32,
     pub sender: i64,
@@ -89,7 +94,7 @@ impl From<ricq::msg::elem::Reply> for Reply {
             reply_seq,
             sender,
             time,
-            elements: MessageChain::from(elements).elems,
+            elements: MessageChain::from(elements).value,
         }
     }
 }

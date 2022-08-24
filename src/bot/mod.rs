@@ -136,7 +136,7 @@ impl Bot {
             let code = info.code;
             let group = Group::from(self.clone(), info);
 
-            if let None = self.0.group_list.get(&code) {
+            if self.0.group_list.get(&code).is_none() {
                 self.0.group_list.insert(code, group);
             }
         }

@@ -140,7 +140,7 @@ impl GroupMessageEvent {
     }
 
     pub fn sender(&self) -> Member {
-        let id = self.message().from_uin;
+        let id = self.message().metadata().sender;
         if id == 80000000 {
             //let an = AnonymousMember::from(self.group().clone(), id);
             //return Member::Anonymous(an);
@@ -148,11 +148,11 @@ impl GroupMessageEvent {
 
         self.group()
             .find_member(id)
-            .map(|named| Member::Named(named))
+            .map(Member::Named)
             .expect("Cannot find member")
     }
 
-    pub fn message(&self) -> &GroupMessage {
+    pub fn message(&self) -> &MessageChain {
         &self.event.message
     }
 
@@ -201,7 +201,7 @@ impl GroupMessageEvent {
                 return false;
             }
 
-            if e.message().from_uin != sender_id {
+            if e.message().metadata().sender != sender_id {
                 return false;
             }
 
@@ -215,17 +215,15 @@ impl GroupMessageEvent {
         F: Fn(&MessageChain) -> bool,
     {
         // todo: optimize
-        self.next_event(timeout, |e| {
-            filter(&MessageChain::from(e.message().elements.clone()))
-        })
-        .await
-        .map(|e| MessageChain::from(e.message().elements.clone()))
+        self.next_event(timeout, |e| filter(e.message()))
+            .await
+            .map(|e| e.message().clone())
     }
 
     pub(crate) fn from(group: Group, ori: ricq::client::event::GroupMessageEvent) -> Self {
         Self::new(imp::GroupMessageEvent {
             group,
-            message: ori.inner,
+            message: ori.inner.into(),
         })
     }
 }
@@ -253,14 +251,14 @@ impl FriendMessageEvent {
         &self.event.friend
     }
 
-    pub fn message(&self) -> &FriendMessage {
+    pub fn message(&self) -> &MessageChain {
         &self.event.message
     }
 
     pub(crate) fn from(friend: Friend, ori: ricq::client::event::FriendMessageEvent) -> Self {
         let imp = imp::FriendMessageEvent {
             friend,
-            message: ori.inner,
+            message: ori.inner.into(),
         };
 
         Self::new(imp)
@@ -302,16 +300,17 @@ mod imp {
 
     use crate::contact::friend::Friend;
     use crate::contact::group::Group;
+    use crate::message::MessageChain;
     use crate::Bot;
 
     pub struct GroupMessageEvent {
         pub group: Group,
-        pub message: GroupMessage,
+        pub message: MessageChain,
     }
 
     pub struct FriendMessageEvent {
         pub friend: Friend,
-        pub message: FriendMessage,
+        pub message: MessageChain,
     }
 
     pub struct BotOnlineEvent {

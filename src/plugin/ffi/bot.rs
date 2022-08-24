@@ -15,7 +15,7 @@ pub extern "C" fn bot_get_nickname(bot: *const ()) -> RustStr {
 pub extern "C" fn bot_get_list() -> RawVec<ManagedCloneable> {
     let bots: Vec<ManagedCloneable> = Bot::list()
         .into_iter()
-        .map(|b| ManagedCloneable::from_value(b))
+        .map(ManagedCloneable::from_value)
         .collect();
 
     RawVec::from(bots)
@@ -23,22 +23,22 @@ pub extern "C" fn bot_get_list() -> RawVec<ManagedCloneable> {
 
 pub extern "C" fn find_bot(id: i64) -> ManagedCloneable {
     Bot::find(id)
-        .map(|b| ManagedCloneable::from_value(b))
-        .unwrap_or(unsafe { ManagedCloneable::null() })
+        .map(ManagedCloneable::from_value)
+        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
 }
 
 pub extern "C" fn bot_find_group(bot: *const (), id: i64) -> ManagedCloneable {
     let b: &Bot = cast_ref(bot);
     b.find_group(id)
-        .map(|g| ManagedCloneable::from_value(g))
-        .unwrap_or(unsafe { ManagedCloneable::null() })
+        .map(ManagedCloneable::from_value)
+        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
 }
 
 pub extern "C" fn bot_find_friend(bot: *const (), id: i64) -> ManagedCloneable {
     let b: &Bot = cast_ref(bot);
     b.find_friend(id)
-        .map(|f| ManagedCloneable::from_value(f))
-        .unwrap_or(unsafe { ManagedCloneable::null() })
+        .map(ManagedCloneable::from_value)
+        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
 }
 
 pub extern "C" fn bot_get_groups(bot: *const ()) -> RawVec<ManagedCloneable> {
@@ -48,6 +48,7 @@ pub extern "C" fn bot_get_groups(bot: *const ()) -> RawVec<ManagedCloneable> {
         .into_iter()
         .map(ManagedCloneable::from_value)
         .collect();
+
     RawVec::from(ma)
 }
 
@@ -58,5 +59,6 @@ pub extern "C" fn bot_get_friends(bot: *const ()) -> RawVec<ManagedCloneable> {
         .into_iter()
         .map(ManagedCloneable::from_value)
         .collect();
+
     RawVec::from(ma)
 }

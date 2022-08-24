@@ -9,6 +9,10 @@ pub const ALL_META: u8 = ANONYMOUS_FLAG | REPLY_FLAG;
 
 #[repr(C)]
 pub struct FFIMessageMetadata {
+    pub seqs: RawVec<i32>,
+    pub rands: RawVec<i32>,
+    pub time: i32,
+    pub sender: i64,
     pub flags: u8,
     pub anonymous: MaybeUninit<FFIAnonymous>,
     pub reply: MaybeUninit<FFIReply>,

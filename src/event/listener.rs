@@ -10,11 +10,13 @@ use crate::event::FromEvent;
 use crate::service::listeners::get_global_worker;
 use crate::{get_listener_runtime, Event};
 
+pub type ListenerHandler =
+    Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output = bool> + Send + 'static>> + Send + 'static>;
+
 pub struct Listener {
     pub name: Arc<String>,
     pub(crate) concurrent_mutex: Option<Mutex<()>>,
-    pub(crate) handler:
-        Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output = bool> + Send + 'static>> + Send + 'static>,
+    pub(crate) handler: ListenerHandler,
     pub(crate) closed: Arc<AtomicBool>,
     pub(crate) priority: Priority,
 }
@@ -142,8 +144,7 @@ impl Listener {
 pub struct ListenerBuilder {
     pub name: Option<String>,
     pub concurrent: bool,
-    handler:
-        Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output = bool> + Send + 'static>> + Send + 'static>,
+    handler: ListenerHandler,
     pub priority: Priority,
 }
 

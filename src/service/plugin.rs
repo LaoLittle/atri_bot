@@ -206,7 +206,7 @@ impl PluginManager {
 
             mem::forget(managed);
 
-            let plugin = Plugin {
+            Plugin {
                 enabled: AtomicBool::new(false),
                 instance: AtomicPtr::new(ptr),
                 should_drop,
@@ -214,9 +214,7 @@ impl PluginManager {
                 handle,
                 drop_fn,
                 _lib: lib,
-            };
-
-            plugin
+            }
         })
         .map_err(|_| {
             AtriError::PluginLoadError(String::from("插件加载错误, 可能是插件发生了panic!"))
@@ -258,6 +256,12 @@ impl PluginManager {
 
         _read(path, &mut self.dependencies, &mut p)?;
         Ok(())
+    }
+}
+
+impl Default for PluginManager {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

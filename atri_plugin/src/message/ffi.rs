@@ -110,7 +110,14 @@ impl ForFFI for MessageMetadata {
     type FFIValue = FFIMessageMetadata;
 
     fn into_ffi(self) -> Self::FFIValue {
-        let Self { anonymous, reply } = self;
+        let Self {
+            seqs,
+            rands,
+            time,
+            sender,
+            anonymous,
+            reply,
+        } = self;
 
         let mut flags = NONE_META;
 
@@ -127,6 +134,10 @@ impl ForFFI for MessageMetadata {
         }
 
         FFIMessageMetadata {
+            seqs: seqs.into(),
+            rands: rands.into(),
+            time,
+            sender,
             flags,
             anonymous: ffi_anonymous,
             reply: ffi_reply,
@@ -135,6 +146,10 @@ impl ForFFI for MessageMetadata {
 
     fn from_ffi(ffi: Self::FFIValue) -> Self {
         let FFIMessageMetadata {
+            seqs,
+            rands,
+            time,
+            sender,
             flags,
             reply,
             anonymous,
@@ -142,6 +157,10 @@ impl ForFFI for MessageMetadata {
 
         unsafe {
             Self {
+                seqs: seqs.into_vec(),
+                rands: rands.into_vec(),
+                time,
+                sender,
                 anonymous: if flags & ANONYMOUS_FLAG != 0 {
                     Some(Anonymous::from_ffi(anonymous.assume_init()))
                 } else {

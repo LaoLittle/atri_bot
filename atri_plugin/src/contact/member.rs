@@ -62,8 +62,7 @@ impl NamedMember {
         let str = card_name.to_string();
         let rs = RustString::from(str);
 
-        let fu =
-            (get_plugin_manager_vtb().named_member_change_card_name)(self.0.pointer, rs);
+        let fu = (get_plugin_manager_vtb().named_member_change_card_name)(self.0.pointer, rs);
 
         let result = PluginManager.spawn(fu).await.unwrap();
         Result::from(result).map_err(|s| AtriError::RQError(s))

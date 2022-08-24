@@ -2,10 +2,10 @@ use crate::bot::Bot;
 use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::{Image, MessageChain, MessageReceipt};
+use crate::runtime::manager::PluginManager;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::{ManagedCloneable, RawVec};
 use std::fmt::{Display, Formatter};
-use crate::runtime::manager::PluginManager;
 
 #[derive(Clone)]
 pub struct Friend(pub(crate) ManagedCloneable);

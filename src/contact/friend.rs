@@ -69,7 +69,7 @@ impl Friend {
             .client()
             .upload_friend_image(self.id(), image)
             .await
-            .map(|f| Image::Friend(f))
+            .map(Image::Friend)
     }
 
     pub(crate) fn from(bot: Bot, info: FriendInfo) -> Self {

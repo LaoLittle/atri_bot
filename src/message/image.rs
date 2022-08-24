@@ -1,6 +1,7 @@
 use ricq::msg::elem::{FriendImage, GroupImage};
 use ricq::msg::{MessageElem, PushElem};
 
+#[derive(Clone)]
 pub enum Image {
     Group(GroupImage),
     Friend(FriendImage),

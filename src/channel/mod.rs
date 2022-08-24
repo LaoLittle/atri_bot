@@ -47,8 +47,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 };
 
                 let base = BotOnlineEvent::from(bot);
-                let inner = Event::BotOnlineEvent(base);
-                inner.into()
+                Event::BotOnlineEvent(base)
             }
             QEvent::GroupMessage(e) => {
                 static FILTER_REGEX: OnceLock<Regex> = OnceLock::new();

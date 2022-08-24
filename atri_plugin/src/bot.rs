@@ -1,8 +1,8 @@
+use crate::contact::friend::Friend;
+use crate::contact::group::Group;
 use crate::loader::get_plugin_manager_vtb;
 use atri_ffi::ManagedCloneable;
 use std::fmt::{Display, Formatter};
-use crate::contact::friend::Friend;
-use crate::contact::group::Group;
 
 #[derive(Clone)]
 pub struct Bot(pub(crate) ManagedCloneable);
@@ -27,22 +27,31 @@ impl Bot {
     pub fn find(id: i64) -> Option<Self> {
         let ma = (get_plugin_manager_vtb().find_bot)(id);
 
-        if ma.pointer.is_null() { None }
-        else { Some(Self(ma)) }
+        if ma.pointer.is_null() {
+            None
+        } else {
+            Some(Self(ma))
+        }
     }
 
     pub fn find_group(&self, id: i64) -> Option<Group> {
         let ma = (get_plugin_manager_vtb().bot_find_group)(self.0.pointer, id);
 
-        if ma.pointer.is_null() { None }
-        else { Some(Group(ma)) }
+        if ma.pointer.is_null() {
+            None
+        } else {
+            Some(Group(ma))
+        }
     }
 
     pub fn find_friend(&self, id: i64) -> Option<Friend> {
         let ma = (get_plugin_manager_vtb().bot_find_friend)(self.0.pointer, id);
 
-        if ma.pointer.is_null() { None }
-        else { Some(Friend(ma)) }
+        if ma.pointer.is_null() {
+            None
+        } else {
+            Some(Friend(ma))
+        }
     }
 
     pub fn groups(&self) -> Vec<Group> {

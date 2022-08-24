@@ -2,6 +2,10 @@ use crate::message::MessageValue;
 
 #[derive(Default)]
 pub struct MessageMetadata {
+    pub seqs: Vec<i32>,
+    pub rands: Vec<i32>,
+    pub time: i32,
+    pub sender: i64,
     pub anonymous: Option<Anonymous>,
     pub reply: Option<Reply>,
 }

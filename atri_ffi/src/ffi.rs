@@ -35,13 +35,15 @@ pub struct AtriVTable {
     pub group_get_bot: extern "C" fn(group: *const ()) -> ManagedCloneable,
     pub group_get_members: extern "C" fn(group: *const ()) -> FFIFuture<RawVec<ManagedCloneable>>,
     pub group_find_member: extern "C" fn(group: *const (), id: i64) -> ManagedCloneable,
-    pub group_get_named_member: extern "C" fn(group: *const (), id: i64) -> FFIFuture<ManagedCloneable>,
+    pub group_get_named_member:
+        extern "C" fn(group: *const (), id: i64) -> FFIFuture<ManagedCloneable>,
     pub group_send_message:
         extern "C" fn(group: *const (), chain: FFIMessageChain) -> FFIFuture<FFIResult<Managed>>,
     pub group_upload_image:
         extern "C" fn(group: *const (), data: RawVec<u8>) -> FFIFuture<FFIResult<Managed>>,
     pub group_quit: extern "C" fn(group: *const ()) -> FFIFuture<bool>,
-    pub group_change_name: extern "C" fn(group: *const (), name: RustString) -> FFIFuture<FFIResult<()>>,
+    pub group_change_name:
+        extern "C" fn(group: *const (), name: RustString) -> FFIFuture<FFIResult<()>>,
 
     pub friend_message_event_get_friend: extern "C" fn(event: *const ()) -> ManagedCloneable,
     pub friend_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,

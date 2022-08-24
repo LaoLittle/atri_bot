@@ -1,14 +1,14 @@
 use crate::bot::Bot;
+use crate::contact::member::NamedMember;
 use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
 use crate::message::{Image, MessageChain, MessageReceipt};
+use crate::runtime::manager::PluginManager;
+use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::FFIMessageChain;
 use atri_ffi::{ManagedCloneable, RustString};
 use std::fmt::{Display, Formatter};
-use atri_ffi::error::FFIResult;
-use crate::contact::member::NamedMember;
-use crate::runtime::manager::PluginManager;
 
 #[derive(Clone)]
 pub struct Group(pub(crate) ManagedCloneable);
@@ -49,8 +49,9 @@ impl Group {
         let fu = { (get_plugin_manager_vtb().group_get_named_member)(self.0.pointer, id) };
         let ma = PluginManager.spawn(fu).await.unwrap();
 
-        if ma.pointer.is_null() { None }
-        else {
+        if ma.pointer.is_null() {
+            None
+        } else {
             Some(NamedMember(ma))
         }
     }
@@ -87,7 +88,10 @@ impl Group {
     }
 
     pub async fn quit(&self) -> bool {
-        PluginManager.spawn((get_plugin_manager_vtb().group_quit)(self.0.pointer)).await.unwrap()
+        PluginManager
+            .spawn((get_plugin_manager_vtb().group_quit)(self.0.pointer))
+            .await
+            .unwrap()
     }
 }
 

@@ -46,12 +46,12 @@ impl ListenerWorker {
         let mut handlers = vec![];
         for list in &self.listeners {
             handlers.reserve(list.len());
-            for opt in list.into_iter().cloned() {
+            for opt in list.iter().cloned() {
                 let event = event.clone();
                 let handle = tokio::spawn(async move {
                     let listener = {
                         let lock = opt.read().await;
-                        lock.as_ref().map(|a| Arc::clone(a))
+                        lock.as_ref().map(Arc::clone)
                     };
 
                     if let Some(listener) = listener {
@@ -122,6 +122,12 @@ impl ListenerWorker {
 
     pub fn close(&self) {
         self.closed.swap(true, Ordering::Relaxed);
+    }
+}
+
+impl Default for ListenerWorker {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -6,20 +6,81 @@ pub mod meta;
 use crate::message::at::At;
 use crate::message::meta::{Anonymous, MessageMetadata, Reply};
 use crate::Text;
+use core::slice;
 use image::Image;
 use ricq::msg::elem::RQElem;
 use ricq::msg::{MessageElem, PushElem};
+use ricq::structs::{FriendMessage, GroupMessage};
+use std::vec;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct MessageChain {
     meta: MessageMetadata,
-    elems: Vec<MessageValue>,
+    value: Vec<MessageValue>,
+}
+
+impl MessageChain {
+    pub fn iter(&self) -> slice::Iter<'_, MessageValue> {
+        self.into_iter()
+    }
+
+    pub fn metadata(&self) -> &MessageMetadata {
+        &self.meta
+    }
+}
+
+impl IntoIterator for MessageChain {
+    type Item = MessageValue;
+    type IntoIter = vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.value.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a MessageChain {
+    type Item = &'a MessageValue;
+    type IntoIter = slice::Iter<'a, MessageValue>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.value.iter()
+    }
+}
+
+impl From<GroupMessage> for MessageChain {
+    fn from(g: GroupMessage) -> Self {
+        let mut ran = Self::from(g.elements);
+        ran.meta = MessageMetadata {
+            seqs: g.seqs,
+            rands: g.rands,
+            time: g.time,
+            sender: g.from_uin,
+            ..ran.meta
+        };
+
+        ran
+    }
+}
+
+impl From<FriendMessage> for MessageChain {
+    fn from(f: FriendMessage) -> Self {
+        let mut ran = Self::from(f.elements);
+        ran.meta = MessageMetadata {
+            seqs: f.seqs,
+            rands: f.rands,
+            time: f.time,
+            sender: f.from_uin,
+            ..ran.meta
+        };
+
+        ran
+    }
 }
 
 impl From<Vec<MessageValue>> for MessageChain {
     fn from(elems: Vec<MessageValue>) -> Self {
         Self {
-            elems,
+            value: elems,
             ..Default::default()
         }
     }
@@ -55,7 +116,7 @@ impl From<ricq::msg::MessageChain> for MessageChain {
             value.push(MessageValue::from(rq));
         }
 
-        Self { meta, elems: value }
+        Self { meta, value: value }
     }
 }
 
@@ -79,12 +140,13 @@ impl PushElem for MessageChain {
             vec.push(rq.into());
         }
 
-        for value in elem.elems {
+        for value in elem.value {
             MessageValue::push_to(value, vec);
         }
     }
 }
 
+#[derive(Clone)]
 pub enum MessageValue {
     Text(String),
     Image(Image),

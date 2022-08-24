@@ -48,7 +48,7 @@ impl Service {
     pub fn with_path<P: AsRef<Path>>(&mut self, path: P) {
         let path = path.as_ref();
         if !path.is_dir() {
-            fs::create_dir_all(&*path).unwrap();
+            fs::create_dir_all(path).unwrap();
         }
         self.path = path.join(format!("{}.toml", self.name()));
     }
@@ -106,8 +106,9 @@ impl Service {
 
                 let data = T::default();
                 if let Ok(mut f) = File::create(&self.path) {
-                    let s = toml::to_string_pretty(&data)
-                        .expect(&format!("Cannot serialize service data: {}", self.name));
+                    let s = toml::to_string_pretty(&data).unwrap_or_else(|e| {
+                        panic!("Cannot serialize service data: {}, {e}", self.name)
+                    });
                     let _ = f.write_all(s.as_bytes());
                 }
 

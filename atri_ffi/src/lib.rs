@@ -1,7 +1,7 @@
 use std::mem::ManuallyDrop;
 use std::ops::Deref;
+use std::ptr::null_mut;
 use std::{mem, slice};
-use std::ptr::{null, null_mut};
 
 pub mod closure;
 pub mod contact;
@@ -59,11 +59,11 @@ impl Managed {
         mem::forget(self);
         *unsafe { Box::from_raw(ptr as _) }
     }
-    
+
     /// for option
     pub unsafe fn null() -> Self {
         extern "C" fn _drop_null(_: *mut ()) {}
-        
+
         Self {
             pointer: null_mut(),
             drop: _drop_null,

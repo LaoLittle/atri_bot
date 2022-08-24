@@ -119,7 +119,7 @@ impl Group {
             .client()
             .upload_group_image(self.id(), image)
             .await
-            .map(|g| Image::Group(g))
+            .map(Image::Group)
             .map_err(|err| {
                 error!(
                     "{}上传图片失败, 目标群: {}({}), {:?}",

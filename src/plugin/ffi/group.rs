@@ -44,7 +44,7 @@ pub extern "C" fn group_find_member(group: *const (), id: i64) -> ManagedCloneab
     group
         .find_member(id)
         .map(ManagedCloneable::from_value)
-        .unwrap_or(unsafe { ManagedCloneable::null() })
+        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
 }
 
 pub extern "C" fn group_get_named_member(group: *const (), id: i64) -> FFIFuture<ManagedCloneable> {
@@ -54,7 +54,7 @@ pub extern "C" fn group_get_named_member(group: *const (), id: i64) -> FFIFuture
             .get_named_member(id)
             .await
             .map(ManagedCloneable::from_value)
-            .unwrap_or(unsafe { ManagedCloneable::null() })
+            .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
     })
 }
 
@@ -67,7 +67,7 @@ pub extern "C" fn group_send_message(
         let result = group
             .send_message(message::MessageChain::from_ffi(chain))
             .await
-            .map(|receipt| Managed::from_value(receipt));
+            .map(Managed::from_value);
 
         FFIResult::from(result)
     })
@@ -80,10 +80,7 @@ pub extern "C" fn group_upload_image(
     FFIFuture::from(async move {
         let group: &Group = cast_ref(group);
         let data = data.into_vec();
-        let result = group
-            .upload_image(data)
-            .await
-            .map(|img| Managed::from_value(img));
+        let result = group.upload_image(data).await.map(Managed::from_value);
 
         FFIResult::from(result)
     })

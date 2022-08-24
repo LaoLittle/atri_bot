@@ -1,5 +1,7 @@
 #![feature(once_cell)]
 
+extern crate core;
+
 use std::mem;
 use std::sync::{Arc, OnceLock};
 
@@ -60,6 +62,12 @@ impl Atri {
             //listener_worker,
             plugin_manager: PluginManager::new(),
         }
+    }
+}
+
+impl Default for Atri {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
