@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -16,7 +17,7 @@ pub fn init_logger() {
     let builder = FmtSubscriber::builder()
         .with_max_level(Level::DEBUG)
         .with_target(false)
-        .with_writer(LogWriter::default);
+        .with_writer(Terminal::default);
 
     if let Ok(ofs) = time::UtcOffset::current_local_offset() {
         builder.with_timer(OffsetTime::new(ofs, time_format)).init();
@@ -25,13 +26,21 @@ pub fn init_logger() {
     };
 }
 
-pub struct LogWriter {
+pub struct Terminal {
     output: &'static Path,
 }
 
-impl LogWriter {}
+fn ansi_filter() -> &'static Regex {
+    static ANSI_FILTER: OnceLock<Regex> = OnceLock::new();
 
-impl Default for LogWriter {
+    ANSI_FILTER.get_or_init(|| {
+        Regex::new("\\x1b\\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|K]?").unwrap()
+    })
+}
+
+impl Terminal {}
+
+impl Default for Terminal {
     fn default() -> Self {
         let path = get_latest_log_file();
 
@@ -41,11 +50,12 @@ impl Default for LogWriter {
 
 static LOG_FILE_OPENED: OnceLock<File> = OnceLock::new();
 
-impl Write for LogWriter {
+impl Write for Terminal {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let size: usize;
         {
             let mut stdout = io::stdout().lock();
+
             stdout.write_all(&[13])?;
             size = stdout.write(buf)?;
 
@@ -56,7 +66,9 @@ impl Write for LogWriter {
         let f = LOG_FILE_OPENED.get_or_try_init(|| File::create(self.output));
 
         if let Err(e) = f.and_then(|mut f| {
-            f.write_all(buf)?;
+            let str = String::from_utf8_lossy(buf);
+            let no_ansi = ansi_filter().replace_all(&str, "");
+            f.write_all(no_ansi.as_bytes())?;
             Ok(())
         }) {
             error!("Log写入失败: {}", e);

@@ -5,6 +5,7 @@ use std::future::{poll_fn, Future};
 use std::mem;
 use std::pin::Pin;
 use std::task::Poll;
+
 use std::time::Duration;
 
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -45,7 +46,6 @@ fn main() -> MainResult {
     runtime.spawn(async {
         main0().await.expect("Error");
     });
-
     runtime.block_on(async {
         let mut loop_cli = tokio::spawn(async {
             if let Err(e) = loop_cli().await {
@@ -115,7 +115,7 @@ async fn loop_cli() -> MainResult {
 
                 for &info in INFOS {
                     stdout.write_all(info.as_bytes()).await?;
-                    stdout.write_all(b"\n").await?;
+                    stdout.write_u8(b'\n').await?;
                 }
             }
             "exit" | "quit" | "stop" => {

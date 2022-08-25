@@ -50,9 +50,8 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 Event::BotOnlineEvent(base)
             }
             QEvent::GroupMessage(e) => {
-                static FILTER_REGEX: OnceLock<Regex> = OnceLock::new();
-
                 fn get_filter_regex() -> &'static Regex {
+                    static FILTER_REGEX: OnceLock<Regex> = OnceLock::new();
                     FILTER_REGEX.get_or_init(|| Regex::new("<[$&].+>").expect("Cannot parse regex"))
                 }
 
