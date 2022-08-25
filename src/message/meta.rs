@@ -11,6 +11,12 @@ pub struct MessageMetadata {
     pub reply: Option<Reply>,
 }
 
+impl MetaMessage for MessageMetadata {
+    fn metadata(&self) -> &MessageMetadata {
+        self
+    }
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct Anonymous {
     pub anon_id: Vec<u8>,
@@ -128,4 +134,8 @@ impl PushElem for Reply {
         };
         vec.insert(index, rq.into());
     }
+}
+
+pub trait MetaMessage {
+    fn metadata(&self) -> &MessageMetadata;
 }

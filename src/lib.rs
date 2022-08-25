@@ -2,8 +2,7 @@
 
 extern crate core;
 
-use std::mem;
-use std::sync::{Arc, OnceLock};
+use std::sync::OnceLock;
 
 use dashmap::DashMap;
 use ricq::msg::elem::Text;

@@ -3,14 +3,15 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ricq::handler::QEvent;
-use ricq::structs::{FriendMessage, GroupMessage};
+
+use tracing::error;
 
 use atri_ffi::ffi::FFIEvent;
-use atri_ffi::{Managed, ManagedCloneable};
+use atri_ffi::ManagedCloneable;
 
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
-use crate::contact::member::Member;
+use crate::contact::member::{AnonymousMember, Member};
 use crate::contact::{Contact, HasSubject};
 use crate::message::MessageChain;
 use crate::{Bot, Listener};
@@ -141,9 +142,13 @@ impl GroupMessageEvent {
 
     pub fn sender(&self) -> Member {
         let id = self.message().metadata().sender;
-        if id == 80000000 {
-            //let an = AnonymousMember::from(self.group().clone(), id);
-            //return Member::Anonymous(an);
+        if id == AnonymousMember::ID {
+            if let Some(ano) = self.message().metadata().anonymous.clone() {
+                let anom = AnonymousMember::from(self.group().clone(), ano);
+                return Member::Anonymous(anom);
+            } else {
+                error!("无法找到匿名信息");
+            }
         }
 
         self.group()
@@ -296,7 +301,6 @@ impl EventInner<QEvent> {
 }
 
 mod imp {
-    use ricq::structs::{FriendMessage, GroupMessage};
 
     use crate::contact::friend::Friend;
     use crate::contact::group::Group;

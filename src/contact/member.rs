@@ -20,11 +20,16 @@ impl Member {
     pub fn id(&self) -> i64 {
         match self {
             Self::Named(named) => named.id(),
-            Self::Anonymous(an) => AnonymousMember::ID,
+            Self::Anonymous(_) => AnonymousMember::ID,
         }
     }
 
-    pub fn group(&self) {}
+    pub fn group(&self) -> &Group {
+        match self {
+            Self::Named(named) => named.group(),
+            Self::Anonymous(ano) => ano.group(),
+        }
+    }
 
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
         match self {

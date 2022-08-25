@@ -9,8 +9,9 @@ use tracing::error;
 
 use crate::contact::member::NamedMember;
 use crate::message::image::Image;
+use crate::message::meta::MetaMessage;
 use crate::message::MessageChain;
-use crate::{Bot, GroupMemberInfo};
+use crate::Bot;
 
 #[derive(Clone)]
 pub struct Group(Arc<imp::Group>);
@@ -61,7 +62,7 @@ impl Group {
                     r
                 })
                 .unwrap_or_else(|e| {
-                    error!("刷新群聊成员信息时出现错误");
+                    error!("刷新群聊成员信息时出现错误: {:?}", e);
                     vec![]
                 })
                 .into_iter()
@@ -130,6 +131,14 @@ impl Group {
                 );
                 err
             })
+    }
+
+    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> RQResult<()> {
+        let meta = msg.metadata();
+        self.bot()
+            .client()
+            .recall_group_message(self.id(), meta.seqs.clone(), meta.rands.clone())
+            .await
     }
 
     pub async fn change_name(&self, name: String) -> RQResult<()> {

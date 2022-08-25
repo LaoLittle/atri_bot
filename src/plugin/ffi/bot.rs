@@ -1,5 +1,5 @@
 use crate::plugin::cast_ref;
-use crate::{get_app, Bot};
+use crate::Bot;
 use atri_ffi::{ManagedCloneable, RawVec, RustStr};
 
 pub extern "C" fn bot_get_id(bot: *const ()) -> i64 {

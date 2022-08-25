@@ -1,4 +1,5 @@
 use crate::message::image::Image;
+use crate::message::meta::MetaMessage;
 use crate::message::MessageChain;
 use crate::Bot;
 use ricq::structs::{FriendInfo, MessageReceipt};
@@ -70,6 +71,19 @@ impl Friend {
             .upload_friend_image(self.id(), image)
             .await
             .map(Image::Friend)
+    }
+
+    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> RQResult<()> {
+        let meta = msg.metadata();
+        self.bot()
+            .client()
+            .recall_friend_message(
+                self.id(),
+                meta.time as i64,
+                meta.seqs.clone(),
+                meta.rands.clone(),
+            )
+            .await
     }
 
     pub(crate) fn from(bot: Bot, info: FriendInfo) -> Self {

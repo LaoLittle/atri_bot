@@ -2,7 +2,7 @@ use crate::contact::member::NamedMember;
 use crate::plugin::cast_ref;
 use atri_ffi::error::FFIResult;
 use atri_ffi::future::FFIFuture;
-use atri_ffi::{Managed, ManagedCloneable, RustStr, RustString};
+use atri_ffi::{ManagedCloneable, RustStr, RustString};
 
 pub extern "C" fn named_member_get_id(named: *const ()) -> i64 {
     let named: &NamedMember = cast_ref(named);

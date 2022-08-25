@@ -1,5 +1,4 @@
 use crate::contact::group::Group;
-use crate::contact::member::NamedMember;
 use crate::message;
 use crate::plugin::cast_ref;
 use atri_ffi::error::FFIResult;

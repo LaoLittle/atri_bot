@@ -4,7 +4,7 @@ pub mod image;
 pub mod meta;
 
 use crate::message::at::At;
-use crate::message::meta::{Anonymous, MessageMetadata, Reply};
+use crate::message::meta::{Anonymous, MessageMetadata, MetaMessage, Reply};
 use crate::Text;
 use core::slice;
 use image::Image;
@@ -25,6 +25,12 @@ impl MessageChain {
     }
 
     pub fn metadata(&self) -> &MessageMetadata {
+        &self.meta
+    }
+}
+
+impl MetaMessage for MessageChain {
+    fn metadata(&self) -> &MessageMetadata {
         &self.meta
     }
 }
@@ -116,7 +122,7 @@ impl From<ricq::msg::MessageChain> for MessageChain {
             value.push(MessageValue::from(rq));
         }
 
-        Self { meta, value: value }
+        Self { meta, value }
     }
 }
 
