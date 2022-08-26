@@ -2,6 +2,7 @@ extern crate core;
 
 use std::error::Error;
 use std::future::{poll_fn, Future};
+
 use std::mem;
 use std::pin::Pin;
 use std::task::Poll;
@@ -17,6 +18,7 @@ use atri_qq::event::GroupMessageEvent;
 use atri_qq::service::listeners::get_global_worker;
 use atri_qq::service::log::init_logger;
 use atri_qq::service::login::login_bots;
+use atri_qq::terminal::{handle_standard_output, start_read_input};
 use atri_qq::{fun, get_app, get_listener_runtime, Atri};
 
 type MainResult = Result<(), Box<dyn Error>>;
@@ -46,12 +48,9 @@ fn main() -> MainResult {
     runtime.spawn(async {
         main0().await.expect("Error");
     });
+
     runtime.block_on(async {
-        let mut loop_cli = tokio::spawn(async {
-            if let Err(e) = loop_cli().await {
-                error!("命令处理服务出现错误: {}", e);
-            }
-        });
+        let mut loop_cli = loop_cli();
         let mut sig = signal::ctrl_c();
 
         poll_fn(|ctx| {
@@ -94,41 +93,62 @@ async fn main0() -> MainResult {
 }
 
 async fn loop_cli() -> MainResult {
-    let stdin = io::stdin();
-    let mut stdin = BufReader::new(stdin);
-    let mut stdout = io::stdout();
-
     info!("已启动AtriQQ");
 
-    let mut buf = String::new();
-    loop {
-        buf.clear();
-        stdin.read_line(&mut buf).await?;
-        let cmd = buf.trim_end();
+    let input = tokio::task::spawn_blocking(|| {
+        if let Err(e) = start_read_input() {
+            error!("初始化命令行服务异常: {}, 命令行可能不会正常工作", e);
+            return false;
+        }
 
-        match cmd {
-            "" => {
-                // nothing to do
-            }
-            "help" | "?" => {
-                static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
+        true
+    });
 
-                for &info in INFOS {
-                    stdout.write_all(info.as_bytes()).await?;
-                    stdout.write_u8(b'\n').await?;
+    tokio::task::yield_now().await;
+    let _handle = tokio::task::spawn_blocking(|| {
+        if !handle_standard_output() {
+            error!("接管Stdout失败");
+            return false;
+        }
+
+        true
+    });
+
+    if !input.await? {
+        let stdin = io::stdin();
+        let mut stdin = BufReader::new(stdin);
+        let mut stdout = io::stdout();
+
+        let mut buf = String::new();
+        loop {
+            buf.clear();
+            stdin.read_line(&mut buf).await?;
+            let cmd = buf.trim_end();
+
+            match cmd {
+                "" => {
+                    // nothing to do
+                }
+                "help" | "?" => {
+                    static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
+
+                    for &info in INFOS {
+                        stdout.write_all(info.as_bytes()).await?;
+                        stdout.write_u8(b'\n').await?;
+                    }
+                }
+                "exit" | "quit" | "stop" => {
+                    println!("正在停止AtriQQ");
+                    break;
+                }
+                _ => {
+                    println!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
                 }
             }
-            "exit" | "quit" | "stop" => {
-                println!("正在停止AtriQQ");
-                break;
-            }
-            _ => {
-                println!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
-            }
+            stdout.write_all(b">>").await?;
+            stdout.flush().await?;
         }
-        stdout.write_all(b">>").await?;
-        stdout.flush().await?;
-    }
+    };
 
     Ok(())
 }

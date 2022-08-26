@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::{fs, io};
 
+use crate::terminal::INPUT_BUFFER;
 use tracing::{error, Level};
 use tracing_subscriber::fmt::time::{OffsetTime, UtcTime};
 use tracing_subscriber::FmtSubscriber;
@@ -17,7 +18,7 @@ pub fn init_logger() {
     let builder = FmtSubscriber::builder()
         .with_max_level(Level::DEBUG)
         .with_target(false)
-        .with_writer(Terminal::default);
+        .with_writer(LogWriter::default);
 
     if let Ok(ofs) = time::UtcOffset::current_local_offset() {
         builder.with_timer(OffsetTime::new(ofs, time_format)).init();
@@ -26,7 +27,7 @@ pub fn init_logger() {
     };
 }
 
-pub struct Terminal {
+pub struct LogWriter {
     output: &'static Path,
 }
 
@@ -38,9 +39,9 @@ fn ansi_filter() -> &'static Regex {
     })
 }
 
-impl Terminal {}
+impl LogWriter {}
 
-impl Default for Terminal {
+impl Default for LogWriter {
     fn default() -> Self {
         let path = get_latest_log_file();
 
@@ -50,7 +51,7 @@ impl Default for Terminal {
 
 static LOG_FILE_OPENED: OnceLock<File> = OnceLock::new();
 
-impl Write for Terminal {
+impl Write for LogWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let size: usize;
         {
@@ -60,6 +61,7 @@ impl Write for Terminal {
             size = stdout.write(buf)?;
 
             stdout.write_all(b">>")?;
+            stdout.write_all(INPUT_BUFFER.read().unwrap().as_bytes())?;
             stdout.flush()?;
         }
 
