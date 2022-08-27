@@ -13,6 +13,8 @@ pub static OUTPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
 
 pub static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
 
+const BUFFER_SIZE: usize = 4096;
+
 struct RawStdout {
     fd: c_int,
 }
@@ -25,7 +27,7 @@ impl RawStdout {
 
 impl Write for RawStdout {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let n = unsafe { libc::write(self.fd, buf.as_ptr() as _, buf.len().try_into().unwrap()) };
+        let n = unsafe { libc::write(self.fd, buf.as_ptr() as _, buf.len() as _) };
 
         if n < 0 {
             return Err(std::io::Error::last_os_error());
@@ -42,16 +44,18 @@ impl Write for RawStdout {
 const STDOUT_FILENO: c_int = 1;
 
 pub fn handle_standard_output() -> bool {
-    const BUFFER_SIZE: usize = 4096;
+    #[cfg(windows)]
+    return true;
+
     let mut pipe = [0; 2];
 
     let stdout_bak = unsafe { libc::dup(STDOUT_FILENO) };
 
     let mut buf = [b'\0'; BUFFER_SIZE];
     unsafe {
-        #[cfg(target_os = "windows")]
+        #[cfg(windows)]
         libc::pipe(pipe.as_mut_ptr(), BUFFER_SIZE as _, libc::O_BINARY);
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(any(unix, target_os = "macos"))]
         libc::pipe(pipe.as_mut_ptr());
 
         let stat = libc::dup2(pipe[1], STDOUT_FILENO);
