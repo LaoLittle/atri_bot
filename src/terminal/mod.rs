@@ -55,7 +55,7 @@ pub fn handle_standard_output() -> bool {
     unsafe {
         #[cfg(windows)]
         libc::pipe(pipe.as_mut_ptr(), BUFFER_SIZE as _, libc::O_BINARY);
-        #[cfg(any(unix, target_os = "macos"))]
+        #[cfg(unix)]
         libc::pipe(pipe.as_mut_ptr());
 
         let stat = libc::dup2(pipe[1], STDOUT_FILENO);
