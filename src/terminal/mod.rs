@@ -25,7 +25,7 @@ impl RawStdout {
 
 impl Write for RawStdout {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let n = unsafe { libc::write(self.fd, buf.as_ptr() as _, buf.len()) };
+        let n = unsafe { libc::write(self.fd, buf.as_ptr() as _, buf.len().try_into().unwrap()) };
 
         if n < 0 {
             return Err(std::io::Error::last_os_error());
@@ -39,16 +39,22 @@ impl Write for RawStdout {
     }
 }
 
+const STDOUT_FILENO: c_int = 1;
+
 pub fn handle_standard_output() -> bool {
     const BUFFER_SIZE: usize = 4096;
     let mut pipe = [0; 2];
 
-    let stdout_bak = unsafe { libc::dup(libc::STDOUT_FILENO) };
+    let stdout_bak = unsafe { libc::dup(STDOUT_FILENO) };
 
     let mut buf = [b'\0'; BUFFER_SIZE];
     unsafe {
+        #[cfg(target_os = "windows")]
+        libc::pipe(pipe.as_mut_ptr(), BUFFER_SIZE as _, libc::O_BINARY);
+        #[cfg(not(target_os = "windows"))]
         libc::pipe(pipe.as_mut_ptr());
-        let stat = libc::dup2(pipe[1], libc::STDOUT_FILENO);
+
+        let stat = libc::dup2(pipe[1], STDOUT_FILENO);
 
         if stat == -1 {
             return false;
@@ -57,7 +63,7 @@ pub fn handle_standard_output() -> bool {
         let mut stdout_fd = RawStdout { fd: stdout_bak };
 
         loop {
-            let size = libc::read(pipe[0], buf.as_mut_ptr() as _, BUFFER_SIZE);
+            let size = libc::read(pipe[0], buf.as_mut_ptr() as _, BUFFER_SIZE as _);
 
             if size == -1 {
                 eprintln!("Error: {}", std::io::Error::last_os_error());
@@ -103,7 +109,7 @@ pub fn handle_standard_output() -> bool {
             }
         }
 
-        libc::dup2(stdout_bak, libc::STDOUT_FILENO);
+        libc::dup2(stdout_bak, STDOUT_FILENO);
     }
 
     true
