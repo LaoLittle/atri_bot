@@ -18,7 +18,7 @@ use atri_qq::event::GroupMessageEvent;
 use atri_qq::service::listeners::get_global_worker;
 use atri_qq::service::log::init_logger;
 use atri_qq::service::login::login_bots;
-use atri_qq::terminal::{handle_standard_output, start_read_input};
+use atri_qq::terminal::{handle_standard_output, start_read_input, PROMPT};
 use atri_qq::{fun, get_app, get_listener_runtime, Atri};
 
 type MainResult = Result<(), Box<dyn Error>>;
@@ -145,7 +145,7 @@ async fn loop_cli() -> MainResult {
                     println!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
                 }
             }
-            stdout.write_all(b">>").await?;
+            stdout.write_all(PROMPT).await?;
             stdout.flush().await?;
         }
     };

@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::{fs, io};
 
-use crate::terminal::INPUT_BUFFER;
+use crate::terminal::{INPUT_BUFFER, PROMPT};
 use tracing::{error, Level};
 use tracing_subscriber::fmt::time::{OffsetTime, UtcTime};
 use tracing_subscriber::FmtSubscriber;
@@ -60,7 +60,7 @@ impl Write for LogWriter {
             stdout.write_all(&[13])?;
             size = stdout.write(buf)?;
 
-            stdout.write_all(b">>")?;
+            stdout.write_all(PROMPT)?;
             stdout.write_all(INPUT_BUFFER.read().unwrap().as_bytes())?;
             stdout.flush()?;
         }

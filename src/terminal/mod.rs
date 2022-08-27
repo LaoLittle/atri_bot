@@ -4,16 +4,23 @@ use std::io::{stdout, Write};
 use std::sync::RwLock;
 
 use crossterm::cursor::MoveToColumn;
-use crossterm::event::KeyCode;
+use crossterm::event::{
+    DisableBracketedPaste, EnableBracketedPaste, KeyCode, KeyEvent, KeyEventKind, KeyEventState,
+    KeyboardEnhancementFlags, ModifierKeyCode, PopKeyboardEnhancementFlags,
+    PushKeyboardEnhancementFlags,
+};
 use crossterm::style::Print;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{event, execute};
+use event::Event;
 
 pub static OUTPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
 
 pub static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
 
 const BUFFER_SIZE: usize = 4096;
+
+pub const PROMPT: &[u8] = b">> ";
 
 struct RawStdout {
     fd: c_int,
@@ -122,9 +129,14 @@ pub fn handle_standard_output() -> bool {
 pub fn start_read_input() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
 
+    let _ = execute!(
+        stdout(),
+        EnableBracketedPaste,
+    );
+
     while let Ok(e) = event::read() {
         match e {
-            event::Event::Key(k) => {
+            Event::Key(k) => {
                 match k.code {
                     KeyCode::Char(c) => {
                         INPUT_BUFFER.write()?.push(c);
@@ -171,15 +183,26 @@ pub fn start_read_input() -> Result<(), Box<dyn Error>> {
 
                         drop(rl);
                         INPUT_BUFFER.write()?.clear();
-                        stdout.write_all(b">>")?;
+                        stdout.write_all(PROMPT)?;
                         stdout.flush()?;
                     }
                     _ => {}
                 }
             }
+            Event::Paste(s) => {
+                INPUT_BUFFER.write()?.push_str(&s);
+                let mut stdout = stdout().lock();
+                stdout.write_all(s.as_bytes())?;
+                stdout.flush()?;
+            }
             _ => {}
         }
     }
+
+    let _ = execute!(
+        stdout(),
+        DisableBracketedPaste,
+    );
 
     disable_raw_mode()?;
     Ok(())
