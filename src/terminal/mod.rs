@@ -1,18 +1,44 @@
 use std::error::Error;
+use std::ffi::c_int;
 use std::io::{stdout, Write};
 use std::sync::RwLock;
 
-use crossterm::cursor::MoveToNextLine;
+use crossterm::cursor::MoveToColumn;
 use crossterm::event::KeyCode;
+use crossterm::style::Print;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{event, execute};
-use tracing::error;
 
 pub static OUTPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
 
 pub static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
 
-const NEXT_LINE: &[u8] = concat!("\x1B[", "1E").as_bytes();
+struct RawStdout {
+    fd: c_int,
+}
+
+impl RawStdout {
+    fn next_line(&mut self) -> Result<(), std::io::Error> {
+        execute!(self, Print('\n'), MoveToColumn(0))
+    }
+}
+
+impl Write for RawStdout {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let n = unsafe { libc::write(self.fd, buf.as_ptr() as _, buf.len()) };
+
+        if n < 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+
+        Ok(n as usize)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
 pub fn handle_standard_output() -> bool {
     const BUFFER_SIZE: usize = 4096;
     let mut pipe = [0; 2];
@@ -20,12 +46,6 @@ pub fn handle_standard_output() -> bool {
     let stdout_bak = unsafe { libc::dup(libc::STDOUT_FILENO) };
 
     let mut buf = [b'\0'; BUFFER_SIZE];
-
-    let next_line = if crossterm::terminal::is_raw_mode_enabled().unwrap_or(false) {
-        NEXT_LINE
-    } else {
-        b"\n"
-    };
     unsafe {
         libc::pipe(pipe.as_mut_ptr());
         let stat = libc::dup2(pipe[1], libc::STDOUT_FILENO);
@@ -34,34 +54,52 @@ pub fn handle_standard_output() -> bool {
             return false;
         }
 
+        let mut stdout_fd = RawStdout { fd: stdout_bak };
+
         loop {
             let size = libc::read(pipe[0], buf.as_mut_ptr() as _, BUFFER_SIZE);
 
             if size == -1 {
-                error!("Error: {}", std::io::Error::last_os_error());
+                eprintln!("Error: {}", std::io::Error::last_os_error());
                 break;
             }
 
-            let mut split = buf[..size as usize].split(|&b| b == b'\n');
-
-            if let Some(s) = split.next() {
-                if s.is_empty() {
-                    libc::write(stdout_bak, next_line.as_ptr() as _, next_line.len());
-                }
-
-                libc::write(stdout_bak, s.as_ptr() as _, s.len());
+            if size == 1 && buf[0] == b'\n' {
+                stdout_fd.next_line().unwrap();
+                continue;
             }
 
-            for slice in split {
-                let slice: &[u8] = slice;
+            let split: Vec<&[u8]> = buf[..size as usize].split(|&b| b == b'\n').collect();
+            let mut split = split.into_iter();
+
+            if split.len() == 1 {
+                let slice = split.next().unwrap();
+
                 if slice.is_empty() {
-                    libc::write(stdout_bak, next_line.as_ptr() as _, next_line.len());
+                    stdout_fd.next_line().unwrap();
+                }
+
+                stdout_fd.write_all(slice).unwrap();
+                continue;
+            }
+
+            let last = split.len().checked_sub(1).unwrap_or(0);
+            for (i, slice) in split.enumerate() {
+                if i == last {
+                    if !slice.is_empty() {
+                        stdout_fd.write_all(slice).unwrap();
+                    }
 
                     continue;
                 }
 
-                libc::write(stdout_bak, next_line.as_ptr() as _, next_line.len());
-                libc::write(stdout_bak, slice.as_ptr() as _, slice.len());
+                if slice.is_empty() {
+                    stdout_fd.next_line().unwrap();
+                    continue;
+                }
+
+                stdout_fd.write_all(slice).unwrap();
+                stdout_fd.next_line().unwrap();
             }
         }
 
@@ -95,7 +133,9 @@ pub fn start_read_input() -> Result<(), Box<dyn Error>> {
                         let rl = INPUT_BUFFER.read()?;
 
                         let mut stdout = stdout().lock();
-                        execute!(stdout, MoveToNextLine(1))?;
+                        //execute!(stdout, MoveToNextLine(1))?;
+                        stdout.write_all(b"\n")?;
+                        stdout.flush()?;
 
                         let cmd = rl.trim_end();
                         match cmd {
