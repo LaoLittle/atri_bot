@@ -16,7 +16,6 @@ jobs:
               - { name: Windows, os: windows-2022, tool: x86_64-pc-windows-msvc }
               - { name: macOSx86, os: macos-latest, tool: x86_64-apple-darwin }
           version:
-              - 1.65.0
               - nightly
 
       name: ${{ matrix.target.name }} / ${{ matrix.version }}
