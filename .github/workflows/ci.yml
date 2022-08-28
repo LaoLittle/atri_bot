@@ -42,7 +42,9 @@ jobs:
         with:
           toolchain: ${{ matrix.version }}-${{ matrix.target.tool }}
           profile: minimal
-          override: true
+
+      - name: Override rustup toolchain
+        run: rustup default nightly
 
       - name: Test
         run: cargo test
