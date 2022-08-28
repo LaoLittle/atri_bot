@@ -106,8 +106,8 @@ jobs:
       - name: Set libgcc
         run: |
           mkdir lib
-          export LIBRARY_PATH=$LIBRARY_PATH:lib
-          cat << EOF > lib/libgcc.a
+          export LIBRARY_PATH=$LIBRARY_PATH:${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib
+          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib/libgcc.a
           INPUT(-lunwind)
           EOF
 
