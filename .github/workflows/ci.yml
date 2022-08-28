@@ -36,7 +36,7 @@ jobs:
 
       - name: Install rust toolchain
         run: |
-          rustup default ${{ matrix.target.version }}
+          rustup default ${{ matrix.version }}
           rustup target add ${{ matrix.target.tool }}
 
       - name: Test
