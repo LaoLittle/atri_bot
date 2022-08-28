@@ -86,7 +86,7 @@ pub fn handle_standard_output() -> std::io::Result<()> {
             let mut split = split.into_iter();
 
             if split.len() == 1 {
-                let slice = split.next()?;
+                let slice = split.next().unwrap();
 
                 if slice.is_empty() {
                     stdout_fd.next_line()?;
