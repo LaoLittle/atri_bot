@@ -30,6 +30,7 @@ jobs:
       CARGO_INCREMENTAL: 0
       build_version: release
       windows: ${{ startsWith(matrix.target.name, 'Windows') }}
+      linux: ${{ startsWith(matrix.target.name, 'Linux') }}
 
     steps:
       - uses: actions/checkout@v3
@@ -37,7 +38,7 @@ jobs:
       - if: ${{ endsWith(matrix.target.tool, 'musl') }}
         run: sudo apt update && sudo apt install -y musl-tools musl-dev
 
-      - if: ${{ startsWith(matrix.target.tool, 'aarch64') }}
+      - if: ${{ startsWith(matrix.target.tool, 'aarch64') }} && env.linux == 'true'
         run: sudo apt-get install -y -qq gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
 
       - name: Install rust toolchain
