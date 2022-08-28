@@ -13,16 +13,16 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - { name: Linux-x86, os: ubuntu-latest, tool: x86_64-unknown-linux-musl, musl: true }
-          - { name: Linux-aarch64, os: ubuntu-latest, tool: aarch64-unknown-linux-musl, musl: true }
+          - { name: Linux-x86, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
+          - { name: Linux-aarch64, os: ubuntu-latest, tool: aarch64-unknown-linux-gnu }
           - { name: macOS-x86, os: macos-latest, tool: x86_64-apple-darwin }
           - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
-          - { name: Windows-x86, os: windows-2022, tool: x86_64-pc-windows-msvc, windows: true }
+          - { name: Windows-x86, os: windows-2022, tool: x86_64-pc-windows-msvc }
 
         version:
           - nightly
 
-    name: ${{ matrix.target.name }} / ${{ matrix.version }}
+    name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.os }}
 
     env:
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Linux preinstall
-        if: matrix.target.musl == 'true'
+        if: matrix.target.tool == 'x86_64-unknown-linux-musl' || matrix.target.tool == 'aarch64-unknown-linux-musl'
         run: sudo apt update && sudo apt install -y musl-tools musl-dev
 
       - name: Install rust toolchain
@@ -49,14 +49,14 @@ jobs:
 
 
       - name: Upload
-        if: matrix.target.windows != 'true'
+        if: matrix.target.tool != 'x86_64-pc-windows-msvc'
         uses: actions/upload-artifact@v3
         with:
           name: push-build
           path: target/${{ matrix.target.tool }}/debug/atri_qq
 
       - name: Upload exe
-        if: matrix.target.windows == 'true'
+        if: matrix.target.tool == 'x86_64-pc-windows-msvc'
         uses: actions/upload-artifact@v3
         with:
           name: push-build
@@ -64,7 +64,7 @@ jobs:
 
 
   android-build:
-    name: android-build
+    name: Android-build
     runs-on: ubuntu-latest
 
     env:
@@ -87,10 +87,15 @@ jobs:
           ndk-version: r25
 
       - name: Set Android NDK ToolChains Path
-        shell: bash
         run: |
           echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
           echo ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin >> $GITHUB_PATH
+
+      - name: Set libgcc
+        run: |
+          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib/libgcc.a
+          INPUT(-lunwind)
+          EOF
 
       - name: Build Android X64
         run: |
