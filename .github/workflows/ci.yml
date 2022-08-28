@@ -29,6 +29,7 @@ jobs:
       CI: 1
       CARGO_INCREMENTAL: 0
       build_version: release
+      windows: ${{ startsWith(matrix.target.name, 'Windows') }}
 
     steps:
       - uses: actions/checkout@v3
@@ -58,7 +59,7 @@ jobs:
       #    mv target/${{ matrix.target.tool }}/debug/atri_qq artifact/atri_qq-${{ matrix.taget.tool }}
 
       - name: Upload
-        if: matrix.target.tool != 'x86_64-pc-windows-msvc'
+        if: env.windows != 'true'
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-${{ matrix.target.tool }}
@@ -70,7 +71,7 @@ jobs:
       #    mv target/${{ matrix.target.tool }}/debug/atri_qq.exe artifact/atri_qq-${{ matrix.taget.tool }}.exe
 
       - name: Upload exe
-        if: matrix.target.tool == 'x86_64-pc-windows-msvc'
+        if: env.windows == 'true'
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-${{ matrix.target.tool }}.exe
