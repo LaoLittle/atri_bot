@@ -106,6 +106,10 @@ impl FriendMessageEvent {
         Friend(ma)
     }
 
+    pub fn bot(&self) -> Bot {
+        self.friend().bot()
+    }
+
     pub fn message(&self) -> MessageChain {
         let ffi = (get_plugin_manager_vtb().friend_message_event_get_message)(self.event.pointer);
         MessageChain::from_ffi(ffi)

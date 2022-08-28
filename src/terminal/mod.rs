@@ -4,11 +4,7 @@ use std::io::{stdout, Write};
 use std::sync::RwLock;
 
 use crossterm::cursor::MoveToColumn;
-use crossterm::event::{
-    DisableBracketedPaste, EnableBracketedPaste, KeyCode, KeyEvent, KeyEventKind, KeyEventState,
-    KeyboardEnhancementFlags, ModifierKeyCode, PopKeyboardEnhancementFlags,
-    PushKeyboardEnhancementFlags,
-};
+use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, KeyCode};
 use crossterm::style::Print;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{event, execute};
@@ -129,10 +125,7 @@ pub fn handle_standard_output() -> bool {
 pub fn start_read_input() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
 
-    let _ = execute!(
-        stdout(),
-        EnableBracketedPaste,
-    );
+    let _ = execute!(stdout(), EnableBracketedPaste,);
 
     while let Ok(e) = event::read() {
         match e {
@@ -199,10 +192,7 @@ pub fn start_read_input() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let _ = execute!(
-        stdout(),
-        DisableBracketedPaste,
-    );
+    let _ = execute!(stdout(), DisableBracketedPaste,);
 
     disable_raw_mode()?;
     Ok(())

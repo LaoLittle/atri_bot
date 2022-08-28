@@ -21,7 +21,7 @@ use crate::error::AtriError;
 use atri_ffi::ffi::AtriManager;
 use atri_ffi::plugin::{PluginInstance, PluginVTable};
 
-use crate::plugin::ffi::get_plugin_vtable;
+use crate::plugin::ffi::plugin_get_function;
 
 #[cfg(target_os = "macos")]
 const EXTENSION: &str = "dylib";
@@ -192,7 +192,7 @@ impl PluginManager {
         atri_manager_init(AtriManager {
             manager_ptr: ptr as *const PluginManager as _,
             handle,
-            vtb: get_plugin_vtable(),
+            get_fun: plugin_get_function,
         });
 
         let catch = catch_unwind(move || {

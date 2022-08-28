@@ -79,17 +79,15 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 let sender = e.inner.from_uin;
 
-                let member: NamedMember;
+                let member: Option<NamedMember>;
                 let nick = if sender == AnonymousMember::ID {
                     "匿名"
                 } else {
-                    let named = if let Some(named) = group.find_member(sender) {
-                        named
-                    } else {
-                        group.get_named_member(sender).await.unwrap()
-                    };
-                    member = named;
-                    member.nickname()
+                    member = group.get_named_member(sender).await;
+                    member
+                        .as_ref()
+                        .map(|m| m.nickname())
+                        .unwrap_or("NamedMember")
                 };
 
                 info!(
