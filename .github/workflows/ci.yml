@@ -48,24 +48,28 @@ jobs:
         run: cargo build --target ${{ matrix.target.tool }}
 
 
-      - name: Upload
-        if: matrix.target.tool != 'x86_64-pc-windows-msvc'
+      - if: matrix.target.tool != 'x86_64-pc-windows-msvc'
         run: |
           mkdir artifact
           mv target/${{ matrix.target.tool }}/debug/atri_qq artifact/atri_qq-${{ matrix.taget.tool }}
+
+      - name: Upload
+        if: matrix.target.tool != 'x86_64-pc-windows-msvc'
         uses: actions/upload-artifact@v3
         with:
-          name: push-build
+          name: atri_qq-${{ matrix.target.tool }}
           path: target/${{ matrix.target.tool }}/debug/atri_qq
+
+      - if: matrix.target.tool == 'x86_64-pc-windows-msvc'
+        run: |
+          mkdir artifact
+          mv target/${{ matrix.target.tool }}/debug/atri_qq.exe artifact/atri_qq-${{ matrix.taget.tool }}.exe
 
       - name: Upload exe
         if: matrix.target.tool == 'x86_64-pc-windows-msvc'
-        run: | 
-          mkdir artifact
-          mv target/${{ matrix.target.tool }}/debug/atri_qq.exe artifact/atri_qq-${{ matrix.taget.tool }}.exe
         uses: actions/upload-artifact@v3
         with:
-          name: push-build
+          name: atri_qq-${{ matrix.target.tool }}.exe
           path: artifact/atri_qq-${{ matrix.taget.tool }}.exe
 
 
