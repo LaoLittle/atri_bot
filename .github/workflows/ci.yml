@@ -4,43 +4,40 @@ on:
   push:
     tags:
       - '*'
-    pull_request: [ master ]
+    #pull_request: [ master ]
     branches: [ master ]
-
-    workflow_dispatch:
-
 
 jobs:
     build:
-      strategy: 
-        matrix: 
+      strategy:
+        matrix:
           target:
-            - { name: Linux, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
-            - { name: Windows, os: windows-2022, tool: x86_64-pc-windows-msvc }
-            - { name: macOSx86, os: macos-latest, tool: x86_64-apple-darwin }
+              - { name: Linux, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
+              - { name: Windows, os: windows-2022, tool: x86_64-pc-windows-msvc }
+              - { name: macOSx86, os: macos-latest, tool: x86_64-apple-darwin }
           version:
-            - 1.65.0
-            - nightly
+              - 1.65.0
+              - nightly
 
       name: ${{ matrix.target.name }} / ${{ matrix.version }}
       runs-on: ${{ matrix.target.os }}
 
-    env:
-      CI: 1
-      CARGO_INCREMENTAL: 0
+      env:
+        CI: 1
+        CARGO_INCREMENTAL: 0
 
-    steps:
-    - uses: actions/checkout@v2
+      steps:
+        - uses: actions/checkout@v2
 
-    - name: Install ${{ matrix.version }}
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.version }}-${{ matrix.target.tool }}
-          profile: minimal
-          override: true
-    
-    - name: Test
-        run: cargo test
-    
-    - name: Build
-        run: cargo build
+        - name: Install ${{ matrix.version }}
+          uses: actions-rs/toolchain@v1
+          with:
+            toolchain: ${{ matrix.version }}-${{ matrix.target.tool }}
+            profile: minimal
+            override: true
+
+        - name: Test
+          run: cargo test
+
+        - name: Build
+          run: cargo build
