@@ -29,12 +29,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Install Musl
+      - name: Linux install Musl
         if: matrix.target.tool == 'x86_64-unknown-linux-musl'
         run: sudo apt update && sudo apt install -y musl-tools musl-dev
 
       - name: Install rust toolchain
-        run: rustup target add ${{ matrix.target.tool }}
+        run: |
+          rustup target add ${{ matrix.target.tool }}
+          rustup default nightly
 
       - name: Override rustup toolchain
         run: rustup default nightly
