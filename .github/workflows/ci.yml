@@ -32,9 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Linux preinstall
-        if: matrix.target.tool == 'x86_64-unknown-linux-musl' || matrix.target.tool == 'aarch64-unknown-linux-musl'
+      - if: matrix.target.tool == 'x86_64-unknown-linux-musl' || matrix.target.tool == 'aarch64-unknown-linux-musl'
         run: sudo apt update && sudo apt install -y musl-tools musl-dev
+
+      - if: matrix.target.name == 'Linux-aarch64'
+        run: sudo apt-get install -y -qq gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
 
       - name: Install rust toolchain
         run: |
@@ -48,10 +50,10 @@ jobs:
         run: cargo build --target ${{ matrix.target.tool }}
 
 
-      - if: matrix.target.tool != 'x86_64-pc-windows-msvc'
-        run: |
-          mkdir artifact
-          mv target/${{ matrix.target.tool }}/debug/atri_qq artifact/atri_qq-${{ matrix.taget.tool }}
+      #- if: matrix.target.tool != 'x86_64-pc-windows-msvc'
+      #  run: |
+      #    mkdir artifact
+      #    mv target/${{ matrix.target.tool }}/debug/atri_qq artifact/atri_qq-${{ matrix.taget.tool }}
 
       - name: Upload
         if: matrix.target.tool != 'x86_64-pc-windows-msvc'
@@ -60,17 +62,17 @@ jobs:
           name: atri_qq-${{ matrix.target.tool }}
           path: target/${{ matrix.target.tool }}/debug/atri_qq
 
-      - if: matrix.target.tool == 'x86_64-pc-windows-msvc'
-        run: |
-          mkdir artifact
-          mv target/${{ matrix.target.tool }}/debug/atri_qq.exe artifact/atri_qq-${{ matrix.taget.tool }}.exe
+      #- if: matrix.target.tool == 'x86_64-pc-windows-msvc'
+      #  run: |
+      #    mkdir artifact
+      #    mv target/${{ matrix.target.tool }}/debug/atri_qq.exe artifact/atri_qq-${{ matrix.taget.tool }}.exe
 
       - name: Upload exe
         if: matrix.target.tool == 'x86_64-pc-windows-msvc'
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-${{ matrix.target.tool }}.exe
-          path: artifact/atri_qq-${{ matrix.taget.tool }}.exe
+          path: target/${{ matrix.target.tool }}/debug/atri_qq.exe
 
 
   android-build:
