@@ -50,6 +50,9 @@ jobs:
 
       - name: Upload
         if: matrix.target.tool != 'x86_64-pc-windows-msvc'
+        run: |
+          mkdir artifact
+          mv target/${{ matrix.target.tool }}/debug/atri_qq artifact/atri_qq-${{ matrix.taget.tool }}
         uses: actions/upload-artifact@v3
         with:
           name: push-build
@@ -57,10 +60,13 @@ jobs:
 
       - name: Upload exe
         if: matrix.target.tool == 'x86_64-pc-windows-msvc'
+        run: | 
+          mkdir artifact
+          mv target/${{ matrix.target.tool }}/debug/atri_qq.exe artifact/atri_qq-${{ matrix.taget.tool }}.exe
         uses: actions/upload-artifact@v3
         with:
           name: push-build
-          path: target/${{ matrix.target.tool }}/debug/atri_qq.exe
+          path: artifact/atri_qq-${{ matrix.taget.tool }}.exe
 
 
   android-build:
@@ -93,7 +99,9 @@ jobs:
 
       - name: Set libgcc
         run: |
-          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib/libgcc.a
+          mkdir lib
+          export LIBRARY_PATH=$LIBRARY_PATH:lib
+          cat << EOF > lib/libgcc.a
           INPUT(-lunwind)
           EOF
 
