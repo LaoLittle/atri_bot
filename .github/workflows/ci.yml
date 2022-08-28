@@ -8,35 +8,40 @@ on:
     branches: [ master ]
 
 jobs:
-    build:
-      strategy:
-        matrix:
-          target:
-              - { name: Linux, os: ubuntu-latest, tool: x86_64-unknown-linux-gnu }
-              - { name: Windows, os: windows-2022, tool: x86_64-pc-windows-msvc }
-              - { name: macOSx86, os: macos-latest, tool: x86_64-apple-darwin }
-          version:
-              - nightly
+  build:
+    strategy:
+      matrix:
+        target:
+          - { name: macOSx86, os: macos-latest, tool: x86_64-apple-darwin }
+          - { name: Linux, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
+          - { name: Windows, os: windows-2022, tool: x86_64-pc-windows-msvc }
 
-      name: ${{ matrix.target.name }} / ${{ matrix.version }}
-      runs-on: ${{ matrix.target.os }}
+        version:
+            - nightly
 
-      env:
-        CI: 1
-        CARGO_INCREMENTAL: 0
+    name: ${{ matrix.target.name }} / ${{ matrix.version }}
+    runs-on: ${{ matrix.target.os }}
 
-      steps:
-        - uses: actions/checkout@v2
+    env:
+      CI: 1
+      CARGO_INCREMENTAL: 0
 
-        - name: Install ${{ matrix.version }}
-          uses: actions-rs/toolchain@v1
-          with:
-            toolchain: ${{ matrix.version }}-${{ matrix.target.tool }}
-            profile: minimal
-            override: true
+    steps:
+      - uses: actions/checkout@v2
 
-        - name: Test
-          run: cargo test
+      - name: Install Musl
+        if: matrix.target.tool == x86_64-unknown-linux-musl
+        run: apt update && apt install -y musl-tools musl-dev
 
-        - name: Build
-          run: cargo build
+      - name: Install ${{ matrix.version }}
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.version }}-${{ matrix.target.tool }}
+          profile: minimal
+          override: true
+
+      - name: Test
+        run: cargo test
+
+      - name: Build
+        run: cargo build
