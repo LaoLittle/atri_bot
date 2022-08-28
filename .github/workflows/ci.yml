@@ -33,6 +33,10 @@ jobs:
         if: matrix.target.tool == 'x86_64-unknown-linux-musl'
         run: sudo apt update && sudo apt install -y musl-tools musl-dev
 
+      - name: Install rust toolchain
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+
       - name: Install ${{ matrix.version }}
         uses: actions-rs/toolchain@v1
         with:
