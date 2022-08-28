@@ -47,7 +47,6 @@ jobs:
         run: cargo test
 
       - name: Build
-        if: matrix.target.name != 'Linux-aarch64'
         run: cargo build --target ${{ matrix.target.tool }}
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
