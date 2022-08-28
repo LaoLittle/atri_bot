@@ -10,12 +10,14 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         target:
-          - { name: Linux, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
-          - { name: macOS_x86, os: macos-latest, tool: x86_64-apple-darwin }
-          - { name: macOS_aarch64, os: macos-latest, tool: aarch64-apple-darwin }
-          - { name: Windows, os: windows-2022, tool: x86_64-pc-windows-msvc }
+          - { name: Linux-x86, os: ubuntu-latest, tool: x86_64-unknown-linux-musl, musl: true }
+          - { name: Linux-aarch64, os: ubuntu-latest, tool: aarch64-unknown-linux-musl, musl: true }
+          - { name: macOS-x86, os: macos-latest, tool: x86_64-apple-darwin }
+          - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
+          - { name: Windows-x86, os: windows-2022, tool: x86_64-pc-windows-msvc, windows: true }
 
         version:
           - nightly
@@ -30,8 +32,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Linux install musl
-        if: matrix.target.tool == 'x86_64-unknown-linux-musl'
+      - name: Linux preinstall
+        if: matrix.target.musl == 'true'
         run: sudo apt update && sudo apt install -y musl-tools musl-dev
 
       - name: Install rust toolchain
@@ -45,6 +47,22 @@ jobs:
       - name: Build
         run: cargo build --target ${{ matrix.target.tool }}
 
+
+      - name: Upload
+        if: matrix.target.windows != 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: push-build
+          path: target/${{ matrix.target.tool }}/debug/atri_qq
+
+      - name: Upload exe
+        if: matrix.target.windows == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: push-build
+          path: target/${{ matrix.target.tool }}/debug/atri_qq.exe
+
+
   android-build:
     name: android-build
     runs-on: ubuntu-latest
@@ -55,3 +73,38 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install rust toolchain
+        run: |
+          rustup default nightly
+          rustup target add x86_64-linux-android
+          rustup target add aarch64-linux-android
+          
+      - name: Install NDK
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25
+
+      - name: Set Android NDK ToolChains Path
+        shell: bash
+        run: |
+          echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+          echo ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin >> $GITHUB_PATH
+
+      - name: Build Android X64
+        run: |
+          cargo build --target x86_64-linux-android
+        env:
+          CC_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang
+          CXX_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang++
+          CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: x86_64-linux-android26-clang
+
+      - name: Build Android ARM64
+        run: |
+          cargo build --target aarch64-linux-android
+        env:
+          CC_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang
+          CXX_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang++
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: aarch64-linux-android26-clang
+
