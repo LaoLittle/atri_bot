@@ -28,14 +28,15 @@ jobs:
     env:
       CI: 1
       CARGO_INCREMENTAL: 0
+      build_version: release
 
     steps:
       - uses: actions/checkout@v3
 
-      - if: matrix.target.tool == 'x86_64-unknown-linux-musl' || matrix.target.tool == 'aarch64-unknown-linux-musl'
+      - if: ${{ endsWith(matrix.target.tool, 'musl') }}
         run: sudo apt update && sudo apt install -y musl-tools musl-dev
 
-      - if: matrix.target.name == 'Linux-aarch64'
+      - if: ${{ startsWith(matrix.target.tool, 'aarch64') }}
         run: sudo apt-get install -y -qq gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
 
       - name: Install rust toolchain
@@ -47,7 +48,7 @@ jobs:
         run: cargo test
 
       - name: Build
-        run: cargo build --target ${{ matrix.target.tool }}
+        run: cargo build --target ${{ matrix.target.tool }} --${{ env.build_version }}
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
 
@@ -61,7 +62,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-${{ matrix.target.tool }}
-          path: target/${{ matrix.target.tool }}/debug/atri_qq
+          path: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq
 
       #- if: matrix.target.tool == 'x86_64-pc-windows-msvc'
       #  run: |
@@ -73,7 +74,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-${{ matrix.target.tool }}.exe
-          path: target/${{ matrix.target.tool }}/debug/atri_qq.exe
+          path: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq.exe
 
 
   android-build:
