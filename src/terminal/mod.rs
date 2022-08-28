@@ -46,25 +46,25 @@ impl Write for RawStdout {
 
 const STDOUT_FILENO: c_int = 1;
 
+#[cfg(windows)]
 pub fn handle_standard_output() -> bool {
-    #[cfg(windows)]
-    return true;
+    true
+}
 
+#[cfg(unix)]
+pub fn handle_standard_output() -> std::io::Result<()> {
     let mut pipe = [0; 2];
 
     let stdout_bak = unsafe { libc::dup(STDOUT_FILENO) };
 
     let mut buf = [b'\0'; BUFFER_SIZE];
     unsafe {
-        #[cfg(windows)]
-        libc::pipe(pipe.as_mut_ptr(), BUFFER_SIZE as _, libc::O_BINARY);
-        #[cfg(unix)]
         libc::pipe(pipe.as_mut_ptr());
 
         let stat = libc::dup2(pipe[1], STDOUT_FILENO);
 
         if stat == -1 {
-            return false;
+            return Err(std::io::Error::last_os_error());
         }
 
         let mut stdout_fd = RawStdout { fd: stdout_bak };
@@ -78,7 +78,7 @@ pub fn handle_standard_output() -> bool {
             }
 
             if size == 1 && buf[0] == b'\n' {
-                stdout_fd.next_line().unwrap();
+                stdout_fd.next_line()?;
                 continue;
             }
 
@@ -86,13 +86,13 @@ pub fn handle_standard_output() -> bool {
             let mut split = split.into_iter();
 
             if split.len() == 1 {
-                let slice = split.next().unwrap();
+                let slice = split.next()?;
 
                 if slice.is_empty() {
-                    stdout_fd.next_line().unwrap();
+                    stdout_fd.next_line()?;
                 }
 
-                stdout_fd.write_all(slice).unwrap();
+                stdout_fd.write_all(slice)?;
                 continue;
             }
 
@@ -100,32 +100,32 @@ pub fn handle_standard_output() -> bool {
             for (i, slice) in split.enumerate() {
                 if i == last {
                     if !slice.is_empty() {
-                        stdout_fd.write_all(slice).unwrap();
+                        stdout_fd.write_all(slice)?;
                     }
 
                     continue;
                 }
 
                 if slice.is_empty() {
-                    stdout_fd.next_line().unwrap();
+                    stdout_fd.next_line()?;
                     continue;
                 }
 
-                stdout_fd.write_all(slice).unwrap();
-                stdout_fd.next_line().unwrap();
+                stdout_fd.write_all(slice)?;
+                stdout_fd.next_line()?;
             }
         }
 
         libc::dup2(stdout_bak, STDOUT_FILENO);
     }
 
-    true
+    Ok(())
 }
 
 pub fn start_read_input() -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
 
-    let _ = execute!(stdout(), EnableBracketedPaste,);
+    let _ = execute!(stdout(), EnableBracketedPaste);
 
     while let Ok(e) = event::read() {
         match e {
@@ -192,7 +192,7 @@ pub fn start_read_input() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let _ = execute!(stdout(), DisableBracketedPaste,);
+    let _ = execute!(stdout(), DisableBracketedPaste);
 
     disable_raw_mode()?;
     Ok(())

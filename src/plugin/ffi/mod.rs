@@ -43,7 +43,7 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         panic!("No such sig");
     }
 
-    macro_rules! functions {
+    macro_rules! match_function {
         (input: $input:expr; $($sig:expr => $fun:expr),* $(,)?) => {
             match $input {
                 $($sig => $fun as *const (),)*
@@ -52,7 +52,7 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         };
     }
 
-    functions! {
+    match_function! {
         input: sig;
         // plugin manager
         0 => plugin_manager_spawn,

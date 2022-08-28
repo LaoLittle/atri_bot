@@ -106,8 +106,8 @@ async fn loop_cli() -> MainResult {
 
     tokio::task::yield_now().await;
     let _handle = tokio::task::spawn_blocking(|| {
-        if !handle_standard_output() {
-            error!("接管Stdout失败");
+        if let Err(e) = handle_standard_output() {
+            error!("接管Stdout失败: {}", e);
             return false;
         }
 
