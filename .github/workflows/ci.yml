@@ -35,8 +35,8 @@ jobs:
 
       - name: Install rust toolchain
         run: |
-          rustup target add ${{ matrix.target.tool }}
           rustup default nightly
+          rustup target add ${{ matrix.target.tool }}
 
       - name: Test
         run: cargo test --target ${{ matrix.target.tool }}
