@@ -34,20 +34,13 @@ jobs:
         run: sudo apt update && sudo apt install -y musl-tools musl-dev
 
       - name: Install rust toolchain
-        run: |
-          rustup target add x86_64-unknown-linux-musl
-
-      - name: Install ${{ matrix.version }}
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.version }}-${{ matrix.target.tool }}
-          profile: minimal
+        run: rustup target add ${{ matrix.target.tool }}
 
       - name: Override rustup toolchain
         run: rustup default nightly
 
       - name: Test
-        run: cargo test
+        run: cargo test --target ${{ matrix.target.tool }}
 
       - name: Build
-        run: cargo build
+        run: cargo build --target ${{ matrix.target.tool }}
