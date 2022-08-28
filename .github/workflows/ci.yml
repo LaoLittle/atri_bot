@@ -12,8 +12,8 @@ jobs:
     strategy:
       matrix:
         target:
-          - { name: macOSx86, os: macos-latest, tool: x86_64-apple-darwin }
           - { name: Linux, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
+          - { name: macOSx86, os: macos-latest, tool: x86_64-apple-darwin }
           - { name: Windows, os: windows-2022, tool: x86_64-pc-windows-msvc }
 
         version:
@@ -37,9 +37,6 @@ jobs:
         run: |
           rustup target add ${{ matrix.target.tool }}
           rustup default nightly
-
-      - name: Override rustup toolchain
-        run: rustup default nightly
 
       - name: Test
         run: cargo test --target ${{ matrix.target.tool }}
