@@ -47,8 +47,8 @@ impl Write for RawStdout {
 const STDOUT_FILENO: c_int = 1;
 
 #[cfg(windows)]
-pub fn handle_standard_output() -> bool {
-    true
+pub fn handle_standard_output() -> std::io::Result<()> {
+    Ok(())
 }
 
 #[cfg(unix)]
