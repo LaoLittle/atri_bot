@@ -118,7 +118,7 @@ jobs:
 
       - name: Build Android X64
         run: |
-          cargo build --target x86_64-linux-android
+          cargo build --target x86_64-linux-android --release
         env:
           CC_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang
           CXX_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang++
@@ -126,9 +126,20 @@ jobs:
 
       - name: Build Android ARM64
         run: |
-          cargo build --target aarch64-linux-android
+          cargo build --target aarch64-linux-android --release
         env:
           CC_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang
           CXX_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang++
           CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: aarch64-linux-android26-clang
 
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: atri_qq-aarch64-linux-android
+          path: target/aarch64-linux-android/release/atri_qq
+
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: atri_qq-x86_64-linux-android
+          path: target/x86_64-linux-android/release/atri_qq
