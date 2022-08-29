@@ -112,7 +112,7 @@ jobs:
           cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/aarch64/libgcc.a
           INPUT(-lunwind)
           EOF
-          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/86_64/libgcc.a
+          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/x86_64/libgcc.a
           INPUT(-lunwind)
           EOF
 
