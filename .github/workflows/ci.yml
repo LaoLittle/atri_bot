@@ -116,6 +116,9 @@ jobs:
           INPUT(-lunwind)
           EOF
 
+      - name: Test
+        run: cargo test
+
       - name: Build Android X64
         run: |
           cargo build --target x86_64-linux-android --release
