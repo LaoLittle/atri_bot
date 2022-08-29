@@ -224,21 +224,22 @@ impl ToString for RustStr {
 }
 
 #[repr(C)]
-pub struct RawVec<T> {
+pub struct RustVec<T> {
     ptr: *mut T,
     len: usize,
     capacity: usize,
 }
 
-unsafe impl<T> Send for RawVec<T> {}
+unsafe impl<T: Send> Send for RustVec<T> {}
+unsafe impl<T: Sync> Sync for RustVec<T> {}
 
-impl<T> RawVec<T> {
+impl<T> RustVec<T> {
     pub fn into_vec(self) -> Vec<T> {
         unsafe { Vec::from_raw_parts(self.ptr, self.len, self.capacity) }
     }
 }
 
-impl<T> From<Vec<T>> for RawVec<T> {
+impl<T> From<Vec<T>> for RustVec<T> {
     fn from(mut v: Vec<T>) -> Self {
         let (ptr, len, cap) = (v.as_mut_ptr(), v.len(), v.capacity());
         mem::forget(v);
@@ -250,14 +251,41 @@ impl<T> From<Vec<T>> for RawVec<T> {
     }
 }
 
+pub struct RustSlice<T> {
+    ptr: *const T,
+    len: usize,
+}
+
+impl<T> RustSlice<T> {
+    pub fn as_ptr(&self) -> *const T {
+        self.ptr
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        unsafe { slice::from_raw_parts(self.ptr, self.len) }
+    }
+}
+
+impl<T> From<&[T]> for RustSlice<T> {
+    fn from(slice: &[T]) -> Self {
+        Self {
+            ptr: slice.as_ptr(),
+            len: slice.len(),
+        }
+    }
+}
+
+unsafe impl<T: Send> Send for RustSlice<T> {}
+unsafe impl<T: Sync> Sync for RustSlice<T> {}
+
 #[cfg(test)]
 mod tests {
-    use crate::{Managed, RawVec, RustStr, RustString};
+    use crate::{Managed, RustStr, RustString, RustVec};
 
     #[test]
     fn vec() {
         let v = vec![1, 1, 4, 5, 1, 4];
-        let raw = RawVec::from(v);
+        let raw = RustVec::from(v);
         let v = raw.into_vec();
 
         assert_eq!(v, [1, 1, 4, 5, 1, 4]);

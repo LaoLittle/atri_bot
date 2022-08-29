@@ -29,11 +29,12 @@ use crate::plugin::cast_ref;
 use crate::plugin::ffi::friend::{
     friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message, friend_upload_image,
 };
-use crate::plugin::ffi::log::log_info;
+use crate::plugin::ffi::log::log;
 use crate::plugin::ffi::member::{
     named_member_change_card_name, named_member_get_card_name, named_member_get_group,
     named_member_get_id, named_member_get_nickname,
 };
+use crate::plugin::ffi::message::{image_get_id, image_get_url};
 use crate::PluginManager;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
@@ -110,8 +111,12 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         10100 => friend_message_event_get_friend,
         10101 => friend_message_event_get_message,
 
+        2000 => image_get_id,
+        // flash => 2001
+        2002 => image_get_url,
+
         // log
-        20000 => log_info,
+        20000 => log,
     }
 }
 

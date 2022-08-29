@@ -1,3 +1,4 @@
+use crate::message::MessageValue;
 use ricq::msg::{MessageElem, PushElem};
 
 #[derive(Clone)]
@@ -12,5 +13,11 @@ impl PushElem for At {
 
         let rq = ricq::msg::elem::At { target, display };
         PushElem::push_to(rq, vec);
+    }
+}
+
+impl From<At> for MessageValue {
+    fn from(at: At) -> Self {
+        Self::At(at)
     }
 }

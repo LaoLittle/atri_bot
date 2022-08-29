@@ -160,6 +160,12 @@ pub enum MessageValue {
     Unknown(RQElem),
 }
 
+impl From<String> for MessageValue {
+    fn from(s: String) -> Self {
+        Self::Text(s)
+    }
+}
+
 impl From<MessageValue> for RQElem {
     fn from(val: MessageValue) -> Self {
         match val {

@@ -1,10 +1,12 @@
 pub mod at;
 mod ffi;
+pub mod image;
 pub mod meta;
 
 use atri_ffi::Managed;
 
 use crate::message::at::At;
+use crate::message::image::Image;
 use crate::message::meta::MessageMetadata;
 use std::slice::Iter;
 use std::{mem, vec};
@@ -116,8 +118,6 @@ impl MessageChainBuilder {
     }
 }
 
-pub struct Image(pub(crate) Managed);
-
 pub struct MessageReceipt(pub(crate) Managed);
 
 pub trait Message {
@@ -127,12 +127,6 @@ pub trait Message {
 impl Message for String {
     fn push_to(self, v: &mut Vec<MessageValue>) {
         v.push(MessageValue::Text(self));
-    }
-}
-
-impl Message for Image {
-    fn push_to(self, v: &mut Vec<MessageValue>) {
-        v.push(MessageValue::Image(self));
     }
 }
 

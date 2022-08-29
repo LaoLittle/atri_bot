@@ -1,10 +1,11 @@
 use crate::bot::Bot;
 use crate::error::AtriError;
 use crate::loader::get_plugin_manager_vtb;
-use crate::message::{Image, MessageChain, MessageReceipt};
+use crate::message::image::Image;
+use crate::message::{MessageChain, MessageReceipt};
 use crate::runtime::manager::PluginManager;
 use atri_ffi::ffi::ForFFI;
-use atri_ffi::{ManagedCloneable, RawVec};
+use atri_ffi::{ManagedCloneable, RustVec};
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
@@ -41,7 +42,7 @@ impl Friend {
 
     pub async fn upload_image(&self, img: Vec<u8>) -> Result<Image, AtriError> {
         let fu =
-            { (get_plugin_manager_vtb().friend_upload_image)(self.0.pointer, RawVec::from(img)) };
+            { (get_plugin_manager_vtb().friend_upload_image)(self.0.pointer, RustVec::from(img)) };
         let result = PluginManager.spawn(fu).await.unwrap();
 
         match Result::from(result) {

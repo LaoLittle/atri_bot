@@ -1,12 +1,13 @@
 use crate::message::at::At;
+use crate::message::image::Image;
 use crate::message::meta::{Anonymous, MessageMetadata, Reply};
-use crate::message::{Image, MessageChain, MessageValue};
+use crate::message::{MessageChain, MessageValue};
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::meta::{
     FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
 };
 use atri_ffi::message::{FFIAt, FFIMessageChain, FFIMessageValue, MessageValueUnion};
-use atri_ffi::{RawVec, RustString};
+use atri_ffi::{RustString, RustVec};
 use std::mem::{ManuallyDrop, MaybeUninit};
 
 impl ForFFI for MessageChain {
@@ -15,7 +16,7 @@ impl ForFFI for MessageChain {
     fn into_ffi(self) -> Self::FFIValue {
         let v: Vec<FFIMessageValue> = self.value.into_iter().map(MessageValue::into_ffi).collect();
 
-        let raw = RawVec::from(v);
+        let raw = RustVec::from(v);
         FFIMessageChain {
             meta: self.meta.into_ffi(),
             inner: raw,
@@ -189,7 +190,7 @@ impl ForFFI for Reply {
 
         let ffi_value: Vec<FFIMessageValue> =
             elements.into_iter().map(|value| value.into_ffi()).collect();
-        let raw = RawVec::from(ffi_value);
+        let raw = RustVec::from(ffi_value);
 
         FFIReply {
             reply_seq,
@@ -232,7 +233,7 @@ impl ForFFI for Anonymous {
             color,
         } = self;
 
-        let anon_id = RawVec::from(anon_id);
+        let anon_id = RustVec::from(anon_id);
         let nick = RustString::from(nick);
         let color = RustString::from(color);
 

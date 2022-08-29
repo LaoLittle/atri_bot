@@ -1,5 +1,5 @@
 use crate::message::meta::{FFIMessageMetadata, FFIReply};
-use crate::{Managed, RawVec, RustString};
+use crate::{Managed, RustString, RustVec};
 use std::mem::ManuallyDrop;
 
 pub mod meta;
@@ -12,7 +12,7 @@ pub const UNKNOWN: u8 = 255;
 #[repr(C)]
 pub struct FFIMessageChain {
     pub meta: FFIMessageMetadata,
-    pub inner: RawVec<FFIMessageValue>,
+    pub inner: RustVec<FFIMessageValue>,
 }
 
 #[repr(C)]

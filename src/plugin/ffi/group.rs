@@ -5,7 +5,7 @@ use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::{Managed, ManagedCloneable, RawVec, RustStr, RustString};
+use atri_ffi::{Managed, ManagedCloneable, RustStr, RustString, RustVec};
 
 pub extern "C" fn group_get_id(group: *const ()) -> i64 {
     let group: &Group = cast_ref(group);
@@ -23,7 +23,7 @@ pub extern "C" fn group_get_bot(group: *const ()) -> ManagedCloneable {
     ManagedCloneable::from_value(group.bot().clone())
 }
 
-pub extern "C" fn group_get_members(group: *const ()) -> FFIFuture<RawVec<ManagedCloneable>> {
+pub extern "C" fn group_get_members(group: *const ()) -> FFIFuture<RustVec<ManagedCloneable>> {
     FFIFuture::from(async move {
         let group: &Group = cast_ref(group);
 
@@ -34,7 +34,7 @@ pub extern "C" fn group_get_members(group: *const ()) -> FFIFuture<RawVec<Manage
             .map(ManagedCloneable::from_value)
             .collect();
 
-        RawVec::from(named)
+        RustVec::from(named)
     })
 }
 
@@ -74,7 +74,7 @@ pub extern "C" fn group_send_message(
 
 pub extern "C" fn group_upload_image(
     group: *const (),
-    data: RawVec<u8>,
+    data: RustVec<u8>,
 ) -> FFIFuture<FFIResult<Managed>> {
     FFIFuture::from(async move {
         let group: &Group = cast_ref(group);

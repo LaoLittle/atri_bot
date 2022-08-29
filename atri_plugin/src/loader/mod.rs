@@ -4,7 +4,7 @@ use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::{AtriManager, FFIEvent};
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::{Managed, ManagedCloneable, RawVec, RustStr, RustString};
+use atri_ffi::{Managed, ManagedCloneable, RustStr, RustString, RustVec};
 use std::mem::MaybeUninit;
 
 pub struct AtriVTable {
@@ -19,12 +19,12 @@ pub struct AtriVTable {
 
     pub bot_get_id: extern "C" fn(bot: *const ()) -> i64,
     pub bot_get_nickname: extern "C" fn(bot: *const ()) -> RustStr,
-    pub bot_get_list: extern "C" fn() -> RawVec<ManagedCloneable>,
+    pub bot_get_list: extern "C" fn() -> RustVec<ManagedCloneable>,
     pub find_bot: extern "C" fn(id: i64) -> ManagedCloneable,
     pub bot_find_group: extern "C" fn(bot: *const (), id: i64) -> ManagedCloneable,
     pub bot_find_friend: extern "C" fn(bot: *const (), id: i64) -> ManagedCloneable,
-    pub bot_get_groups: extern "C" fn(bot: *const ()) -> RawVec<ManagedCloneable>,
-    pub bot_get_friends: extern "C" fn(bot: *const ()) -> RawVec<ManagedCloneable>,
+    pub bot_get_groups: extern "C" fn(bot: *const ()) -> RustVec<ManagedCloneable>,
+    pub bot_get_friends: extern "C" fn(bot: *const ()) -> RustVec<ManagedCloneable>,
 
     pub group_message_event_get_group: extern "C" fn(event: *const ()) -> ManagedCloneable,
     pub group_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
@@ -33,14 +33,14 @@ pub struct AtriVTable {
     pub group_get_id: extern "C" fn(group: *const ()) -> i64,
     pub group_get_name: extern "C" fn(group: *const ()) -> RustStr,
     pub group_get_bot: extern "C" fn(group: *const ()) -> ManagedCloneable,
-    pub group_get_members: extern "C" fn(group: *const ()) -> FFIFuture<RawVec<ManagedCloneable>>,
+    pub group_get_members: extern "C" fn(group: *const ()) -> FFIFuture<RustVec<ManagedCloneable>>,
     pub group_find_member: extern "C" fn(group: *const (), id: i64) -> ManagedCloneable,
     pub group_get_named_member:
         extern "C" fn(group: *const (), id: i64) -> FFIFuture<ManagedCloneable>,
     pub group_send_message:
         extern "C" fn(group: *const (), chain: FFIMessageChain) -> FFIFuture<FFIResult<Managed>>,
     pub group_upload_image:
-        extern "C" fn(group: *const (), data: RawVec<u8>) -> FFIFuture<FFIResult<Managed>>,
+        extern "C" fn(group: *const (), data: RustVec<u8>) -> FFIFuture<FFIResult<Managed>>,
     pub group_quit: extern "C" fn(group: *const ()) -> FFIFuture<bool>,
     pub group_change_name:
         extern "C" fn(group: *const (), name: RustString) -> FFIFuture<FFIResult<()>>,
@@ -53,7 +53,7 @@ pub struct AtriVTable {
     pub friend_send_message:
         extern "C" fn(friend: *const (), chain: FFIMessageChain) -> FFIFuture<FFIResult<Managed>>,
     pub friend_upload_image:
-        extern "C" fn(friend: *const (), img: RawVec<u8>) -> FFIFuture<FFIResult<Managed>>,
+        extern "C" fn(friend: *const (), img: RustVec<u8>) -> FFIFuture<FFIResult<Managed>>,
 
     pub named_member_get_id: extern "C" fn(named: *const ()) -> i64,
     pub named_member_get_nickname: extern "C" fn(named: *const ()) -> RustStr,
@@ -62,7 +62,11 @@ pub struct AtriVTable {
     pub named_member_change_card_name:
         extern "C" fn(named: *const (), card: RustString) -> FFIFuture<FFIResult<()>>,
 
-    pub log_info: extern "C" fn(handle: usize, manager: *const (), log: RustString),
+    pub image_get_id: extern "C" fn(img: *const ()) -> RustStr,
+    // flash
+    pub image_get_url: extern "C" fn(img: *const ()) -> RustString,
+
+    pub log: extern "C" fn(handle: usize, manager: *const (), level: u8, log: RustString),
 }
 
 static mut ATRI_MANAGER: MaybeUninit<AtriManager> = MaybeUninit::uninit();
@@ -133,7 +137,11 @@ unsafe extern "C" fn atri_manager_init(manager: AtriManager) {
         friend_message_event_get_friend => 10100,
         friend_message_event_get_message => 10101,
 
-        log_info => 20000,
+        image_get_id => 2000,
+        // flash => 2001
+        image_get_url => 2002,
+
+        log => 20000,
     };
 
     ATRI_VTABLE.write(vtable);

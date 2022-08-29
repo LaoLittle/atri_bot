@@ -7,7 +7,7 @@ use atri_ffi::message::meta::{
     FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
 };
 use atri_ffi::message::{FFIAt, FFIMessageChain, FFIMessageValue, MessageValueUnion};
-use atri_ffi::{Managed, RawVec, RustString};
+use atri_ffi::{Managed, RustString, RustVec};
 use std::mem::{ManuallyDrop, MaybeUninit};
 
 impl ForFFI for MessageChain {
@@ -18,7 +18,7 @@ impl ForFFI for MessageChain {
         let ffi: Vec<FFIMessageValue> =
             self.value.into_iter().map(MessageValue::into_ffi).collect();
 
-        let raw = RawVec::from(ffi);
+        let raw = RustVec::from(ffi);
         FFIMessageChain { meta, inner: raw }
     }
 
@@ -99,7 +99,7 @@ impl ForFFI for Reply {
             .into_iter()
             .map(MessageValue::into_ffi)
             .collect();
-        let ffi_chain = RawVec::from(ffi);
+        let ffi_chain = RustVec::from(ffi);
 
         FFIReply {
             reply_seq: self.reply_seq,
@@ -142,7 +142,7 @@ impl ForFFI for Anonymous {
             color,
         } = self;
 
-        let anon_id = RawVec::from(anon_id);
+        let anon_id = RustVec::from(anon_id);
         let nick = RustString::from(nick);
         let color = RustString::from(color);
 
