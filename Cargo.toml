@@ -56,6 +56,7 @@ git = "https://github.com/lz1998/ricq.git"
 git = "https://github.com/lz1998/ricq.git"
 
 [dependencies.atri_ffi]
+version = "0"
 path = "atri_ffi"
 
 [dependencies.anyhow]
