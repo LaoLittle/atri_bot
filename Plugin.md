@@ -97,5 +97,12 @@ PluginInstance on_init() {
 
 ## 其他
 插件的`new`和`drop`规则是迎合Rust设计得到的,
-在其他语言可以让`new`函数返回固定的实例,
-`drop`函数作为一个无效函数传入(不可为null),
+在其他语言可以适当调整其功能
+
+原设计模式适用于: Rust, C/C++
+
+其他模式,如: 单例插件的`new`返回固定值,
+固定`should_drop`标志为false,
+`drop`函数作为插件卸载行为函数。
+
+此模式可能适用于: Go和Kotlin/Native
