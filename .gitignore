@@ -1,2 +1,12 @@
+/.idea
+/.DS_Store
 /target
 /atri_ffi/.DS_Store
+/bots
+/config
+/data
+/example_plugins
+/log
+/other
+/plugins
+/service

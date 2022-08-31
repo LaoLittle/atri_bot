@@ -50,9 +50,11 @@ features = [
 ]
 
 [dependencies.ricq]
+version = "0"
 git = "https://github.com/lz1998/ricq.git"
 
 [dependencies.ricq-guild]
+version = "0"
 git = "https://github.com/lz1998/ricq.git"
 
 [dependencies.atri_ffi]
