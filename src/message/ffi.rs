@@ -6,7 +6,9 @@ use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::meta::{
     FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
 };
-use atri_ffi::message::{FFIAt, FFIMessageChain, FFIMessageValue, MessageValueUnion};
+use atri_ffi::message::{
+    FFIAt, FFIMessageChain, FFIMessageValue, MessageValueUnion, AT, AT_ALL, IMAGE, TEXT,
+};
 use atri_ffi::{Managed, RustString, RustVec};
 use std::mem::{ManuallyDrop, MaybeUninit};
 
@@ -41,19 +43,19 @@ impl ForFFI for MessageValue {
     fn into_ffi(self) -> Self::FFIValue {
         match self {
             MessageValue::Text(s) => FFIMessageValue {
-                t: 0,
+                t: TEXT,
                 union: MessageValueUnion {
                     text: ManuallyDrop::new(RustString::from(s)),
                 },
             },
             MessageValue::Image(img) => FFIMessageValue {
-                t: 1,
+                t: IMAGE,
                 union: MessageValueUnion {
                     image: ManuallyDrop::new(Managed::from_value(img)),
                 },
             },
             MessageValue::At(At { target, display }) => FFIMessageValue {
-                t: 3,
+                t: AT,
                 union: MessageValueUnion {
                     at: ManuallyDrop::new({
                         FFIAt {
@@ -62,6 +64,10 @@ impl ForFFI for MessageValue {
                         }
                     }),
                 },
+            },
+            MessageValue::AtAll => FFIMessageValue {
+                t: AT_ALL,
+                union: MessageValueUnion { at_all: () },
             },
             or => FFIMessageValue {
                 t: 255,
@@ -75,15 +81,18 @@ impl ForFFI for MessageValue {
     fn from_ffi(value: Self::FFIValue) -> Self {
         unsafe {
             match value.t {
-                0 => MessageValue::Text(ManuallyDrop::into_inner(value.union.text).into()),
-                1 => MessageValue::Image(ManuallyDrop::into_inner(value.union.image).into_value()),
-                3 => {
+                TEXT => MessageValue::Text(ManuallyDrop::into_inner(value.union.text).into()),
+                IMAGE => {
+                    MessageValue::Image(ManuallyDrop::into_inner(value.union.image).into_value())
+                }
+                AT => {
                     let inner = ManuallyDrop::into_inner(value.union.at);
                     MessageValue::At(At {
                         target: inner.target,
                         display: String::from(inner.display),
                     })
                 }
+                AT_ALL => MessageValue::AtAll,
                 _ => ManuallyDrop::into_inner(value.union.unknown).into_value(),
             }
         }

@@ -59,6 +59,7 @@ pub enum MessageValue {
     Text(String),
     Image(Image),
     At(At),
+    AtAll,
     Unknown(Managed),
 }
 
@@ -66,8 +67,9 @@ impl MessageValue {
     fn push_to_string(&self, str: &mut String) {
         match self {
             Self::Text(text) => str.push_str(text),
-            Self::Image(_) => str.push_str("Image"),
-            Self::At(At { display, .. }) => str.push_str(display),
+            Self::Image(img) => str.push_str(&format!("[Image:{}]", img.url())),
+            Self::At(At { target, display }) => str.push_str(&format!("[At:{}({})]", target, display)),
+            Self::AtAll => str.push_str("[AtAll]"),
             Self::Unknown(_) => {}
         }
     }

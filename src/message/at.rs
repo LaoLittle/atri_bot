@@ -7,6 +7,12 @@ pub struct At {
     pub display: String,
 }
 
+impl From<At> for ricq::msg::elem::At {
+    fn from(At { target, display }: At) -> Self {
+        Self { target, display }
+    }
+}
+
 impl PushElem for At {
     fn push_to(elem: Self, vec: &mut Vec<MessageElem>) {
         let At { target, display } = elem;

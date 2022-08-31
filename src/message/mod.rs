@@ -11,6 +11,7 @@ use image::Image;
 use ricq::msg::elem::RQElem;
 use ricq::msg::{MessageElem, PushElem};
 use ricq::structs::{FriendMessage, GroupMessage};
+use std::fmt::{Debug, Formatter};
 use std::vec;
 
 #[derive(Clone, Default)]
@@ -32,6 +33,18 @@ impl MessageChain {
 impl MetaMessage for MessageChain {
     fn metadata(&self) -> &MessageMetadata {
         &self.meta
+    }
+}
+
+impl ToString for MessageChain {
+    fn to_string(&self) -> String {
+        self.iter().map(|value| value.to_string()).collect()
+    }
+}
+
+impl Debug for MessageChain {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.to_string())
     }
 }
 
@@ -152,12 +165,34 @@ impl PushElem for MessageChain {
     }
 }
 
+const AT_ALL_INSTANCE: At = At {
+    target: 0,
+    display: String::new(),
+};
+
 #[derive(Clone)]
 pub enum MessageValue {
     Text(String),
     Image(Image),
     At(At),
+    AtAll,
     Unknown(RQElem),
+}
+
+impl ToString for MessageValue {
+    fn to_string(&self) -> String {
+        let mut s = String::new();
+        match self {
+            Self::Text(t) => s.push_str(t),
+            Self::Image(img) => s.push_str(&format!("[Image:{}]", img.url())),
+            Self::At(At { target, display }) => {
+                s.push_str(&format!("[At:{}({})]", display, target))
+            }
+            Self::AtAll => s.push_str("[AtAll]"),
+            Self::Unknown(rq) => s.push_str(&rq.to_string()),
+        }
+        s
+    }
 }
 
 impl From<String> for MessageValue {
@@ -174,9 +209,8 @@ impl From<MessageValue> for RQElem {
                 Image::Friend(img) => RQElem::FriendImage(img),
                 Image::Group(img) => RQElem::GroupImage(img),
             },
-            MessageValue::At(At { target, display }) => {
-                RQElem::At(ricq::msg::elem::At { target, display })
-            }
+            MessageValue::At(at) => RQElem::At(at.into()),
+            MessageValue::AtAll => RQElem::At(AT_ALL_INSTANCE.into()),
             MessageValue::Unknown(rq) => rq,
         }
     }
@@ -188,10 +222,16 @@ impl From<RQElem> for MessageValue {
             RQElem::Text(Text { content }) => MessageValue::Text(content),
             RQElem::GroupImage(img) => MessageValue::Image(Image::Group(img)),
             RQElem::FriendImage(img) => MessageValue::Image(Image::Friend(img)),
-            RQElem::At(at) => MessageValue::At(At {
-                target: at.target,
-                display: at.display,
-            }),
+            RQElem::At(at) => {
+                if at.target == 0 {
+                    MessageValue::AtAll
+                } else {
+                    MessageValue::At(At {
+                        target: at.target,
+                        display: at.display,
+                    })
+                }
+            }
             or => Self::Unknown(or),
         }
     }
@@ -203,6 +243,7 @@ impl PushElem for MessageValue {
             Self::Text(s) => PushElem::push_to(Text::new(s), vec),
             Self::Image(img) => PushElem::push_to(img, vec),
             Self::At(at) => PushElem::push_to(at, vec),
+            Self::AtAll => PushElem::push_to(AT_ALL_INSTANCE, vec),
             _ => {}
         }
     }

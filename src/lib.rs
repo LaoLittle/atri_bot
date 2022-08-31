@@ -25,7 +25,6 @@ pub mod contact;
 pub mod data;
 pub mod error;
 pub mod event;
-pub mod fun;
 pub mod macros;
 pub mod message;
 pub mod plugin;
