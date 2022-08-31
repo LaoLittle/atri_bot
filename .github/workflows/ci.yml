@@ -79,8 +79,8 @@ jobs:
           path: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq.exe
 
 
-  android-build:
-    name: Android-build
+  build-android:
+    name: Android
     runs-on: ubuntu-latest
 
     env:
