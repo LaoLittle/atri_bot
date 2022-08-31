@@ -7,17 +7,14 @@ use std::task::Poll;
 
 use std::time::Duration;
 
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::{io, signal};
-use tracing::{error, info};
-
-use atri_qq::event::listener::Listener;
-use atri_qq::event::GroupMessageEvent;
 use atri_qq::service::listeners::get_global_worker;
 use atri_qq::service::log::init_logger;
 use atri_qq::service::login::login_bots;
 use atri_qq::terminal::{handle_standard_output, start_read_input, PROMPT};
 use atri_qq::{get_listener_runtime, Atri};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::{io, signal};
+use tracing::{error, info};
 
 type MainResult = Result<(), Box<dyn Error>>;
 
@@ -30,11 +27,6 @@ fn main() -> MainResult {
     atri.plugin_manager.load_plugins()?;
 
     let runtime = &atri.global_runtime;
-
-    Listener::listening_on_always(|e: GroupMessageEvent| async move {
-        let msg = e.message();
-    })
-    .start();
 
     runtime.spawn(async {
         main0().await.expect("Error");

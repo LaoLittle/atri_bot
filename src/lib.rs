@@ -91,14 +91,12 @@ pub fn get_listener_runtime() -> &'static Runtime {
 
 pub struct App {
     bots: DashMap<i64, Bot>,
-    group_bot: DashMap<i64, i64>,
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
             bots: DashMap::new(),
-            group_bot: DashMap::new(),
         }
     }
 
@@ -110,28 +108,6 @@ impl App {
         }
 
         bots
-    }
-
-    pub fn group_bot(&self, group_id: i64) -> Option<i64> {
-        self.group_bot.get(&group_id).map(|r| *r.value())
-    }
-
-    pub fn set_group_bot(&self, group_id: i64, bot_id: i64) -> Option<i64> {
-        self.group_bot.insert(group_id, bot_id)
-    }
-
-    pub fn check_group_bot(&self, bot_id: i64, group_id: i64) -> bool {
-        let group_bot = self.group_bot(group_id);
-
-        if let Some(id) = group_bot {
-            if id != bot_id {
-                return false;
-            }
-        } else {
-            get_app().set_group_bot(group_id, bot_id);
-        }
-
-        true
     }
 
     pub(crate) fn add_bot(&self, bot: Bot) -> Option<Bot> {

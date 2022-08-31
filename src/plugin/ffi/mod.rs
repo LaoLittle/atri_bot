@@ -7,9 +7,6 @@ mod log;
 mod member;
 mod message;
 
-use atri_ffi::error::FFIResult;
-use std::ptr::null;
-
 use crate::plugin::ffi::bot::{
     bot_find_friend, bot_find_group, bot_get_friends, bot_get_groups, bot_get_id, bot_get_list,
     bot_get_nickname, find_bot,
@@ -24,6 +21,7 @@ use crate::plugin::ffi::group::{
     group_get_name, group_get_named_member, group_quit, group_send_message, group_upload_image,
 };
 use crate::plugin::ffi::listener::new_listener;
+use atri_ffi::error::FFIResult;
 
 use crate::plugin::cast_ref;
 use crate::plugin::ffi::friend::{
