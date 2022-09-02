@@ -61,9 +61,6 @@ git = "https://github.com/lz1998/ricq.git"
 version = "0.2.1"
 path = "atri_ffi"
 
-[dependencies.anyhow]
-version = "<= 1.0.59"
-
 [profile.release]
 lto = true
 strip = true
