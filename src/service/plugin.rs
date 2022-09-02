@@ -25,9 +25,9 @@ use crate::plugin::ffi::plugin_get_function;
 
 #[cfg(target_os = "macos")]
 const EXTENSION: &str = "dylib";
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 const EXTENSION: &str = "dll";
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(all(unix, not(target_os = "macos")))]
 const EXTENSION: &str = "so";
 
 pub struct PluginManager {
@@ -36,7 +36,7 @@ pub struct PluginManager {
     plugins_path: PathBuf,
     async_runtime: Runtime,
     _mark: PhantomPinned, // move in memory is unsafe because plugin have a pointer to it
-    _send: PhantomData<*const ()>, // !send because plugin is unknown
+    _send: PhantomData<*const ()>, // !send because plugin may not sendable
 }
 
 impl PluginManager {
@@ -91,6 +91,7 @@ impl PluginManager {
         if !plugins_path.is_dir() {
             fs::create_dir(&plugins_path)?;
         }
+
         unsafe {
             self.load_dependencies(&plugins_path)?;
         }
@@ -138,6 +139,7 @@ impl PluginManager {
                                             name
                                         );
                                         warn!("未加载插件{}", name);
+                                        continue;
                                     }
                                     Entry::Vacant(vac) => {
                                         vac.insert(p).enable();
@@ -217,7 +219,7 @@ impl PluginManager {
             }
         })
         .map_err(|_| {
-            AtriError::PluginLoadError(String::from("插件加载错误, 可能是插件发生了panic!"))
+            AtriError::PluginLoadError("插件加载错误, 可能是插件发生了panic!".into())
         })?;
 
         trace!("正在启用插件");

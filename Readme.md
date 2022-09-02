@@ -12,9 +12,10 @@ QQ群怎能少得了高性能亚托莉的身影呢？
 > 
 > ricq: 基于rust编写的qq协议
 - 部署快速，易于使用
+- 支持加载原生动态库插件, 高性能低占用
 
 ## 部署
-使用登陆帮助程序[rq_login](https://github.com/LaoLittle/rq_login)登陆后得到device和token，
+使用登陆帮助程序[atri_login](https://github.com/LaoLittle/atri_login)登陆后得到device和token，
 放入bots文件夹内，然后配置登陆信息(位于`service/login.toml`)即可
 
 ## TODO
