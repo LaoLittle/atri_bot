@@ -177,15 +177,11 @@ impl PluginManager {
         let (atri_manager_init, on_init) = unsafe {
             (
                 *lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")
-                    .map_err(|_| {
-                        AtriError::PluginInitializeError(
-                            "无法找到插件初始化函数'atri_manager_init', 或许这不是一个插件",
-                        )
-                    })?,
+                    .or(Err(AtriError::PluginInitializeError(
+                        "无法找到插件初始化函数'atri_manager_init', 或许这不是一个插件",
+                    )))?,
                 *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")
-                    .map_err(|_| {
-                        AtriError::PluginInitializeError("无法找到插件初始化函数'on_init'")
-                    })?,
+                    .or(Err(AtriError::PluginInitializeError("无法找到插件初始化函数'on_init', 或许是插件作者太粗心了?")))?
             )
         };
         let handle = atri_manager_init as usize;
