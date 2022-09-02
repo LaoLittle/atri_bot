@@ -211,8 +211,8 @@ impl PluginManager {
             Plugin {
                 enabled: AtomicBool::new(false),
                 instance: AtomicPtr::new(ptr),
-                should_drop,
                 vtb: plugin_instance.vtb,
+                should_drop,
                 handle,
                 drop_fn,
                 _lib: lib,
@@ -270,8 +270,8 @@ impl Default for PluginManager {
 pub struct Plugin {
     enabled: AtomicBool,
     instance: AtomicPtr<()>,
-    should_drop: bool,
     vtb: PluginVTable,
+    should_drop: bool,
     drop_fn: extern "C" fn(*mut ()),
     handle: usize,
     _lib: Library,

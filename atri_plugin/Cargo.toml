@@ -22,5 +22,5 @@ version = "0.2.1"
 path = "../atri_ffi"
 
 [dependencies.atri_macros]
-version = "0"
+version = "0.1.0"
 path = "../atri_macros"
