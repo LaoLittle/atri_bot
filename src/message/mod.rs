@@ -244,7 +244,9 @@ impl PushElem for MessageValue {
             Self::Image(img) => PushElem::push_to(img, vec),
             Self::At(at) => PushElem::push_to(at, vec),
             Self::AtAll => PushElem::push_to(AT_ALL_INSTANCE, vec),
-            _ => {}
+            Self::Unknown(_rq) => {
+
+            }
         }
     }
 }

@@ -1,0 +1,90 @@
+  on:
+    push:
+      tags: [ '*' ]
+  jobs:
+    release:
+      name: Release
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v3
+
+        - id: tag
+          uses: dawidd6/action-get-tag@v1
+
+        - name: Create Release
+          id: create_release
+          uses: actions/create-release@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
+
+          with:
+            tag_name: ${{ steps.tag.outputs.tag }}
+            release_name: ${{ steps.tag.outputs.tag }}
+
+            draft: true
+            prerelease: false
+
+      outputs:
+        tag: ${{ steps.tag.outputs.tag }}
+        #upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+    upload:
+      strategy:
+        fail-fast: false
+        matrix:
+          target:
+            - { name: Linux-x86, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
+            - { name: Linux-aarch64, os: ubuntu-latest, tool: aarch64-unknown-linux-musl }
+            - { name: macOS-x86, os: macos-latest, tool: x86_64-apple-darwin }
+            - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
+            - { name: Windows-x86, os: windows-2022, tool: x86_64-pc-windows-msvc }
+
+          version: [ nightly ]
+
+      name: ${{ matrix.target.name }}
+      needs: [ release ]
+      runs-on: ${{ matrix.target.os }}
+
+      env:
+        CI: 1
+        CARGO_INCREMENTAL: 0
+        build_version: release.yml
+        windows: ${{ startsWith(matrix.target.name, 'Windows') }}
+        linux: ${{ startsWith(matrix.target.name, 'Linux') }}
+
+      steps:
+        - uses: actions/checkout@v3
+
+        - if: ${{ endsWith(matrix.target.tool, 'musl') }}
+          run: sudo apt update && sudo apt install -y musl-tools musl-dev
+
+        - if: ${{ startsWith(matrix.target.tool, 'aarch64') && env.linux == 'true' }}
+          run: sudo apt install -y -qq gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
+
+        - name: Install rust toolchain
+          run: |
+            rustup default ${{ matrix.version }}
+            rustup target add ${{ matrix.target.tool }}
+
+        - name: Build
+          run: cargo build --target ${{ matrix.target.tool }} --${{ env.build_version }}
+          env:
+            CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+
+        - name: Upload
+          if: env.windows != 'true'
+          uses: svenstaro/upload-release-action@v2
+          with:
+            repo_token: ${{ secrets.GITHUB_TOKEN }}
+            tag: ${{ needs.release.outputs.tag }}
+            file: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq
+            asset_name: atri_qq-${{ matrix.target.tool }}
+
+        - name: Upload exe
+          if: env.windows == 'true'
+          uses: svenstaro/upload-release-action@v2
+          with:
+            repo_token: ${{ secrets.GITHUB_TOKEN }}
+            tag: ${{ needs.release.outputs.tag }}
+            file: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq.exe
+            asset_name: atri_qq-${{ matrix.target.tool }}.exe
