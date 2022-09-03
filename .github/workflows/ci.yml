@@ -4,9 +4,6 @@ on:
   push:
     branches: [ master ]
 
-  pull_request:
-    branches: [ master ]
-
 jobs:
   build:
     strategy:
@@ -15,8 +12,10 @@ jobs:
         target:
           - { name: Linux-x86, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
           - { name: Linux-aarch64, os: ubuntu-latest, tool: aarch64-unknown-linux-musl }
+          - { name: Linux-mips, os: ubuntu-latest, tool: mips64-unknown-linux-musl }
           - { name: macOS-x86, os: macos-latest, tool: x86_64-apple-darwin }
           - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
+          - { name: iOS-aarch64, os: macos-latest, tool: aarch64-apple-ios }
           - { name: Windows-x86, os: windows-2022, tool: x86_64-pc-windows-msvc }
           - { name: Windows-aarch64, os: windows-2022, tool: aarch64-pc-windows-msvc }
 
@@ -39,7 +38,10 @@ jobs:
         run: sudo apt update && sudo apt install -y musl-tools musl-dev
 
       - if: ${{ startsWith(matrix.target.tool, 'aarch64') && env.linux == 'true' }}
-        run: sudo apt install -y -qq gcc-aarch64-linux-gnu:amd64 g++-aarch64-linux-gnu:amd64
+        run: sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
+
+      - if: ${{ startsWith(matrix.target.tool, 'mips') && env.linux == 'true' }}
+        run: sudo apt update && sudo apt install -y gcc-mips-linux-gnu
 
       - name: Install rust toolchain
         run: |
