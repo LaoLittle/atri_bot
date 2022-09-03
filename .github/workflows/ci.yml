@@ -12,7 +12,7 @@ jobs:
         target:
           - { name: Linux-x86, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
           - { name: Linux-aarch64, os: ubuntu-latest, tool: aarch64-unknown-linux-musl }
-          - { name: Linux-mips, os: ubuntu-latest, tool: mips-unknown-linux-musl }
+          - { name: Linux-mips64, os: ubuntu-latest, tool: mips64-unknown-linux-muslabi64 }
           - { name: macOS-x86, os: macos-latest, tool: x86_64-apple-darwin }
           - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
           - { name: iOS-aarch64, os: macos-latest, tool: aarch64-apple-ios }
@@ -27,7 +27,7 @@ jobs:
     env:
       CI: 1
       CARGO_INCREMENTAL: 0
-      build_version: release
+      build_version: debug
       windows: ${{ startsWith(matrix.target.name, 'Windows') }}
       linux: ${{ startsWith(matrix.target.name, 'Linux') }}
 
@@ -41,7 +41,7 @@ jobs:
         run: sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
 
       - if: ${{ startsWith(matrix.target.tool, 'mips') && env.linux == 'true' }}
-        run: sudo apt update && sudo apt install -y gcc-mips-linux-gnu
+        run: sudo apt update && sudo apt install -y gcc-mips64-linux-gnuabi64
 
       - name: Install rust toolchain
         run: |
@@ -122,14 +122,14 @@ jobs:
         run: cargo test
 
       - name: Build Android X64
-        run: cargo build --target x86_64-linux-android --release
+        run: cargo build --target x86_64-linux-android
         env:
           CC_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang
           CXX_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang++
           CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: x86_64-linux-android26-clang
 
       - name: Build Android ARM64
-        run: cargo build --target aarch64-linux-android --release
+        run: cargo build --target aarch64-linux-android
         env:
           CC_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang
           CXX_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang++
@@ -139,10 +139,10 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-aarch64-linux-android
-          path: target/aarch64-linux-android/release/atri_qq
+          path: target/aarch64-linux-android/debug/atri_qq
 
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-x86_64-linux-android
-          path: target/x86_64-linux-android/release/atri_qq
+          path: target/x86_64-linux-android/debug/atri_qq
