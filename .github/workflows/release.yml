@@ -5,32 +5,6 @@ on:
     tags: [ '*' ]
 jobs:
   release:
-    name: Release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - id: tag
-        uses: dawidd6/action-get-tag@v1
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN  }}
-
-        with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          release_name: ${{ steps.tag.outputs.tag }}
-
-          draft: true
-          prerelease: false
-
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
-      #upload_url: ${{ steps.create_release.outputs.upload_url }}
-
-  upload:
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +18,6 @@ jobs:
         version: [ nightly ]
 
     name: ${{ matrix.target.name }}
-    needs: [ release ]
     runs-on: ${{ matrix.target.os }}
 
     env:
@@ -78,7 +51,6 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ needs.release.outputs.tag }}
           file: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq
           asset_name: atri_qq-${{ matrix.target.tool }}
 
@@ -87,7 +59,6 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ needs.release.outputs.tag }}
           file: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq.exe
           asset_name: atri_qq-${{ matrix.target.tool }}.exe
 
@@ -147,7 +118,6 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ needs.release.outputs.tag }}
           file: target/aarch64-linux-android/release/atri_qq
           asset_name: atri_qq-aarch64-linux-android
 
@@ -155,6 +125,5 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ needs.release.outputs.tag }}
           file: target/x86_64-linux-android/release/atri_qq
           asset_name: atri_qq-x86_64-linux-android
