@@ -50,7 +50,7 @@ jobs:
     env:
       CI: 1
       CARGO_INCREMENTAL: 0
-      build_version: release.yml
+      build_version: release
       windows: ${{ startsWith(matrix.target.name, 'Windows') }}
       linux: ${{ startsWith(matrix.target.name, 'Linux') }}
 
