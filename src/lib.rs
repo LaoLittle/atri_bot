@@ -46,14 +46,14 @@ impl Atri {
             .build()
             .unwrap();
 
-        let listener_runtime = runtime::Builder::new_multi_thread()
+        let _listener_runtime = runtime::Builder::new_multi_thread()
             .worker_threads(8)
             .thread_name("Listeners")
             .enable_all()
             .build()
             .unwrap();
 
-        let listener_worker = ListenerWorker::new();
+        let _listener_worker = ListenerWorker::new();
 
         Self {
             global_runtime,
