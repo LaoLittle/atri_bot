@@ -27,7 +27,6 @@ jobs:
     env:
       CI: 1
       CARGO_INCREMENTAL: 0
-      build_version: debug
       windows: ${{ startsWith(matrix.target.name, 'Windows') }}
       linux: ${{ startsWith(matrix.target.name, 'Linux') }}
 
@@ -52,9 +51,10 @@ jobs:
         run: cargo test
 
       - name: Build
-        run: cargo build --target ${{ matrix.target.tool }} --${{ env.build_version }}
+        run: cargo build --target ${{ matrix.target.tool }}
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
+          CARGO_TARGET_MIPS64_UNKNOWN_LINUX_MUSLABI64_LINKER: mips64-linux-gnuabi64-gcc
 
       #- if: matrix.target.tool != 'x86_64-pc-windows-msvc'
       #  run: |
@@ -66,7 +66,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-${{ matrix.target.tool }}
-          path: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq
+          path: target/${{ matrix.target.tool }}/debug/atri_qq
 
       #- if: matrix.target.tool == 'x86_64-pc-windows-msvc'
       #  run: |
