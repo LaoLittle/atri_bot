@@ -181,7 +181,9 @@ impl PluginManager {
                         "无法找到插件初始化函数'atri_manager_init', 或许这不是一个插件",
                     )))?,
                 *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")
-                    .or(Err(AtriError::PluginInitializeError("无法找到插件初始化函数'on_init', 或许是插件作者太粗心了?")))?
+                    .or(Err(AtriError::PluginInitializeError(
+                        "无法找到插件初始化函数'on_init', 或许是插件作者太粗心了?",
+                    )))?,
             )
         };
         let handle = atri_manager_init as usize;
@@ -214,9 +216,7 @@ impl PluginManager {
                 _lib: lib,
             }
         })
-        .map_err(|_| {
-            AtriError::PluginLoadError("插件加载错误, 可能是插件发生了panic!".into())
-        })?;
+        .map_err(|_| AtriError::PluginLoadError("插件加载错误, 可能是插件发生了panic!".into()))?;
 
         trace!("正在启用插件");
 

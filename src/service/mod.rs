@@ -3,11 +3,11 @@ use std::fs::File;
 
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
-use std::{fs, io, mem};
+use std::sync::OnceLock;
+use std::{fs, io};
 
 use serde::{Deserialize, Serialize};
-use tracing::{error, info};
+use tracing::error;
 
 pub mod command;
 pub mod listeners;
@@ -27,22 +27,17 @@ fn get_service_path() -> &'static PathBuf {
 pub struct Service {
     name: String,
     path: PathBuf,
-    handler: Box<dyn ServiceHandler>,
 }
 
 impl Service {
     pub fn new<S: ToString>(name: S) -> Self {
         let name = name.to_string();
         let mut p = get_service_path().clone();
-        let mut s = String::from(&name);
+        let mut s = name.clone();
         p.push(&s);
         s.push_str(".toml");
         p.push(&s);
-        Self {
-            name,
-            path: p,
-            handler: Box::new(()),
-        }
+        Self { name, path: p }
     }
 
     pub fn with_path<P: AsRef<Path>>(&mut self, path: P) {
@@ -51,13 +46,6 @@ impl Service {
             fs::create_dir_all(path).unwrap();
         }
         self.path = path.join(format!("{}.toml", self.name()));
-    }
-
-    pub fn with_handler<H: ServiceHandler>(&mut self, handler: H) -> &mut Self {
-        let handler: Box<dyn ServiceHandler> = Box::new(handler);
-
-        self.handler = handler;
-        self
     }
 
     pub fn name(&self) -> &str {
@@ -70,7 +58,7 @@ impl Service {
     {
         fn _read_config<T>(path: &Path) -> Result<T, Box<dyn Error>>
         where
-            for<'a> T: Serialize + Deserialize<'a> + Default,
+            for<'de> T: Serialize + Deserialize<'de> + Default,
         {
             let exist = path.is_file();
 
@@ -135,35 +123,5 @@ impl Service {
         if let Err(e) = _write_config(&self.path, data) {
             error!("写入配置文件({:?})时发生意料之外的错误: {}", self.path, e);
         }
-    }
-
-    pub fn start(self) -> Arc<Self> {
-        info!("正在启动{}服务", self.name);
-        let arc = Arc::new(self);
-        arc.handler.on_start(&arc);
-        arc
-    }
-}
-
-impl Drop for Service {
-    fn drop(&mut self) {
-        let mut handler: Box<dyn ServiceHandler> = Box::new(());
-        mem::swap(&mut handler, &mut self.handler);
-        handler.on_close(self);
-    }
-}
-
-pub trait ServiceHandler: 'static {
-    fn on_start(&self, service: &Arc<Service>);
-
-    fn on_close(&mut self, service: &Service) {
-        //nop
-        let _ = service;
-    }
-}
-
-impl ServiceHandler for () {
-    fn on_start(&self, _: &Arc<Service>) {
-        //nop
     }
 }
