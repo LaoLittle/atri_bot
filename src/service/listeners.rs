@@ -9,7 +9,7 @@ use crate::{Event, Listener};
 type LimitedListeners = LinkedList<Arc<RwLock<Option<Arc<Listener>>>>>;
 
 pub struct ListenerWorker {
-    listeners: Vec<LimitedListeners>,
+    listeners: [LimitedListeners; 5],
     listener_rx: Mutex<tokio::sync::mpsc::Receiver<Arc<Listener>>>,
     listener_tx: tokio::sync::mpsc::Sender<Arc<Listener>>,
     closed: AtomicBool,
@@ -17,11 +17,13 @@ pub struct ListenerWorker {
 
 impl ListenerWorker {
     pub fn new() -> Self {
-        let mut listeners = vec![];
-
-        for _ in 0..5 {
-            listeners.push(LinkedList::new())
-        }
+        let mut listeners = [
+            LinkedList::new(),
+            LinkedList::new(),
+            LinkedList::new(),
+            LinkedList::new(),
+            LinkedList::new(),
+        ];
 
         let (tx, rx) = tokio::sync::mpsc::channel(10);
 
@@ -61,7 +63,7 @@ impl ListenerWorker {
                         };
 
                         if let Some(ref mutex) = listener.concurrent_mutex {
-                            mutex.lock().await;
+                            let _ = mutex.lock().await;
                         }
 
                         if listener.closed.load(Ordering::Acquire) {
