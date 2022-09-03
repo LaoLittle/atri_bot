@@ -90,3 +90,74 @@ jobs:
           tag: ${{ needs.release.outputs.tag }}
           file: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq.exe
           asset_name: atri_qq-${{ matrix.target.tool }}.exe
+
+  release-android:
+    name: Android
+    needs: [ release ]
+    runs-on: ubuntu-latest
+
+    env:
+      CI: 1
+      CARGO_INCREMENTAL: 0
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install rust toolchain
+        run: |
+          rustup default nightly
+          rustup target add x86_64-linux-android
+          rustup target add aarch64-linux-android
+
+      - name: Install NDK
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25
+
+      - name: Set Android NDK ToolChains Path
+        run: |
+          echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+          echo ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin >> $GITHUB_PATH
+
+      - name: Set libgcc
+        run: |
+          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/aarch64/libgcc.a
+          INPUT(-lunwind)
+          EOF
+          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/x86_64/libgcc.a
+          INPUT(-lunwind)
+          EOF
+
+      - name: Test
+        run: cargo test
+
+      - name: Build Android X64
+        run: cargo build --target x86_64-linux-android --release
+        env:
+          CC_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang
+          CXX_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang++
+          CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: x86_64-linux-android26-clang
+
+      - name: Build Android ARM64
+        run: cargo build --target aarch64-linux-android --release
+        env:
+          CC_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang
+          CXX_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang++
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: aarch64-linux-android26-clang
+
+      - name: Upload aarch64
+        uses: actions/upload-artifact@v3
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.release.outputs.tag }}
+          file: target/aarch64-linux-android/release/atri_qq
+          asset_name: atri_qq-aarch64-linux-android
+
+      - name: Upload x86_64
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.release.outputs.tag }}
+          file: target/x86_64-linux-android/release/atri_qq
+          asset_name: atri_qq-x86_64-linux-android
