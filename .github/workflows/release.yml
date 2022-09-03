@@ -147,7 +147,7 @@ jobs:
           CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: aarch64-linux-android26-clang
 
       - name: Upload aarch64
-        uses: actions/upload-artifact@v3
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ needs.release.outputs.tag }}
