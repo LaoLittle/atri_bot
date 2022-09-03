@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::ffi::c_int;
 use std::io::{stdout, Write};
+use std::mem;
+use std::ops::DerefMut;
 use std::sync::RwLock;
 
 use crossterm::cursor::MoveToColumn;
@@ -145,14 +147,18 @@ pub fn start_read_input() -> Result<(), Box<dyn Error>> {
                         };
                     }
                     KeyCode::Enter => {
-                        let rl = INPUT_BUFFER.read()?;
+                        let input = {
+                            let mut wl = INPUT_BUFFER.write()?;
+                            let s = mem::take(wl.deref_mut());
+                            wl.clear();
+                            s
+                        };
 
                         let mut stdout = stdout().lock();
-                        //execute!(stdout, MoveToNextLine(1))?;
                         stdout.write_all(b"\n")?;
                         stdout.flush()?;
 
-                        let cmd = rl.trim_end();
+                        let cmd = input.trim_end();
                         match cmd {
                             "" => {
                                 // nothing to do
@@ -174,8 +180,6 @@ pub fn start_read_input() -> Result<(), Box<dyn Error>> {
                             }
                         }
 
-                        drop(rl);
-                        INPUT_BUFFER.write()?.clear();
                         stdout.write_all(PROMPT)?;
                         stdout.flush()?;
                     }
