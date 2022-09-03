@@ -14,6 +14,7 @@ jobs:
           - { name: macOS-x86, os: macos-latest, tool: x86_64-apple-darwin }
           - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
           - { name: Windows-x86, os: windows-2022, tool: x86_64-pc-windows-msvc }
+          - { name: Windows-aarch64, os: windows-2022, tool: aarch64-pc-windows-msvc }
 
         version: [ nightly ]
 
