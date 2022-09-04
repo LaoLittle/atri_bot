@@ -134,67 +134,65 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
 
     while let Ok(e) = event::read() {
         match e {
-            Event::Key(k) => {
-                match k.code {
-                    KeyCode::Char(c) => {
-                        INPUT_BUFFER.write()?.push(c);
+            Event::Key(k) => match k.code {
+                KeyCode::Char(c) => {
+                    INPUT_BUFFER.write()?.push(c);
+                    let mut stdout = stdout().lock();
+                    stdout.write_all(&[c as u8])?;
+                    stdout.flush()?;
+                }
+                KeyCode::Backspace => {
+                    if let Some(_) = INPUT_BUFFER.write()?.pop() {
                         let mut stdout = stdout().lock();
-                        stdout.write_all(&[c as u8])?;
+                        stdout.write_all(&[8, b' ', 8])?;
                         stdout.flush()?;
-                    }
-                    KeyCode::Backspace => {
-                        if let Some(_) = INPUT_BUFFER.write()?.pop() {
-                            let mut stdout = stdout().lock();
-                            stdout.write_all(&[8, b' ', 8])?;
+                    };
+                }
+                KeyCode::Enter => {
+                    let input = {
+                        let mut wl = INPUT_BUFFER.write()?;
+                        let s = mem::take(wl.deref_mut());
+                        wl.clear();
+                        s
+                    };
+
+                    let mut stdout = stdout().lock();
+                    stdout.write_all(b"\n")?;
+                    stdout.flush()?;
+
+                    let cmd = input.trim_end();
+                    match cmd {
+                        "" => {
+                            stdout.write_all(PROMPT)?;
                             stdout.flush()?;
-                        };
-                    }
-                    KeyCode::Enter => {
-                        let input = {
-                            let mut wl = INPUT_BUFFER.write()?;
-                            let s = mem::take(wl.deref_mut());
-                            wl.clear();
-                            s
-                        };
+                        }
+                        "help" | "?" => {
+                            static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
 
-                        let mut stdout = stdout().lock();
-                        stdout.write_all(b"\n")?;
-                        stdout.flush()?;
-
-                        let cmd = input.trim_end();
-                        match cmd {
-                            "" => {
-                                stdout.write_all(PROMPT)?;
-                                stdout.flush()?;
+                            let mut s = String::from('\n');
+                            for &info in INFOS {
+                                s.push_str(info);
+                                s.push('\n');
                             }
-                            "help" | "?" => {
-                                static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
-
-                                let mut s = String::from('\n');
-                                for &info in INFOS {
-                                    s.push_str(info);
-                                    s.push('\n');
-                                }
-                                s.pop();
-                                info!("{}", s);
-                            }
-                            "exit" | "quit" | "stop" => {
-                                info!("正在停止AtriQQ");
-                                break;
-                            }
-                            plugin if plugin.starts_with(PLUGIN_COMMAND) => {
-                                if let Err(e) = handle_plugin_command(plugin, manager) {
-                                    error!("{}", e);
-                                }
-                            }
-                            _ => {
-                                info!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
+                            s.pop();
+                            info!("{}", s);
+                        }
+                        "exit" | "quit" | "stop" => {
+                            info!("正在停止AtriQQ");
+                            break;
+                        }
+                        plugin if plugin.starts_with(PLUGIN_COMMAND) => {
+                            if let Err(e) = handle_plugin_command(plugin, manager) {
+                                error!("{}", e);
                             }
                         }
+                        _ => {
+                            info!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
+                        }
                     }
-                    _ => {}
                 }
-            }
+                _ => {}
+            },
             Event::Paste(s) => {
                 INPUT_BUFFER.write()?.push_str(&s);
                 let mut stdout = stdout().lock();

@@ -1,10 +1,10 @@
-use std::collections::hash_map::Entry;
 use crate::PluginManager;
+use std::collections::hash_map::Entry;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::mem;
 use std::str::FromStr;
-use tracing::{error, info};
+use tracing::info;
 
 pub trait Command {
     fn handle(&self) {}
@@ -18,7 +18,7 @@ pub trait Command {
 pub enum CommandError {
     UnknownArgument(String),
     MissingField(&'static str),
-    ExecuteError(String)
+    ExecuteError(String),
 }
 
 impl Display for CommandError {
@@ -54,9 +54,13 @@ pub fn handle_plugin_command(
             info!("已加载的插件: {}", s);
         }
         "load" => {
-            let &name = args.get(1).ok_or(CommandError::MissingField("Plugin name"))?;
+            let &name = args
+                .get(1)
+                .ok_or(CommandError::MissingField("Plugin name"))?;
             let path = manager.plugins_path().join(name);
-            let plugin = manager.load_plugin(path).map_err(|e| CommandError::ExecuteError(e.to_string()))?;
+            let plugin = manager
+                .load_plugin(path)
+                .map_err(|e| CommandError::ExecuteError(e.to_string()))?;
             match manager.plugins.entry(plugin.handle()) {
                 Entry::Vacant(vac) => {
                     vac.insert(plugin).enable();
@@ -65,14 +69,22 @@ pub fn handle_plugin_command(
             }
         }
         "unload" => {
-            let &id = args.get(1).ok_or(CommandError::MissingField("Plugin name"))?;
-            let id = usize::from_str(id).map_err(|e| CommandError::UnknownArgument(e.to_string()))?;
-            manager.plugins.remove(&id).ok_or(CommandError::ExecuteError("未找到插件".into()))?;
+            let &id = args
+                .get(1)
+                .ok_or(CommandError::MissingField("Plugin name"))?;
+            let id =
+                usize::from_str(id).map_err(|e| CommandError::UnknownArgument(e.to_string()))?;
+            manager
+                .plugins
+                .remove(&id)
+                .ok_or(CommandError::ExecuteError("未找到插件".into()))?;
             info!("成功卸载插件");
         }
         "reloadAll" => {
             drop(mem::take(&mut manager.plugins));
-            manager.load_plugins().map_err(|e| CommandError::ExecuteError(e.to_string()))?;
+            manager
+                .load_plugins()
+                .map_err(|e| CommandError::ExecuteError(e.to_string()))?;
         }
         _ => {}
     }

@@ -14,4 +14,4 @@ pub fn bots_dir_path() -> &'static Path {
     Path::new(BOTS_PATH)
 }
 
-const DEFAULT_CONFIG_PATH: &str = "config";
+const _DEFAULT_CONFIG_PATH: &str = "config";

@@ -7,7 +7,7 @@ pub extern "C" fn image_get_id(img: *const ()) -> RustStr {
     RustStr::from(img.id())
 }
 
-pub extern "C" fn image_to_flash(img: Managed) {
+pub extern "C" fn _image_to_flash(img: Managed) {
     let img: Image = img.into_value();
     img.flash();
 }

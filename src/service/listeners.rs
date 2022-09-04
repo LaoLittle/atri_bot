@@ -17,7 +17,7 @@ pub struct ListenerWorker {
 
 impl ListenerWorker {
     pub fn new() -> Self {
-        let mut listeners = [
+        let listeners = [
             LinkedList::new(),
             LinkedList::new(),
             LinkedList::new(),

@@ -165,7 +165,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 if member == bot.id() {
                 } else {
-                    let member = group.get_named_member(e.inner.member_uin).await;
+                    let _member = group.get_named_member(e.inner.member_uin).await;
                 }
 
                 Event::Unknown(EventInner::<QEvent>::from(QEvent::NewMember(e)))
