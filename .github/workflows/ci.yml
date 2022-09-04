@@ -36,6 +36,7 @@ jobs:
 
       - name: Apt update
         if: ${{ startsWith(matrix.target.os, 'ubuntu') }}
+        run: sudo apt update
 
       - if: ${{ endsWith(matrix.target.tool, 'musl') }}
         run: sudo apt install -y musl-tools musl-dev
