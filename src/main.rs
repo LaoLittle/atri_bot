@@ -1,9 +1,6 @@
 extern crate core;
 
 use std::error::Error;
-use std::future::{poll_fn, Future};
-use std::pin::Pin;
-use std::task::Poll;
 
 use std::time::Duration;
 
@@ -35,30 +32,18 @@ fn main() -> MainResult {
     });
 
     runtime.block_on(async {
-        let mut loop_cli = loop_cli(&mut atri.plugin_manager);
-        let mut sig = signal::ctrl_c();
-
-        poll_fn(|ctx| {
-            let cli = unsafe { Pin::new_unchecked(&mut loop_cli) };
-            let sig = unsafe { Pin::new_unchecked(&mut sig) };
-
-            match (cli.poll(ctx), sig.poll(ctx)) {
-                (Poll::Pending, Poll::Pending) => Poll::Pending,
-                (Poll::Ready(Err(e)), _) => {
+        tokio::select! {
+            result = loop_cli(&mut atri.plugin_manager) => {
+                if let Err(e) = result {
                     error!("{}", e);
-                    Poll::Ready(())
                 }
-                (_, Poll::Ready(result)) => {
-                    if let Err(e) = result {
-                        error!("{}", e);
-                    }
-                    println!("正在中止AtriQQ");
-                    Poll::Ready(())
-                }
-                (_, _) => Poll::Ready(()),
             }
-        })
-        .await;
+            result = signal::ctrl_c() => {
+                if let Err(e) = result {
+                    error!("{}", e);
+                }
+            }
+        }
 
         Ok::<_, Box<dyn Error>>(())
     })?;
