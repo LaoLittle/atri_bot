@@ -39,7 +39,7 @@ jobs:
       - if: ${{ startsWith(matrix.target.tool, 'aarch64') && env.linux == 'true' }}
         run: sudo apt update && sudo apt install -y gcc-aarch64-linux-gnu
 
-      - if: ${{ startsWith(matrix.target.tool, 'mips') && env.linux == 'true' }}
+      - if: ${{ startsWith(matrix.target.tool, 'mips64') && env.linux == 'true' }}
         run: sudo apt update && sudo apt install -y gcc-mips64-linux-gnuabi64
 
       - name: Install rust toolchain
@@ -97,7 +97,7 @@ jobs:
           rustup default nightly
           rustup target add x86_64-linux-android
           rustup target add aarch64-linux-android
-          
+
       - name: Install NDK
         id: setup-ndk
         uses: nttld/setup-ndk@v1
