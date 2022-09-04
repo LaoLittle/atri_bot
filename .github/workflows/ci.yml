@@ -78,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-${{ matrix.target.tool }}.exe
-          path: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq.exe
+          path: target/${{ matrix.target.tool }}/debug/atri_qq.exe
 
 
   build-android:
