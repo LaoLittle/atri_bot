@@ -48,7 +48,7 @@ jobs:
         run: sudo apt install -y gcc-mips64-linux-gnuabi64
 
       - if: ${{ startsWith(matrix.target.tool, 'powerpc64') && env.linux == 'true' }}
-        run: ssudo apt install -y gcc-powerpc64-linux-gnu
+        run: sudo apt install -y gcc-powerpc64-linux-gnu
 
       - name: Install rust toolchain
         run: |
