@@ -22,7 +22,7 @@ struct MyPlugin {
 
 为其实现`Plugin`
 ```rust
-use atri_plugin::Plugin
+use atri_plugin::Plugin;
 impl Plugin for MyPlugin {
     fn new() -> Self {
         Self { listener: None }
@@ -57,7 +57,7 @@ impl Plugin for MyPlugin {
 最后, 将`cargo build`编译得到的动态库放入`AtriQQ`的`plugins`文件夹内,
 开启`AtriQQ`即可
 
-详细文档另请参阅本crate源码doc
+详细文档另请参阅本crate源码
 
 ### 插件依赖
 所有的插件依赖都应被放入`plugins/dependencies`文件夹内,
