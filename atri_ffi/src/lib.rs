@@ -55,9 +55,8 @@ impl Managed {
     }
 
     pub fn into_value<T>(self) -> T {
-        let ptr = self.pointer;
-        mem::forget(self);
-        *unsafe { Box::from_raw(ptr as _) }
+        let ma = ManuallyDrop::new(self);
+        *unsafe { Box::from_raw(ma.pointer as _) }
     }
 
     /// for option
@@ -210,10 +209,7 @@ impl From<&str> for RustStr {
 
 impl AsRef<str> for RustStr {
     fn as_ref(&self) -> &str {
-        unsafe {
-            let slice = slice::from_raw_parts(self.slice, self.len);
-            std::str::from_utf8_unchecked(slice)
-        }
+        self.as_str()
     }
 }
 

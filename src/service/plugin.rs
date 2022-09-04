@@ -31,7 +31,7 @@ const EXTENSION: &str = "dll";
 const EXTENSION: &str = "so";
 
 pub struct PluginManager {
-    plugins: HashMap<usize, Plugin>,
+    pub(crate) plugins: HashMap<usize, Plugin>,
     dependencies: Vec<Library>,
     plugins_path: PathBuf,
     async_runtime: Runtime,
@@ -65,6 +65,10 @@ impl PluginManager {
 
     pub fn async_runtime(&self) -> &Runtime {
         &self.async_runtime
+    }
+
+    pub fn plugins(&self) -> Vec<&Plugin> {
+        self.plugins.iter().map(|(_, p)| p).collect()
     }
 
     pub fn plugins_path(&self) -> &Path {
@@ -165,7 +169,7 @@ impl PluginManager {
         Ok(())
     }
 
-    fn load_plugin<P: AsRef<OsStr>>(&self, path: P) -> Result<Plugin, AtriError> {
+    pub fn load_plugin<P: AsRef<OsStr>>(&self, path: P) -> Result<Plugin, AtriError> {
         trace!("正在加载插件动态库");
 
         let ptr = self as *const PluginManager as usize;
@@ -301,7 +305,10 @@ impl Plugin {
                 Ok(_) => {
                     (self.vtb.enable)(new_instance);
                 }
-                Err(_) => return false,
+                Err(_) => {
+                    (self.drop_fn)(new_instance);
+                    return false;
+                }
             }
         } else {
             (self.vtb.enable)(self.instance.load(Ordering::Relaxed));
@@ -328,6 +335,10 @@ impl Plugin {
         }
 
         true
+    }
+
+    pub fn handle(&self) -> usize {
+        self.handle
     }
 
     pub fn should_drop(&self) -> bool {

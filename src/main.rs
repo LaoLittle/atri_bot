@@ -7,9 +7,11 @@ use std::task::Poll;
 
 use std::time::Duration;
 
+use atri_qq::service::command::{handle_plugin_command, PLUGIN_COMMAND};
 use atri_qq::service::listeners::get_global_worker;
 use atri_qq::service::log::init_logger;
 use atri_qq::service::login::login_bots;
+use atri_qq::service::plugin::PluginManager;
 use atri_qq::terminal::{handle_standard_output, start_read_input, PROMPT};
 use atri_qq::{get_listener_runtime, Atri};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -33,7 +35,7 @@ fn main() -> MainResult {
     });
 
     runtime.block_on(async {
-        let mut loop_cli = loop_cli();
+        let mut loop_cli = loop_cli(&mut atri.plugin_manager);
         let mut sig = signal::ctrl_c();
 
         poll_fn(|ctx| {
@@ -75,20 +77,10 @@ async fn main0() -> MainResult {
     Ok(())
 }
 
-async fn loop_cli() -> MainResult {
+async fn loop_cli(manager: &mut PluginManager) -> MainResult {
     info!("已启动AtriQQ");
 
-    let input = tokio::task::spawn_blocking(|| {
-        if let Err(e) = start_read_input() {
-            error!("初始化命令行服务异常: {}, 命令行可能不会正常工作", e);
-            return false;
-        }
-
-        true
-    });
-
-    tokio::task::yield_now().await;
-    let _handle = tokio::task::spawn_blocking(|| {
+    let _out = tokio::task::spawn_blocking(|| {
         if let Err(e) = handle_standard_output() {
             error!("接管Stdout失败: {}", e);
             return false;
@@ -97,7 +89,9 @@ async fn loop_cli() -> MainResult {
         true
     });
 
-    if !input.await? {
+    if let Err(e) = start_read_input(manager) {
+        error!("初始化命令行服务异常: {}, 命令行可能不会正常工作", e);
+
         let stdin = io::stdin();
         let mut stdin = BufReader::new(stdin);
         let mut stdout = io::stdout();
@@ -110,28 +104,35 @@ async fn loop_cli() -> MainResult {
 
             match cmd {
                 "" => {
-                    // nothing to do
+                    stdout.write_all(PROMPT).await?;
+                    stdout.flush().await?;
                 }
                 "help" | "?" => {
                     static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
 
+                    let mut s = String::from('\n');
                     for &info in INFOS {
-                        stdout.write_all(info.as_bytes()).await?;
-                        stdout.write_u8(b'\n').await?;
+                        s.push_str(info);
+                        s.push('\n');
                     }
+                    s.pop();
+                    info!("{}", s);
                 }
                 "exit" | "quit" | "stop" => {
-                    println!("正在停止AtriQQ");
+                    info!("正在停止AtriQQ");
                     break;
                 }
+                plugin if plugin.starts_with(PLUGIN_COMMAND) => {
+                    if let Err(e) = handle_plugin_command(plugin, manager) {
+                        error!("{}", e);
+                    }
+                }
                 _ => {
-                    println!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
+                    info!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
                 }
             }
-            stdout.write_all(PROMPT).await?;
-            stdout.flush().await?;
         }
-    };
+    }
 
     Ok(())
 }

@@ -5,12 +5,15 @@ use std::mem;
 use std::ops::DerefMut;
 use std::sync::RwLock;
 
+use crate::service::command::{handle_plugin_command, PLUGIN_COMMAND};
+use crate::PluginManager;
 use crossterm::cursor::MoveToColumn;
 use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, KeyCode};
 use crossterm::style::Print;
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{event, execute};
 use event::Event;
+use tracing::{error, info};
 
 pub static OUTPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
 
@@ -124,7 +127,7 @@ pub fn handle_standard_output() -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn start_read_input() -> Result<(), Box<dyn Error>> {
+pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
 
     let _ = execute!(stdout(), EnableBracketedPaste);
@@ -161,27 +164,33 @@ pub fn start_read_input() -> Result<(), Box<dyn Error>> {
                         let cmd = input.trim_end();
                         match cmd {
                             "" => {
-                                // nothing to do
+                                stdout.write_all(PROMPT)?;
+                                stdout.flush()?;
                             }
                             "help" | "?" => {
                                 static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
 
+                                let mut s = String::from('\n');
                                 for &info in INFOS {
-                                    stdout.write_all(info.as_bytes())?;
-                                    stdout.write_all(b"\n")?;
+                                    s.push_str(info);
+                                    s.push('\n');
                                 }
+                                s.pop();
+                                info!("{}", s);
                             }
                             "exit" | "quit" | "stop" => {
-                                println!("正在停止AtriQQ");
+                                info!("正在停止AtriQQ");
                                 break;
                             }
+                            plugin if plugin.starts_with(PLUGIN_COMMAND) => {
+                                if let Err(e) = handle_plugin_command(plugin, manager) {
+                                    error!("{}", e);
+                                }
+                            }
                             _ => {
-                                println!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
+                                info!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
                             }
                         }
-
-                        stdout.write_all(PROMPT)?;
-                        stdout.flush()?;
                     }
                     _ => {}
                 }
