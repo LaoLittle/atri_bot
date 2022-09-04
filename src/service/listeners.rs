@@ -48,7 +48,7 @@ impl ListenerWorker {
         let mut handlers = vec![];
         for list in &self.listeners {
             handlers.reserve(list.len());
-            for opt in list.iter().cloned() {
+            for opt in list.iter().map(Arc::clone) {
                 let event = event.clone();
                 let handle = tokio::spawn(async move {
                     let listener = {

@@ -101,7 +101,7 @@ pub fn handle_standard_output() -> std::io::Result<()> {
                 continue;
             }
 
-            let last = split.len().checked_sub(1).unwrap_or(0);
+            let last = split.len().saturating_sub(1);
             for (i, slice) in split.enumerate() {
                 if i == last {
                     if !slice.is_empty() {
@@ -142,7 +142,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                     stdout.flush()?;
                 }
                 KeyCode::Backspace => {
-                    if let Some(_) = INPUT_BUFFER.write()?.pop() {
+                    if INPUT_BUFFER.write()?.pop().is_some() {
                         let mut stdout = stdout().lock();
                         stdout.write_all(&[8, b' ', 8])?;
                         stdout.flush()?;
@@ -207,16 +207,4 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
 
     disable_raw_mode()?;
     Ok(())
-}
-
-pub struct AtriTerminal {
-    pub input_buffer: RwLock<String>,
-}
-
-impl AtriTerminal {
-    pub fn new() -> Self {
-        Self {
-            input_buffer: RwLock::new(String::new()),
-        }
-    }
 }

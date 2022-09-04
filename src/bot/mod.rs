@@ -274,7 +274,7 @@ mod imp {
                             let mut bak = file_p.as_os_str().to_owned();
                             bak.push(".bak");
                             let bak = Path::new(&bak);
-                            if let Err(_) = fs::copy(&file_p, &bak).await {
+                            if fs::copy(&file_p, &bak).await.is_err() {
                                 return device;
                             };
 

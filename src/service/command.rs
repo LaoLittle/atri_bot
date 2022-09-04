@@ -42,7 +42,7 @@ pub fn handle_plugin_command(
         .filter(|s| !s.is_empty())
         .collect();
 
-    match *args.get(0).ok_or(CommandError::MissingField(
+    match *args.first().ok_or(CommandError::MissingField(
         "load unload enable disable list",
     ))? {
         "list" => {
@@ -77,7 +77,7 @@ pub fn handle_plugin_command(
             manager
                 .plugins
                 .remove(&id)
-                .ok_or(CommandError::ExecuteError("未找到插件".into()))?;
+                .ok_or_else(|| CommandError::ExecuteError("未找到插件".into()))?;
             info!("成功卸载插件");
         }
         "reloadAll" => {

@@ -22,7 +22,7 @@ pub struct Listener {
 }
 
 impl Listener {
-    fn new<F, Fu>(handler: F) -> ListenerBuilder
+    fn new_listener<F, Fu>(handler: F) -> ListenerBuilder
     where
         F: Fn(Event) -> Fu,
         F: Send + 'static,
@@ -44,14 +44,14 @@ impl Listener {
         }
     }
 
-    fn new_always<F, Fu>(handler: F) -> ListenerBuilder
+    fn new_listener_always<F, Fu>(handler: F) -> ListenerBuilder
     where
         F: Fn(Event) -> Fu,
         F: Send + 'static,
         Fu: Future<Output = ()>,
         Fu: Send + 'static,
     {
-        Self::new(move |e: Event| {
+        Self::new_listener(move |e: Event| {
             let fu = handler(e);
             let b: Box<dyn Future<Output = bool> + Send + 'static> = Box::new(async move {
                 fu.await;
@@ -70,7 +70,7 @@ impl Listener {
         Fu: Send + 'static,
         E: FromEvent,
     {
-        Self::new(move |e: Event| {
+        Self::new_listener(move |e: Event| {
             let b: Box<dyn Future<Output = bool> + Send + 'static> =
                 if let Some(e) = E::from_event(e) {
                     let fu = handler(e);
@@ -91,7 +91,7 @@ impl Listener {
         Fu: Send + 'static,
         E: FromEvent,
     {
-        Self::new_always(move |e: Event| {
+        Self::new_listener_always(move |e: Event| {
             let b: Box<dyn Future<Output = ()> + Send + 'static> = if let Some(e) = E::from_event(e)
             {
                 let fu = handler(e);

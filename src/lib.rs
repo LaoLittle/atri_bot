@@ -119,7 +119,11 @@ impl App {
     }
 }
 
-pub fn app_receiver() {}
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 /*
 pub fn main_handler() {
     let guard = Listener::listening_on_always(|e: Event| async move {

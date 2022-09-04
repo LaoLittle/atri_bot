@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! check_group {
     ($e:tt) => {{
-        use crate::get_app;
+        use $crate::get_app;
         let group_id = $e.inner.group_code;
         let bot_id = $e.client.uin().await;
 
