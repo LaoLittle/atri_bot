@@ -25,8 +25,8 @@ pub struct Token {
 }
 
 impl From<ricq::client::Token> for Token {
-    fn from(rq: ricq::client::Token) -> Self {
-        let ricq::client::Token {
+    fn from(
+        ricq::client::Token {
             uin,
             d2,
             d2key,
@@ -37,8 +37,8 @@ impl From<ricq::client::Token> for Token {
             out_packet_session_id,
             tgtgt_key,
             wt_session_ticket_key,
-        } = rq;
-
+        }: ricq::client::Token,
+    ) -> Self {
         Self {
             uin,
             d2,

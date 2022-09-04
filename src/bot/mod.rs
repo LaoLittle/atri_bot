@@ -251,7 +251,7 @@ mod imp {
 
     impl Bot {
         pub async fn new(id: i64, conf: BotConfiguration) -> Self {
-            let work_dir = conf.get_work_dir(id);
+            let work_dir = conf.work_dir(id);
 
             if !work_dir.is_dir() {
                 fs::create_dir_all(&work_dir)
@@ -355,7 +355,7 @@ pub struct BotConfiguration {
 }
 
 impl BotConfiguration {
-    fn get_work_dir(&self, id: i64) -> PathBuf {
+    fn work_dir(&self, id: i64) -> PathBuf {
         self.work_dir
             .as_ref()
             .cloned()
