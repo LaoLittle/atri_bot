@@ -6,7 +6,9 @@ use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::meta::{
     FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
 };
-use atri_ffi::message::{AT, AT_ALL, FFIAt, FFIMessageChain, FFIMessageValue, IMAGE, MessageValueUnion, TEXT};
+use atri_ffi::message::{
+    FFIAt, FFIMessageChain, FFIMessageValue, MessageValueUnion, AT, AT_ALL, IMAGE, TEXT,
+};
 use atri_ffi::{RustString, RustVec};
 use std::mem::{ManuallyDrop, MaybeUninit};
 
@@ -61,9 +63,7 @@ impl ForFFI for MessageValue {
             },
             MessageValue::AtAll => FFIMessageValue {
                 t: AT_ALL,
-                union: MessageValueUnion {
-                    at_all: ()
-                }
+                union: MessageValueUnion { at_all: () },
             },
             MessageValue::Unknown(ma) => FFIMessageValue {
                 t: 255,

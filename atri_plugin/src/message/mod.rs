@@ -68,7 +68,9 @@ impl MessageValue {
         match self {
             Self::Text(text) => str.push_str(text),
             Self::Image(img) => str.push_str(&format!("[Image:{}]", img.url())),
-            Self::At(At { target, display }) => str.push_str(&format!("[At:{}({})]", target, display)),
+            Self::At(At { target, display }) => {
+                str.push_str(&format!("[At:{}({})]", target, display))
+            }
             Self::AtAll => str.push_str("[AtAll]"),
             Self::Unknown(_) => {}
         }

@@ -36,7 +36,7 @@ where
     ///
     /// 若为`false`，则插件只会在卸载时销毁实例
     fn should_drop() -> bool {
-        false
+        true
     }
 }
 
@@ -79,5 +79,9 @@ pub fn __get_instance<P: Plugin>(plugin: P) -> PluginInstance {
         disable: _disable::<P>,
     };
 
-    PluginInstance::from(instance, should_drop, vtb)
+    PluginInstance {
+        instance,
+        should_drop,
+        vtb,
+    }
 }
