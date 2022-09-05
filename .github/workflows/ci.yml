@@ -29,8 +29,10 @@ jobs:
       - if: ${{ endsWith(matrix.target.tool, 'musl') }}
         run: sudo apt install -y musl-tools musl-dev
 
-      - name: Set rust toolchain
-        run: rustup default nightly
+      - name: Install rust toolchain
+        run: |
+          rustup default nightly
+          rustup target add ${{ matrix.target.tool }}
 
       - name: Test
         run: cargo test
@@ -65,8 +67,6 @@ jobs:
           - { name: iOS-aarch64, os: macos-latest, tool: aarch64-apple-ios }
           - { name: Windows-aarch64, os: windows-latest, tool: aarch64-pc-windows-msvc }
 
-        version: [ nightly ]
-
     name: Build-${{ matrix.target.name }}
     needs: [ test-and-build ]
     runs-on: ${{ matrix.target.os }}
@@ -98,7 +98,7 @@ jobs:
 
       - name: Install rust toolchain
         run: |
-          rustup default ${{ matrix.version }}
+          rustup default nightly
           rustup target add ${{ matrix.target.tool }}
 
       - name: Build
