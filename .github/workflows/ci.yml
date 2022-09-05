@@ -14,7 +14,7 @@ jobs:
           - { name: macOS-x64, os: macos-latest, tool: x86_64-apple-darwin }
           - { name: Windows-x64, os: windows-2022, tool: x86_64-pc-windows-msvc }
 
-    name: Build-${{ matrix.target.name }}
+    name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.os }}
 
     env:
@@ -67,7 +67,7 @@ jobs:
           - { name: iOS-aarch64, os: macos-latest, tool: aarch64-apple-ios }
           - { name: Windows-aarch64, os: windows-latest, tool: aarch64-pc-windows-msvc }
 
-    name: Build-${{ matrix.target.name }}
+    name: ${{ matrix.target.name }}
     needs: [ test-and-build ]
     runs-on: ${{ matrix.target.os }}
 
