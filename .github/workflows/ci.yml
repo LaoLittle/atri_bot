@@ -35,7 +35,7 @@ jobs:
           rustup target add ${{ matrix.target.tool }}
 
       - name: Test
-        run: cargo test
+        run: cargo test --target ${{ matrix.target.tool }}
 
       - name: Build
         run: cargo build --target ${{ matrix.target.tool }}
