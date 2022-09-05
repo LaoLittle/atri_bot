@@ -5,21 +5,23 @@ on:
     branches: [ master ]
 
 jobs:
-  test:
+  test-and-build:
     strategy:
       fail-fast: false
       matrix:
         target:
-          - { name: Linux, os: ubuntu-latest }
-          - { name: macOS-x86, os: macos-latest }
-          - { name: Windows-x86, os: windows-latest }
+          - { name: Linux-x64, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
+          - { name: macOS-x64, os: macos-latest, tool: x86_64-apple-darwin }
+          - { name: Windows-x64, os: windows-2022, tool: x86_64-pc-windows-msvc }
 
-    name: ${{ matrix.target.name }}
+    name: Build-${{ matrix.target.name }}
     runs-on: ${{ matrix.target.os }}
 
     env:
       CI: 1
       CARGO_INCREMENTAL: 0
+      windows: ${{ startsWith(matrix.target.name, 'Windows') }}
+      linux: ${{ startsWith(matrix.target.name, 'Linux') }}
 
     steps:
       - uses: actions/checkout@v3
@@ -29,25 +31,41 @@ jobs:
 
       - name: Test
         run: cargo test
+
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target.tool }}
+
+      - name: Upload
+        if: env.windows != 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: atri_qq-${{ matrix.target.tool }}
+          path: target/${{ matrix.target.tool }}/debug/atri_qq
+
+      - name: Upload exe
+        if: env.windows == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: atri_qq-${{ matrix.target.tool }}.exe
+          path: target/${{ matrix.target.tool }}/debug/atri_qq.exe
+
+
   build:
     strategy:
       fail-fast: false
       matrix:
         target:
-          - { name: Linux-x64, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
           - { name: Linux-aarch64, os: ubuntu-latest, tool: aarch64-unknown-linux-musl }
           - { name: Linux-mips64, os: ubuntu-latest, tool: mips64-unknown-linux-muslabi64 }
           - { name: Linux-powerpc64, os: ubuntu-latest, tool: powerpc64-unknown-linux-gnu }
-          - { name: macOS-x64, os: macos-latest, tool: x86_64-apple-darwin }
           - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
           - { name: iOS-aarch64, os: macos-latest, tool: aarch64-apple-ios }
-          - { name: Windows-x64, os: windows-2022, tool: x86_64-pc-windows-msvc }
-          - { name: Windows-aarch64, os: windows-2022, tool: aarch64-pc-windows-msvc }
+          - { name: Windows-aarch64, os: windows-latest, tool: aarch64-pc-windows-msvc }
 
         version: [ nightly ]
 
-    name: ${{ matrix.target.name }}
-    needs: [ test ]
+    name: Build-${{ matrix.target.name }}
+    needs: [ test-and-build ]
     runs-on: ${{ matrix.target.os }}
 
     env:
@@ -114,7 +132,7 @@ jobs:
 
   build-android:
     name: Android
-    needs: [ test ]
+    needs: [ test-and-build ]
     runs-on: ubuntu-latest
 
     env:

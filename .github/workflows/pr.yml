@@ -10,8 +10,8 @@ jobs:
       matrix:
         target:
           - { name: Linux, os: ubuntu-latest }
-          - { name: macOS-x86, os: macos-latest }
-          - { name: Windows-x86, os: windows-latest }
+          - { name: macOS-x64, os: macos-latest }
+          - { name: Windows-x64, os: windows-latest }
 
     name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.os }}
