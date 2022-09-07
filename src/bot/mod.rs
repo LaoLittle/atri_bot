@@ -220,9 +220,11 @@ impl Display for Bot {
 }
 
 mod imp {
+    use std::io::ErrorKind;
     use std::path::{Path, PathBuf};
     use std::sync::atomic::AtomicBool;
     use std::sync::{Arc, OnceLock};
+    use std::time::Duration;
 
     use dashmap::DashMap;
     use ricq::device::Device;
@@ -326,8 +328,25 @@ mod imp {
         pub async fn start(&self) -> io::Result<()> {
             let client = self.client.clone();
 
-            let socket = TcpSocket::new_v4()?;
-            let stream = socket.connect(client.get_address_list().await[0]).await?;
+            let mut servers = client.get_address_list().await;
+
+            let total = servers.len();
+            let mut times = 0;
+            let stream = loop {
+                let socket = TcpSocket::new_v4()?;
+                let addr = servers
+                    .pop()
+                    .ok_or(io::Error::new(ErrorKind::AddrNotAvailable, "重连失败"))?;
+
+                if let Ok(Ok(s)) =
+                    tokio::time::timeout(Duration::from_secs(2), socket.connect(addr)).await
+                {
+                    break s;
+                } else {
+                    times += 1;
+                    error!("连接服务器{}失败, 尝试重连({}/{})", addr, times, total);
+                }
+            };
 
             tokio::spawn(async move {
                 client.start(stream).await;
