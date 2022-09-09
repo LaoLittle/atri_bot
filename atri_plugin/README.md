@@ -1,5 +1,7 @@
 # AtriPlugin
 
+[![crates.io](https://img.shields.io/crates/v/atri-plugin?label=latest)](https://crates.io/crates/atri-plugin)
+
 编写可以被AtriQQ所加载的插件
 
 ### 开发示例

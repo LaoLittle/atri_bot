@@ -49,7 +49,7 @@ version = "0.2.1"
 
 [[package]]
 name = "atri_qq"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "async-trait",
  "atri_ffi",

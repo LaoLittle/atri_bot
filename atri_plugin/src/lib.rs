@@ -52,6 +52,7 @@ pub struct PluginInfo {
     pub should_drop: bool,
 }
 
+#[doc(hidden)]
 pub fn __get_instance<P: Plugin>(plugin: P) -> PluginInstance {
     extern "C" fn _new<P: Plugin>() -> *mut () {
         let b = Box::new(P::new());
