@@ -108,22 +108,12 @@ jobs:
           CARGO_TARGET_MIPS64_UNKNOWN_LINUX_MUSLABI64_LINKER: mips64-linux-gnuabi64-gcc
           CARGO_TARGET_POWERPC64_UNKNOWN_LINUX_GNU_LINKER: powerpc64-linux-gnu-gcc
 
-      #- if: matrix.target.tool != 'x86_64-pc-windows-msvc'
-      #  run: |
-      #    mkdir artifact
-      #    mv target/${{ matrix.target.tool }}/debug/atri_qq artifact/atri_qq-${{ matrix.taget.tool }}
-
       - name: Upload
         if: env.windows != 'true'
         uses: actions/upload-artifact@v3
         with:
           name: atri_qq-${{ matrix.target.tool }}
           path: target/${{ matrix.target.tool }}/debug/atri_qq
-
-      #- if: matrix.target.tool == 'x86_64-pc-windows-msvc'
-      #  run: |
-      #    mkdir artifact
-      #    mv target/${{ matrix.target.tool }}/debug/atri_qq.exe artifact/atri_qq-${{ matrix.taget.tool }}.exe
 
       - name: Upload exe
         if: env.windows == 'true'
