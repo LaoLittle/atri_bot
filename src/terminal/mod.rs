@@ -3,6 +3,7 @@ use std::error::Error;
 use std::io::{stdout, Write};
 use std::mem;
 use std::ops::DerefMut;
+use std::sync::RwLock;
 
 use crate::service::command::{handle_plugin_command, PLUGIN_COMMAND};
 use crate::PluginManager;
@@ -23,6 +24,10 @@ cfg_if! {
         // not supported
     }
 }
+
+pub static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
+
+pub const PROMPT: &[u8] = b">> ";
 
 pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;

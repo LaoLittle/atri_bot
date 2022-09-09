@@ -3,15 +3,6 @@ use crossterm::execute;
 use crossterm::style::Print;
 use std::ffi::c_int;
 use std::io::Write;
-use std::sync::RwLock;
-
-pub static OUTPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
-
-pub static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
-
-const BUFFER_SIZE: usize = 4096;
-
-pub const PROMPT: &[u8] = b">> ";
 
 struct RawStdout {
     fd: c_int,
@@ -38,6 +29,8 @@ impl Write for RawStdout {
         Ok(())
     }
 }
+
+const BUFFER_SIZE: usize = 4096;
 
 const STDOUT_FILENO: c_int = 1;
 
