@@ -829,7 +829,8 @@ dependencies = [
 [[package]]
 name = "ricq"
 version = "0.1.17"
-source = "git+https://github.com/lz1998/ricq.git#bd07155ace184219fcf8ec8680821bfd8a595efd"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9a07b00bde10303d1fe114e2150c48efe3c37f64cfcec7fc2d220892f720250"
 dependencies = [
  "async-trait",
  "bytes",
@@ -851,7 +852,8 @@ dependencies = [
 [[package]]
 name = "ricq-core"
 version = "0.1.17"
-source = "git+https://github.com/lz1998/ricq.git#bd07155ace184219fcf8ec8680821bfd8a595efd"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1ea207d0ce27db1173b0600a7c459de46931492c5f1168af4f23f29ee2804ef"
 dependencies = [
  "byteorder",
  "bytes",
@@ -872,7 +874,8 @@ dependencies = [
 [[package]]
 name = "ricq-guild"
 version = "0.1.0"
-source = "git+https://github.com/lz1998/ricq.git#bd07155ace184219fcf8ec8680821bfd8a595efd"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f08af4f4a09279f487a0748a002ec6a41fc49d09e21614248c63cd96c48c00a"
 dependencies = [
  "bytes",
  "dynamic-protobuf",
@@ -1096,6 +1099,7 @@ dependencies = [
  "mio",
  "num_cpus",
  "once_cell",
+ "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
@@ -1116,9 +1120,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc463cd8deddc3770d20f9852143d50bf6094e640b485cb2e189a2099085ff45"
+checksum = "0bb2e075f03b3d66d8d8785356224ba688d2906a371015e225beeb65ca92c740"
 dependencies = [
  "bytes",
  "futures-core",
