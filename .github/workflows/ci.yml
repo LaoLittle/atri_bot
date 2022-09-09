@@ -63,14 +63,15 @@ jobs:
       fail-fast: false
       matrix:
         target:
+          - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
+          - { name: Windows-aarch64, os: windows-latest, tool: aarch64-pc-windows-msvc }
           - { name: Linux-aarch64, os: ubuntu-latest, tool: aarch64-unknown-linux-musl }
           - { name: Linux-armv7, os: ubuntu-latest, tool: armv7-unknown-linux-musleabihf }
           - { name: Linux-arm, os: ubuntu-latest, tool: arm-unknown-linux-musleabihf }
           - { name: Linux-mips64, os: ubuntu-latest, tool: mips64-unknown-linux-muslabi64 }
           - { name: Linux-powerpc64, os: ubuntu-latest, tool: powerpc64-unknown-linux-gnu }
-          - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
           - { name: iOS-aarch64, os: macos-latest, tool: aarch64-apple-ios }
-          - { name: Windows-aarch64, os: windows-latest, tool: aarch64-pc-windows-msvc }
+          - { name: Freebsd-x64, os: ubuntu-latest, tool: x86_64-unknown-freebsd }
 
     name: ${{ matrix.target.name }}
     needs: [ test-and-build ]
@@ -92,15 +93,6 @@ jobs:
       - if: ${{ endsWith(matrix.target.tool, 'musl') }}
         run: sudo apt install -y musl-tools musl-dev
 
-      - if: ${{ startsWith(matrix.target.tool, 'aarch64') && env.linux == 'true' }}
-        run: sudo apt install -y gcc-aarch64-linux-gnu
-
-      - if: ${{ startsWith(matrix.target.tool, 'mips64') && env.linux == 'true' }}
-        run: sudo apt install -y gcc-mips64-linux-gnuabi64
-
-      - if: ${{ startsWith(matrix.target.tool, 'powerpc64') && env.linux == 'true' }}
-        run: sudo apt install -y gcc-powerpc64-linux-gnu
-
       - name: Install rust toolchain
         run: |
           rustup default nightly
@@ -110,7 +102,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --target=${{ matrix.target }}
+          args: --release --target ${{ matrix.target.tool }}
           use-cross: true
 
       - name: Upload
