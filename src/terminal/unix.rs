@@ -1,9 +1,9 @@
-use std::ffi::c_int;
-use std::io::Write;
-use std::sync::RwLock;
 use crossterm::cursor::MoveToColumn;
 use crossterm::execute;
 use crossterm::style::Print;
+use std::ffi::c_int;
+use std::io::Write;
+use std::sync::RwLock;
 
 pub static OUTPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
 

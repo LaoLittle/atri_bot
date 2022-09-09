@@ -1,3 +1,4 @@
+use cfg_if::cfg_if;
 use std::error::Error;
 use std::io::{stdout, Write};
 use std::mem;
@@ -11,22 +12,16 @@ use crossterm::{event, execute};
 use event::Event;
 use tracing::{error, info};
 
-macro_rules! platform_specific {
-    ($($any:tt)*) => {
-        $($any)*
-    };
-}
-
-#[cfg(unix)]
-platform_specific! {
-    mod unix;
-    pub use unix::*;
-}
-
-#[cfg(windows)]
-platform_specific! {
-    mod windows;
-    pub use windows::*;
+cfg_if! {
+    if #[cfg(unix)] {
+        mod unix;
+        pub use unix::*;
+    } else if #[cfg(windows)] {
+        mod windows;
+        pub use windows::*;
+    } else {
+        // not supported
+    }
 }
 
 pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error>> {

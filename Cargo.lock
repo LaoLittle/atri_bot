@@ -54,6 +54,7 @@ dependencies = [
  "async-trait",
  "atri_ffi",
  "bytes",
+ "cfg-if",
  "crossbeam-deque",
  "crossterm",
  "dashmap",
