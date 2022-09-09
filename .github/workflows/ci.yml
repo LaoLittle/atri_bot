@@ -98,6 +98,9 @@ jobs:
           rustup default nightly
           rustup target add ${{ matrix.target.tool }}
 
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
       - name: Build
         uses: actions-rs/cargo@v1
         with:
@@ -137,6 +140,9 @@ jobs:
           rustup default nightly
           rustup target add x86_64-linux-android
           rustup target add aarch64-linux-android
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
 
       - name: Install NDK
         id: setup-ndk
