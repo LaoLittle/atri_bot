@@ -166,7 +166,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             stdout.write_all(PROMPT)?;
                             stdout.flush()?;
                         }
-                        "help" | "?" => {
+                        "help" | "?" | "h" => {
                             static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
 
                             let mut s = String::from('\n');
@@ -177,7 +177,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             s.pop();
                             info!("{}", s);
                         }
-                        "exit" | "quit" | "stop" => {
+                        "exit" | "quit" | "stop" | "e" => {
                             info!("正在停止AtriQQ");
                             break;
                         }
