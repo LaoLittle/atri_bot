@@ -75,7 +75,9 @@ jobs:
           - { name: iOS-aarch64, os: macos-latest, tool: aarch64-apple-ios }
           - { name: FreeBSD-x64, os: ubuntu-latest, tool: x86_64-unknown-freebsd }
           - { name: NetBSD-x64, os: ubuntu-latest, tool: x86_64-unknown-netbsd }
-          - { name: Redox-x64, os: ubuntu-latest, tool: x86_64-unknown-redox }
+          - { name: Illumos-x64, os: ubuntu-latest, tool: x86_64-unknown-illumos }
+          - { name: Fuchsia-aarch64, os: ubuntu-latest, tool: aarch64-fuchsia }
+          - { name: Fuchsia-x64, os: ubuntu-latest, tool: x86_64-fuchsia }
 
     name: ${{ matrix.target.name }}
     needs: [ test-and-build ]
@@ -101,9 +103,6 @@ jobs:
         run: |
           rustup default nightly
           rustup target add ${{ matrix.target.tool }}
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
 
       - name: Build
         uses: actions-rs/cargo@v1
