@@ -78,7 +78,6 @@ jobs:
           - { name: FreeBSD-x64, os: ubuntu-latest, tool: x86_64-unknown-freebsd }
           - { name: NetBSD-x64, os: ubuntu-latest, tool: x86_64-unknown-netbsd }
           - { name: Illumos-x64, os: ubuntu-latest, tool: x86_64-unknown-illumos }
-          - { name: wasi, os: ubuntu-latest, tool: wasm32-wasi }
 
     name: ${{ matrix.target.name }}
     needs: [ test-and-build ]
