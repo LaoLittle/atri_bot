@@ -1,8 +1,8 @@
 # Atri
 
 ```rust
-// code here
 fn a() -> i32 {
+    println!("Code here");
     0
 }
 ```
