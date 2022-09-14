@@ -1,3 +1,7 @@
 # Atri
 
-Test
+```rust
+fn main() {
+    println!("Code here");
+}
+```
