@@ -13,8 +13,11 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16
+          cache: yarn
 
       - run: yarn install --frozen-lockfile
+
+      - run: yarn add --dev vitepress vue
 
       - name: Build
         run: yarn docs:build
