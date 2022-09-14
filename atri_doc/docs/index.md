@@ -1,4 +1,8 @@
----
-home: true
-title: Atri
----
+# Atri
+
+```rust
+// code here
+fn a() -> i32 {
+    0
+}
+```

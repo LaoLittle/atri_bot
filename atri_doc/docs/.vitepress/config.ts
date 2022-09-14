@@ -1,4 +1,5 @@
 export default {
     title: 'Atri',
-    description: 'Atri docs'
+    description: 'Atri docs',
+    base: '/atri_qq/'
 }
