@@ -1,8 +1,4 @@
-# Atri
-
-```rust
-fn am() -> i32 {
-    println!("Code here");
-    0
-}
-```
+---
+home: true
+title: Atri
+---
