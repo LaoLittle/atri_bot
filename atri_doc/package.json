@@ -2,7 +2,8 @@
   "name": "atri_qq",
   "version": "1.0.0",
   "dependencies": {
-    "markdown-it": "^13.0.1"
+    "vitepress": "latest",
+    "markdown-it": "latest"
   },
   "scripts": {
     "docs:dev": "vitepress dev docs",
