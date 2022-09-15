@@ -18,7 +18,7 @@ pub struct AtriVTable {
     pub event_is_intercepted: extern "C" fn(intercepted: *const ()) -> bool,
 
     pub bot_get_id: extern "C" fn(bot: *const ()) -> i64,
-    pub bot_get_nickname: extern "C" fn(bot: *const ()) -> RustStr,
+    pub bot_get_nickname: extern "C" fn(bot: *const ()) -> RustString,
     pub bot_get_list: extern "C" fn() -> RustVec<ManagedCloneable>,
     pub find_bot: extern "C" fn(id: i64) -> ManagedCloneable,
     pub bot_find_group: extern "C" fn(bot: *const (), id: i64) -> ManagedCloneable,

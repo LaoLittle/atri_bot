@@ -1,15 +1,15 @@
 use crate::plugin::cast_ref;
 use crate::Bot;
-use atri_ffi::{ManagedCloneable, RustStr, RustVec};
+use atri_ffi::{ManagedCloneable, RustString, RustVec};
 
 pub extern "C" fn bot_get_id(bot: *const ()) -> i64 {
     let b: &Bot = cast_ref(bot);
     b.id()
 }
 
-pub extern "C" fn bot_get_nickname(bot: *const ()) -> RustStr {
+pub extern "C" fn bot_get_nickname(bot: *const ()) -> RustString {
     let b: &Bot = cast_ref(bot);
-    RustStr::from(b.nickname())
+    RustString::from(b.nickname())
 }
 
 pub extern "C" fn bot_get_list() -> RustVec<ManagedCloneable> {

@@ -12,10 +12,10 @@ impl Bot {
         (get_plugin_manager_vtb().bot_get_id)(self.0.pointer)
     }
 
-    pub fn nickname(&self) -> &str {
+    pub fn nickname(&self) -> String {
         let rs = (get_plugin_manager_vtb().bot_get_nickname)(self.0.pointer);
 
-        rs.as_str()
+        rs.into()
     }
 
     pub fn list() -> Vec<Bot> {

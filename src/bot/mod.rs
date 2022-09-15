@@ -1,3 +1,4 @@
+pub mod info;
 mod token;
 
 use std::fmt::{Debug, Display, Formatter};
@@ -7,9 +8,9 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use ricq::ext::common::after_login;
-use ricq::structs::AccountInfo;
 use ricq::{Client, LoginResponse, RQError, RQResult};
 
+use crate::bot::info::BotAccountInfo;
 use crate::bot::token::Token;
 use crate::contact::friend::Friend;
 use tokio::io;
@@ -44,8 +45,12 @@ impl Bot {
             if let LoginResponse::Success(..) = resp {
                 after_login(&self.0.client).await;
 
-                let info = self.0.account_info().await;
-                self.0.info.get_or_init(|| info);
+                let info = self.0.client.account_info.read().await;
+                self.0.info.get_or_init(|| BotAccountInfo {
+                    nickname: info.nickname.clone().into(),
+                    age: info.age.into(),
+                    gender: info.gender.into(),
+                });
 
                 let rq = self.client().gen_token().await;
                 let token = Token::from(rq);
@@ -88,19 +93,19 @@ impl Bot {
         self.0.id
     }
 
-    pub fn nickname(&self) -> &str {
-        &self.account_info().nickname
+    pub fn nickname(&self) -> String {
+        self.account_info().nickname.read().unwrap().clone()
     }
 
     pub fn age(&self) -> u8 {
-        self.account_info().age
+        self.account_info().age.load(Ordering::Relaxed)
     }
 
     pub fn gender(&self) -> u8 {
-        self.account_info().gender
+        self.account_info().gender.load(Ordering::Relaxed)
     }
 
-    pub fn account_info(&self) -> &AccountInfo {
+    pub fn account_info(&self) -> &BotAccountInfo {
         self.0.info.get().unwrap()
     }
 
@@ -228,7 +233,6 @@ mod imp {
 
     use dashmap::DashMap;
     use ricq::device::Device;
-    use ricq::structs::AccountInfo;
     use ricq::Client;
     use tokio::io::AsyncReadExt;
     use tokio::net::TcpSocket;
@@ -236,6 +240,7 @@ mod imp {
     use tokio::{fs, io};
     use tracing::error;
 
+    use crate::bot::info::BotAccountInfo;
     use crate::bot::BotConfiguration;
     use crate::channel::GlobalEventBroadcastHandler;
     use crate::contact::friend::Friend;
@@ -243,7 +248,7 @@ mod imp {
 
     pub struct Bot {
         pub id: i64,
-        pub info: OnceLock<AccountInfo>,
+        pub info: OnceLock<BotAccountInfo>,
         pub enable: AtomicBool,
         pub client: Arc<Client>,
         pub friend_list: DashMap<i64, Friend>,
@@ -354,16 +359,6 @@ mod imp {
             yield_now().await;
 
             Ok(())
-        }
-
-        pub async fn account_info(&self) -> AccountInfo {
-            let info = self.client.account_info.read().await;
-
-            AccountInfo {
-                nickname: info.nickname.clone(),
-                age: info.age,
-                gender: info.gender,
-            }
         }
     }
 }
