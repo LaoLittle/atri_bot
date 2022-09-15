@@ -1,8 +1,6 @@
 use cfg_if::cfg_if;
 use std::error::Error;
 use std::io::{stdout, Write};
-use std::mem;
-use std::ops::DerefMut;
 use std::sync::RwLock;
 
 use crate::service::command::{handle_plugin_command, PLUGIN_COMMAND};
@@ -53,7 +51,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                 KeyCode::Enter => {
                     let input = {
                         let mut wl = INPUT_BUFFER.write()?;
-                        let s = mem::take(wl.deref_mut());
+                        let s = wl.clone();
                         wl.clear();
                         s
                     };
