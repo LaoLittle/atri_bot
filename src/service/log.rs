@@ -29,6 +29,7 @@ pub fn init_logger() -> (WorkerGuard, WorkerGuard) {
     let (stdout_layer, file_layer, err) = match time::UtcOffset::current_local_offset() {
         Ok(ofs) => {
             let time = OffsetTime::new(ofs, time_format);
+
             (
                 stdout_layer.with_timer(time.clone()),
                 file_layer.with_timer(time),
