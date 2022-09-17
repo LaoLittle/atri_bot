@@ -1,7 +1,7 @@
 ![Image](https://socialify.git.ci/LaoLittle/atri_qq/image?descriptionEditable=&font=Inter&forks=1&issues=1&language=1&logo=https%3A%2F%2Fatri-mdm.com%2Fassets%2Fimg%2Fspecial%2Ffaq%2Fthumb02.png&name=1&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Light)
 
 ----
-<div style="font-size: 16px; text-align: center">
+<div style="font-size: 16px; text-align: center" align="center">
 QQ群怎能少得了高性能亚托莉的身影呢？
 
 本项目致力于快速部署，简单使用。
