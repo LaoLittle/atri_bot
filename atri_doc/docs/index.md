@@ -6,7 +6,7 @@ hero:
   text: HeroText
   tagline: 123
   image:
-    src: /statics/atri_question.jpg
+    src: /atri_question.jpg
     alt: VitePress
 
   actions:
