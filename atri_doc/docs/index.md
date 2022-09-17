@@ -2,18 +2,18 @@
 layout: home
 
 hero:
-  name: HomePage!
-  text: HeroText
-  tagline: 123
+  name: AtriQQ
+  text: 插件开发文档
+  tagline: 欢迎
   image:
     src: /atri_question.jpg
     alt: VitePress
 
   actions:
   - theme: brand
-    text: 123
+    text: 开始
     link: /primary/configure
   - theme: alt
-    text: MyProfile
-    link: https://github.com/LaoLittle
+    text: 项目地址
+    link: https://github.com/LaoLittle/atri_qq
 ---
