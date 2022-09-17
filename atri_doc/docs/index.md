@@ -12,7 +12,7 @@ hero:
   actions:
   - theme: brand
     text: 123
-    link: /atri_qq
+    link: /primary/configure
   - theme: alt
     text: MyProfile
     link: https://github.com/LaoLittle
