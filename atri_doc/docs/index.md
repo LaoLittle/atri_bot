@@ -5,6 +5,9 @@ hero:
     name: HomePage!
     text: HeroText
     tagline: 123
+    image:
+        src: /statics/atri_question.jpg
+        alt: VitePress
 
     actions:
     - theme: brand
