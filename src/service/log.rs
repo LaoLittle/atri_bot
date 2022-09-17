@@ -1,4 +1,3 @@
-use regex::Regex;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -8,46 +7,98 @@ use std::{fs, io};
 use crate::terminal::{INPUT_BUFFER, PROMPT};
 use tracing::{error, Level};
 use tracing_appender::non_blocking::WorkerGuard;
-use tracing_subscriber::fmt::time::{OffsetTime, UtcTime};
-use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::fmt::time::OffsetTime;
+use tracing_subscriber::fmt::writer::MakeWriterExt;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
-pub fn init_logger() -> WorkerGuard {
+pub fn init_logger() -> (WorkerGuard, WorkerGuard) {
     let time_format =
         time::format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second]").unwrap();
 
-    let (w, guard) = tracing_appender::non_blocking(LogWriter::default());
+    let (s, s_guard) = tracing_appender::non_blocking(LogStdoutWriter);
 
-    let builder = FmtSubscriber::builder()
-        .with_max_level(Level::DEBUG)
-        .with_target(false)
-        .with_writer(w);
+    let stdout_layer = tracing_subscriber::fmt::layer().with_writer(s.with_max_level(Level::DEBUG));
 
-    match time::UtcOffset::current_local_offset() {
-        Ok(ofs) => builder.with_timer(OffsetTime::new(ofs, time_format)).init(),
-        Err(e) => {
-            builder.with_timer(UtcTime::new(time_format)).init();
-            error!("{}", e);
+    let (f, f_guard) = tracing_appender::non_blocking(LogFileWriter::default());
+
+    let file_layer = tracing_subscriber::fmt::layer()
+        .with_ansi(false)
+        .with_writer(f.with_max_level(Level::DEBUG));
+
+    let (stdout_layer, file_layer, err) = match time::UtcOffset::current_local_offset() {
+        Ok(ofs) => {
+            let time = OffsetTime::new(ofs, time_format);
+            (
+                stdout_layer.with_timer(time.clone()),
+                file_layer.with_timer(time),
+                None,
+            )
         }
+        Err(e) => {
+            let time = OffsetTime::new(time::UtcOffset::from_hms(8, 0, 0).unwrap(), time_format);
+
+            (
+                stdout_layer.with_timer(time.clone()),
+                file_layer.with_timer(time),
+                Some(e),
+            )
+        }
+    };
+
+    tracing_subscriber::registry()
+        .with(stdout_layer)
+        .with(file_layer)
+        .init();
+
+    if let Some(e) = err {
+        error!("{}", e);
     }
 
-    guard
+    (s_guard, f_guard)
 }
 
-pub struct LogWriter {
+pub struct LogStdoutWriter;
+
+impl Default for LogStdoutWriter {
+    fn default() -> Self {
+        Self
+    }
+}
+
+impl Write for LogStdoutWriter {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let mut stdout = io::stdout().lock();
+
+        stdout.write_all(&[13])?;
+        let size = stdout.write(buf)?;
+
+        stdout.write_all(PROMPT)?;
+        stdout.write_all(INPUT_BUFFER.read().unwrap().as_bytes())?;
+        stdout.flush()?;
+
+        Ok(size)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        io::stdout().flush()
+    }
+}
+
+pub struct LogFileWriter {
     output: &'static Path,
 }
 
-fn ansi_filter() -> &'static Regex {
+/*fn ansi_filter() -> &'static Regex {
+    use regex::Regex;
     static ANSI_FILTER: OnceLock<Regex> = OnceLock::new();
 
     ANSI_FILTER.get_or_init(|| {
         Regex::new("\\x1b\\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|K]?").unwrap()
     })
-}
+}*/
 
-impl LogWriter {}
-
-impl Default for LogWriter {
+impl Default for LogFileWriter {
     fn default() -> Self {
         let path = get_latest_log_file();
 
@@ -57,33 +108,11 @@ impl Default for LogWriter {
 
 static LOG_FILE_OPENED: OnceLock<File> = OnceLock::new();
 
-impl Write for LogWriter {
+impl Write for LogFileWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let size = {
-            let mut stdout = io::stdout().lock();
-
-            stdout.write_all(&[13])?;
-            let size = stdout.write(buf)?;
-
-            stdout.write_all(PROMPT)?;
-            stdout.write_all(INPUT_BUFFER.read().unwrap().as_bytes())?;
-            stdout.flush()?;
-
-            size
-        };
-
         let f = LOG_FILE_OPENED.get_or_try_init(|| File::create(self.output));
 
-        if let Err(e) = f.and_then(|mut f| {
-            let str = String::from_utf8_lossy(buf);
-            let no_ansi = ansi_filter().replace_all(&str, "");
-            f.write_all(no_ansi.as_bytes())?;
-            Ok(())
-        }) {
-            error!("Log写入失败: {}", e);
-        }
-
-        Ok(size)
+        f.and_then(|mut f| f.write(buf))
     }
 
     fn flush(&mut self) -> io::Result<()> {
