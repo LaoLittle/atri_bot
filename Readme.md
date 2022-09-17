@@ -1,17 +1,30 @@
-# AtriQQ: 亚托莉x螃蟹！
+<style>
+  #center{
+    font-size: 16px;
+    text-align: center;
+  }
+</style>
+
+![Image](https://socialify.git.ci/LaoLittle/atri_qq/image?descriptionEditable=&font=Inter&forks=1&issues=1&language=1&logo=https%3A%2F%2Fatri-mdm.com%2Fassets%2Fimg%2Fspecial%2Ffaq%2Fthumb02.png&name=1&owner=1&pattern=Plus&pulls=1&stargazers=1&theme=Light)
+
+----
+<div id="center">
 QQ群怎能少得了高性能亚托莉的身影呢？
 
 本项目致力于快速部署，简单使用。
+</div>
 
 ## 注意
 本项目仅供学习参考，请勿用于非法或商业用途。
+
+本项目形象均来自《[Atri-MyDearMoments](https://atri-mdm.com)》
 
 ## 特性
 - 使用Rust及[ricq](https://github.com/lz1998/ricq)构建
 > Rust: 一门赋予每个人的构建可靠且高效软件能力的语言。
 > 
 > ricq: 基于rust编写的qq协议
-- 部署快速，易于使用
+
 - 支持加载原生动态库插件, 高性能低占用
 
 ## 部署
@@ -35,9 +48,8 @@ QQ群怎能少得了高性能亚托莉的身影呢？
     - [x] At/AtAll
   
     ..
-  
 若要使用Rust编写插件, 本项目提供了友好的接口, 可以快速上手:
-[插件开发文档](atri_plugin/README.md)
+[插件开发文档](https://laolittle.github.io/atri_qq/)
 
 若需要使用其他的Native语言编写插件, 请参阅:
 [插件加载方式](Plugin.md)

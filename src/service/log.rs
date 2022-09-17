@@ -7,24 +7,30 @@ use std::{fs, io};
 
 use crate::terminal::{INPUT_BUFFER, PROMPT};
 use tracing::{error, Level};
+use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::fmt::time::{OffsetTime, UtcTime};
 use tracing_subscriber::FmtSubscriber;
 
-pub fn init_logger() {
+pub fn init_logger() -> WorkerGuard {
     let time_format =
-        time::format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second]")
-            .expect("Unknown time formatting");
+        time::format_description::parse("[year]-[month]-[day] [hour]:[minute]:[second]").unwrap();
+
+    let (w, guard) = tracing_appender::non_blocking(LogWriter::default());
 
     let builder = FmtSubscriber::builder()
         .with_max_level(Level::DEBUG)
         .with_target(false)
-        .with_writer(LogWriter::default);
+        .with_writer(w);
 
-    if let Ok(ofs) = time::UtcOffset::current_local_offset() {
-        builder.with_timer(OffsetTime::new(ofs, time_format)).init();
-    } else {
-        builder.with_timer(UtcTime::new(time_format)).init();
-    };
+    match time::UtcOffset::current_local_offset() {
+        Ok(ofs) => builder.with_timer(OffsetTime::new(ofs, time_format)).init(),
+        Err(e) => {
+            builder.with_timer(UtcTime::new(time_format)).init();
+            error!("{}", e);
+        }
+    }
+
+    guard
 }
 
 pub struct LogWriter {
@@ -53,17 +59,18 @@ static LOG_FILE_OPENED: OnceLock<File> = OnceLock::new();
 
 impl Write for LogWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let size: usize;
-        {
+        let size = {
             let mut stdout = io::stdout().lock();
 
             stdout.write_all(&[13])?;
-            size = stdout.write(buf)?;
+            let size = stdout.write(buf)?;
 
             stdout.write_all(PROMPT)?;
             stdout.write_all(INPUT_BUFFER.read().unwrap().as_bytes())?;
             stdout.flush()?;
-        }
+
+            size
+        };
 
         let f = LOG_FILE_OPENED.get_or_try_init(|| File::create(self.output));
 
