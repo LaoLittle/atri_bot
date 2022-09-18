@@ -150,9 +150,6 @@ jobs:
           rustup default nightly
           rustup target add ${{ matrix.arch }}-linux-android
 
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-
       - name: Install NDK
         id: setup-ndk
         uses: nttld/setup-ndk@v1
