@@ -1,8 +1,5 @@
-use std::fs::File;
+use std::io;
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
-use std::{fs, io};
 
 use crate::terminal::{INPUT_BUFFER, PROMPT};
 use tracing::{error, Level};
@@ -20,7 +17,8 @@ pub fn init_logger() -> (WorkerGuard, WorkerGuard) {
 
     let stdout_layer = tracing_subscriber::fmt::layer().with_writer(s.with_max_level(Level::DEBUG));
 
-    let (f, f_guard) = tracing_appender::non_blocking(LogFileWriter::default());
+    let file_writer = tracing_appender::rolling::minutely("log", "atri_qq.log");
+    let (f, f_guard) = tracing_appender::non_blocking(file_writer);
 
     let file_layer = tracing_subscriber::fmt::layer()
         .with_ansi(false)
@@ -86,18 +84,19 @@ impl Write for LogStdoutWriter {
     }
 }
 
+/*
 pub struct LogFileWriter {
     output: &'static Path,
 }
 
-/*fn ansi_filter() -> &'static Regex {
+fn ansi_filter() -> &'static Regex {
     use regex::Regex;
     static ANSI_FILTER: OnceLock<Regex> = OnceLock::new();
 
     ANSI_FILTER.get_or_init(|| {
         Regex::new("\\x1b\\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|K]?").unwrap()
     })
-}*/
+}
 
 impl Default for LogFileWriter {
     fn default() -> Self {
@@ -161,3 +160,6 @@ fn get_latest_log_file() -> &'static Path {
         })
         .as_path()
 }
+
+
+*/
