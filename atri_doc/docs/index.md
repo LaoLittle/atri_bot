@@ -10,14 +10,14 @@ hero:
     alt: VitePress
 
   actions:
-  - theme: brand
-    text: 开始
-    link: /primary/configure
-  - theme: alt
-    text: 项目地址
-    link: https://github.com/LaoLittle/atri_qq
+    - theme: brand
+      text: 开始
+      link: /primary/configure
+    - theme: alt
+      text: 项目地址
+      link: https://github.com/LaoLittle/atri_qq
 
-  features:
+features:
   - title: 简单
     details: 只需简单配置便可快速生成自己的插件
   - title: 高效
