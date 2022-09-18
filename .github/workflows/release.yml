@@ -11,7 +11,7 @@ jobs:
       matrix:
         target:
           - { name: macOS-x64, os: macos-latest, tool: x86_64-apple-darwin }
-          - { name: Windows-x64, os: windows-2022, tool: x86_64-pc-windows-msvc }
+          - { name: Windows-x64, os: windows-latest, tool: x86_64-pc-windows-msvc }
           - { name: Linux-x64, os: ubuntu-latest, tool: x86_64-unknown-linux-musl }
           - { name: macOS-aarch64, os: macos-latest, tool: aarch64-apple-darwin }
           - { name: Windows-aarch64, os: windows-latest, tool: aarch64-pc-windows-msvc }
