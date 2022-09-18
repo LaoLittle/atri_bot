@@ -25,13 +25,3 @@ hero:
   - title: 跨平台
     details: 支持Windows, Linux, MacOS, Android...
 ---
-
-### 说明
-本项目还在快速更新迭代中, 如果你喜欢的话不妨点一个star吧!
-
-[相关项目](https://github.com/AtriKawaii)
-
-::: warning 注意
-目前尚未稳定abi, 若有abi变动将会在release进行说明
-预计在v1.0稳定插件abi
-:::
