@@ -127,7 +127,14 @@ jobs:
 
 
   build-android:
-    name: Android
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - aarch64
+          - x86_64
+
+    name: Android-${{ matrix.arch }}
     needs: [ test-and-build ]
     runs-on: ubuntu-latest
 
@@ -141,8 +148,7 @@ jobs:
       - name: Install rust toolchain
         run: |
           rustup default nightly
-          rustup target add x86_64-linux-android
-          rustup target add aarch64-linux-android
+          rustup target add ${{ matrix.arch }}-linux-android
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
@@ -160,35 +166,19 @@ jobs:
 
       - name: Set libgcc
         run: |
-          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/aarch64/libgcc.a
-          INPUT(-lunwind)
-          EOF
-          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/x86_64/libgcc.a
+          cat << EOF > ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/14.0.6/lib/linux/${{ matrix.arch }}/libgcc.a
           INPUT(-lunwind)
           EOF
 
-      - name: Build Android X64
-        run: cargo build --target x86_64-linux-android
+      - name: Build Android ${{ matrix.arch }}
+        run: cargo build --target ${{ matrix.arch }}-linux-android
         env:
-          CC_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang
-          CXX_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang++
-          CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: x86_64-linux-android26-clang
-
-      - name: Build Android ARM64
-        run: cargo build --target aarch64-linux-android
-        env:
-          CC_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang
-          CXX_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang++
-          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: aarch64-linux-android26-clang
+          CC_${{ matrix.arch }}_LINUX_ANDROID: ${{ matrix.arch }}-linux-android26-clang
+          CXX_${{ matrix.arch }}_LINUX_ANDROID: ${{ matrix.arch }}-linux-android26-clang++
+          CARGO_TARGET_${{ matrix.arch }}_LINUX_ANDROID_LINKER: ${{ matrix.arch }}-linux-android26-clang
 
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
-          name: atri_qq-aarch64-linux-android
-          path: target/aarch64-linux-android/debug/atri_qq
-
-      - name: Upload
-        uses: actions/upload-artifact@v3
-        with:
-          name: atri_qq-x86_64-linux-android
-          path: target/x86_64-linux-android/debug/atri_qq
+          name: atri_qq-${{ matrix.arch }}-linux-android
+          path: target/${{ matrix.arch }}-linux-android/debug/atri_qq
