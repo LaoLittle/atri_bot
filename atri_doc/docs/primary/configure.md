@@ -9,8 +9,8 @@ crate-type = ["cdylib"] # or dylib
 atri_plugin = "0"
 ```
 
-## 定义结构体
-首先, 定义一个结构体(struct)或枚举(enum)作为插件的实例
+## 定义插件结构
+首先, 定义一个结构体(struct)或枚举(enum)作为插件的结构
 ```rust
 #[atri_plugin::plugin] // 使用此宏标记其为插件
 struct MyPlugin {
@@ -18,7 +18,7 @@ struct MyPlugin {
 }
 ```
 
-## 为结构体实现`Plugin`
+## 为插件结构实现`Plugin`
 ```rust
 use atri_plugin::Plugin;
 impl Plugin for MyPlugin {
