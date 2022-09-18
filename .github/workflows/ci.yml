@@ -173,9 +173,12 @@ jobs:
       - name: Build Android ${{ matrix.arch }}
         run: cargo build --target ${{ matrix.arch }}-linux-android
         env:
-          CC_${{ matrix.arch }}_LINUX_ANDROID: ${{ matrix.arch }}-linux-android26-clang
-          CXX_${{ matrix.arch }}_LINUX_ANDROID: ${{ matrix.arch }}-linux-android26-clang++
-          CARGO_TARGET_${{ matrix.arch }}_LINUX_ANDROID_LINKER: ${{ matrix.arch }}-linux-android26-clang
+          CC_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang
+          CXX_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang++
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: aarch64-linux-android26-clang
+          CC_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang
+          CXX_X86_64_LINUX_ANDROID: x86_64-linux-android26-clang++
+          CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: x86_64-linux-android26-clang
 
       - name: Upload
         uses: actions/upload-artifact@v3
