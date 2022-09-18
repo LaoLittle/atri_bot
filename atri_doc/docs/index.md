@@ -26,6 +26,7 @@ hero:
     details: 支持Windows, Linux, MacOS, Android...
 ---
 
+### 说明
 本项目还在快速更新迭代中, 如果你喜欢的话不妨点一个star吧!
 
 [相关项目](https://github.com/AtriKawaii)
