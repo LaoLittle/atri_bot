@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "atri_ffi"
-version = "0.2.1"
+version = "0.2.2"
 
 [[package]]
 name = "atri_macros"
@@ -12,7 +12,7 @@ version = "0.1.0"
 
 [[package]]
 name = "atri_plugin"
-version = "0.2.2"
+version = "0.2.4"
 dependencies = [
  "atri_ffi",
  "atri_macros",

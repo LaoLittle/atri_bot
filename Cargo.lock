@@ -45,11 +45,11 @@ dependencies = [
 
 [[package]]
 name = "atri_ffi"
-version = "0.2.1"
+version = "0.2.2"
 
 [[package]]
 name = "atri_qq"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "async-trait",
  "atri_ffi",
