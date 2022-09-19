@@ -2,7 +2,7 @@ use std::io;
 use std::io::Write;
 
 use crate::terminal::{INPUT_BUFFER, PROMPT};
-use tracing::{error, Level};
+use tracing::{warn, Level};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::fmt::time::OffsetTime;
 use tracing_subscriber::fmt::writer::MakeWriterExt;
@@ -17,12 +17,15 @@ pub fn init_logger() -> (WorkerGuard, WorkerGuard) {
 
     let (s, s_guard) = tracing_appender::non_blocking(LogStdoutWriter);
 
-    let stdout_layer = tracing_subscriber::fmt::layer().with_writer(s.with_max_level(Level::DEBUG));
+    let stdout_layer = tracing_subscriber::fmt::layer()
+        .with_target(false)
+        .with_writer(s.with_max_level(Level::DEBUG));
 
     let file_writer = tracing_appender::rolling::daily("log", "atri_qq.log");
     let (f, f_guard) = tracing_appender::non_blocking(file_writer);
 
     let file_layer = tracing_subscriber::fmt::layer()
+        .with_target(false)
         .with_ansi(false)
         .with_writer(f.with_max_level(Level::DEBUG));
 
@@ -32,7 +35,10 @@ pub fn init_logger() -> (WorkerGuard, WorkerGuard) {
     };
 
     let timer = OffsetTime::new(offset, time_format);
-    let (stdout_layer, file_layer) = (stdout_layer.with_timer(timer.clone()), file_layer.with_timer(timer));
+    let (stdout_layer, file_layer) = (
+        stdout_layer.with_timer(timer.clone()),
+        file_layer.with_timer(timer),
+    );
 
     tracing_subscriber::registry()
         .with(stdout_layer)
@@ -40,7 +46,7 @@ pub fn init_logger() -> (WorkerGuard, WorkerGuard) {
         .init();
 
     if let Some(e) = err {
-        error!("初始化日志时间错误: {}, 使用默认时区UTC+8", e);
+        warn!("初始化日志时间错误: {}, 使用默认时区UTC+8", e);
     }
 
     (s_guard, f_guard)
