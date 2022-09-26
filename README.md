@@ -42,11 +42,12 @@ QQ群怎能少得了高性能亚托莉的身影呢？
   
     ..
 
-若要使用Rust编写插件, 本项目提供了友好的接口, 可以快速上手:
+本Bot遵循[AtriPlugin](https://github.com/AtriKawaii/atri_plugin)原生插件加载标准,
+若要使用Rust编写插件, AtriPlugin项目提供了友好的接口, 可以快速上手:
 [插件开发文档](https://atrikawaii.github.io/atri_doc/)
 
 若需要使用其他的Native语言编写插件, 请参阅:
-[插件加载方式](Plugin.md)
+[插件加载方式](https://github.com/AtriKawaii/atri_plugin/blob/main/Load.md)
 
 ### 注意
 目前处于开发阶段, 不保证插件接口稳定

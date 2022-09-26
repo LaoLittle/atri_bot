@@ -1,7 +1,6 @@
 /.idea
 /.DS_Store
 /target
-/atri_ffi/.DS_Store
 /bots
 /config
 /data
@@ -9,6 +8,3 @@
 /log
 /plugins
 /service
-/atri_ffi/target/
-/atri_plugin/target/
-/atri_macros/target/
