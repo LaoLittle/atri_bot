@@ -1,10 +1,10 @@
 use crate::plugin::cast_ref;
 use crate::PluginManager;
-use atri_ffi::RustString;
+use atri_ffi::{RustStr, RustString};
 
-pub extern "C" fn log(handle: usize, manager: *const (), level: u8, str: RustString) {
+pub extern "C" fn log(handle: usize, manager: *const (), level: u8, str: RustStr) {
     let manager: &PluginManager = cast_ref(manager);
-    let str = String::from(str);
+    let str = str.as_ref();
     if let Some(plugin) = manager.find_plugin(handle) {
         match level {
             0 => tracing::trace!("{:?}: {}", plugin, str),

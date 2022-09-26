@@ -66,7 +66,7 @@ pub struct AtriVTable {
     // flash
     pub image_get_url: extern "C" fn(img: *const ()) -> RustString,
 
-    pub log: extern "C" fn(handle: usize, manager: *const (), level: u8, log: RustString),
+    pub log: extern "C" fn(handle: usize, manager: *const (), level: u8, log: RustStr),
 }
 
 static mut ATRI_MANAGER: MaybeUninit<AtriManager> = MaybeUninit::uninit();
