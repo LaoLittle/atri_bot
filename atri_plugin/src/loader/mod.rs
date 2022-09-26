@@ -43,7 +43,7 @@ pub struct AtriVTable {
         extern "C" fn(group: *const (), data: RustVec<u8>) -> FFIFuture<FFIResult<Managed>>,
     pub group_quit: extern "C" fn(group: *const ()) -> FFIFuture<bool>,
     pub group_change_name:
-        extern "C" fn(group: *const (), name: RustString) -> FFIFuture<FFIResult<()>>,
+        extern "C" fn(group: *const (), name: RustStr) -> FFIFuture<FFIResult<()>>,
 
     pub friend_message_event_get_friend: extern "C" fn(event: *const ()) -> ManagedCloneable,
     pub friend_message_event_get_message: extern "C" fn(event: *const ()) -> FFIMessageChain,
@@ -60,7 +60,7 @@ pub struct AtriVTable {
     pub named_member_get_card_name: extern "C" fn(named: *const ()) -> RustStr,
     pub named_member_get_group: extern "C" fn(named: *const ()) -> ManagedCloneable,
     pub named_member_change_card_name:
-        extern "C" fn(named: *const (), card: RustString) -> FFIFuture<FFIResult<()>>,
+        extern "C" fn(named: *const (), card: RustStr) -> FFIFuture<FFIResult<()>>,
 
     pub image_get_id: extern "C" fn(img: *const ()) -> RustStr,
     // flash

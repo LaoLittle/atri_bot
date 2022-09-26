@@ -85,11 +85,8 @@ pub extern "C" fn group_upload_image(
     })
 }
 
-pub extern "C" fn group_change_name(
-    group: *const (),
-    name: RustString,
-) -> FFIFuture<FFIResult<()>> {
-    let s = String::from(name);
+pub extern "C" fn group_change_name(group: *const (), name: RustStr) -> FFIFuture<FFIResult<()>> {
+    let s = name.as_ref().to_owned();
     FFIFuture::from(async move {
         let group: &Group = cast_ref(group);
         let result = group.change_name(s).await;

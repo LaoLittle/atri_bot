@@ -27,9 +27,9 @@ pub extern "C" fn named_member_get_group(named: *const ()) -> ManagedCloneable {
 
 pub extern "C" fn named_member_change_card_name(
     named: *const (),
-    card: RustString,
+    card: RustStr,
 ) -> FFIFuture<FFIResult<()>> {
-    let card = String::from(card);
+    let card = card.as_ref().to_owned();
     FFIFuture::from(async move {
         let named: &NamedMember = cast_ref(named);
         let result = named.change_card_name(card).await;
