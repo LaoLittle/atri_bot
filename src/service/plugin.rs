@@ -241,10 +241,10 @@ impl PluginManager {
                         match Library::new(&p) {
                             Ok(lib) => {
                                 deps.push(lib);
-                                info!("加载依赖({:?})", p);
+                                trace!("加载依赖({:?})", p);
                             }
                             Err(e) => {
-                                error!("加载依赖动态库失败: {}, 跳过", e);
+                                warn!("加载依赖动态库失败: {}, 跳过加载", e);
                             }
                         }
                     }
