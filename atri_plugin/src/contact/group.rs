@@ -8,7 +8,7 @@ use crate::runtime::manager::PluginManager;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::{ManagedCloneable, RustString};
+use atri_ffi::{ManagedCloneable, RustStr};
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
@@ -80,8 +80,8 @@ impl Group {
         }
     }
 
-    pub async fn change_name(&self, name: String) -> Result<(), AtriError> {
-        let rs = RustString::from(name);
+    pub async fn change_name(&self, name: &str) -> Result<(), AtriError> {
+        let rs = RustStr::from(name);
         let fu = { (get_plugin_manager_vtb().group_change_name)(self.0.pointer, rs) };
         let result: FFIResult<()> = PluginManager.spawn(fu).await.unwrap();
 

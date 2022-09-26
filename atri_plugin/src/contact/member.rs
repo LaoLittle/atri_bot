@@ -1,6 +1,6 @@
 use crate::bot::Bot;
 use atri_ffi::contact::FFIMember;
-use atri_ffi::{ManagedCloneable, RustString};
+use atri_ffi::{ManagedCloneable, RustStr};
 use std::fmt::{Display, Formatter};
 use std::mem::ManuallyDrop;
 
@@ -58,9 +58,8 @@ impl NamedMember {
         self.group().bot()
     }
 
-    pub async fn change_card_name<S: ToString>(&self, card_name: S) -> Result<(), AtriError> {
-        let str = card_name.to_string();
-        let rs = RustString::from(str);
+    pub async fn change_card_name(&self, card_name: &str) -> Result<(), AtriError> {
+        let rs = RustStr::from(card_name);
 
         let fu = (get_plugin_manager_vtb().named_member_change_card_name)(self.0.pointer, rs);
 
