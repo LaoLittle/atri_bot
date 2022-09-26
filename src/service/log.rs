@@ -21,7 +21,7 @@ pub fn init_logger() -> (WorkerGuard, WorkerGuard) {
         .with_target(false)
         .with_writer(s.with_max_level(Level::DEBUG));
 
-    let file_writer = tracing_appender::rolling::daily("log", "atri_qq.log");
+    let file_writer = tracing_appender::rolling::daily("log", "atri_bot.log");
     let (f, f_guard) = tracing_appender::non_blocking(file_writer);
 
     let file_layer = tracing_subscriber::fmt::layer()

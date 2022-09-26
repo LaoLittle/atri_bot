@@ -64,16 +64,16 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq
-          asset_name: atri_qq-${{ matrix.target.tool }}
+          file: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_bot
+          asset_name: atri_bot-${{ matrix.target.tool }}
 
       - name: Upload exe
         if: env.windows == 'true'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_qq.exe
-          asset_name: atri_qq-${{ matrix.target.tool }}.exe
+          file: target/${{ matrix.target.tool }}/${{ env.build_version }}/atri_bot.exe
+          asset_name: atri_bot-${{ matrix.target.tool }}.exe
 
   release-android:
     name: Android
@@ -131,12 +131,12 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/aarch64-linux-android/release/atri_qq
-          asset_name: atri_qq-aarch64-linux-android
+          file: target/aarch64-linux-android/release/atri_bot
+          asset_name: atri_bot-aarch64-linux-android
 
       - name: Upload x86_64
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/x86_64-linux-android/release/atri_qq
-          asset_name: atri_qq-x86_64-linux-android
+          file: target/x86_64-linux-android/release/atri_bot
+          asset_name: atri_bot-x86_64-linux-android

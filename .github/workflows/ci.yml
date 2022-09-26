@@ -47,15 +47,15 @@ jobs:
         if: env.windows != 'true'
         uses: actions/upload-artifact@v3
         with:
-          name: atri_qq-${{ matrix.target.tool }}
-          path: target/${{ matrix.target.tool }}/debug/atri_qq
+          name: atri_bot-${{ matrix.target.tool }}
+          path: target/${{ matrix.target.tool }}/debug/atri_bot
 
       - name: Upload exe
         if: env.windows == 'true'
         uses: actions/upload-artifact@v3
         with:
-          name: atri_qq-${{ matrix.target.tool }}.exe
-          path: target/${{ matrix.target.tool }}/debug/atri_qq.exe
+          name: atri_bot-${{ matrix.target.tool }}.exe
+          path: target/${{ matrix.target.tool }}/debug/atri_bot.exe
 
 
   build:
@@ -115,15 +115,15 @@ jobs:
         if: env.windows != 'true'
         uses: actions/upload-artifact@v3
         with:
-          name: atri_qq-${{ matrix.target.tool }}
-          path: target/${{ matrix.target.tool }}/debug/atri_qq
+          name: atri_bot-${{ matrix.target.tool }}
+          path: target/${{ matrix.target.tool }}/debug/atri_bot
 
       - name: Upload exe
         if: env.windows == 'true'
         uses: actions/upload-artifact@v3
         with:
-          name: atri_qq-${{ matrix.target.tool }}.exe
-          path: target/${{ matrix.target.tool }}/debug/atri_qq.exe
+          name: atri_bot-${{ matrix.target.tool }}.exe
+          path: target/${{ matrix.target.tool }}/debug/atri_bot.exe
 
 
   build-android:
@@ -180,5 +180,5 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v3
         with:
-          name: atri_qq-${{ matrix.arch }}-linux-android
-          path: target/${{ matrix.arch }}-linux-android/debug/atri_qq
+          name: atri_bot-${{ matrix.arch }}-linux-android
+          path: target/${{ matrix.arch }}-linux-android/debug/atri_bot

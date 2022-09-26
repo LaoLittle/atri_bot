@@ -4,13 +4,13 @@ use std::error::Error;
 
 use std::time::Duration;
 
-use atri_qq::service::command::{handle_plugin_command, PLUGIN_COMMAND};
-use atri_qq::service::listeners::get_global_worker;
-use atri_qq::service::log::init_logger;
-use atri_qq::service::login::login_bots;
-use atri_qq::service::plugin::PluginManager;
-use atri_qq::terminal::{handle_standard_output, start_read_input, PROMPT};
-use atri_qq::{get_listener_runtime, Atri};
+use atri_bot::service::command::{handle_plugin_command, PLUGIN_COMMAND};
+use atri_bot::service::listeners::get_global_worker;
+use atri_bot::service::log::init_logger;
+use atri_bot::service::login::login_bots;
+use atri_bot::service::plugin::PluginManager;
+use atri_bot::terminal::{handle_standard_output, start_read_input, PROMPT};
+use atri_bot::{get_listener_runtime, Atri};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::{io, signal};
 use tracing::{error, info};
@@ -63,7 +63,7 @@ async fn main0() -> MainResult {
 }
 
 async fn loop_cli(manager: &mut PluginManager) -> MainResult {
-    info!("已启动AtriQQ");
+    info!("已启动AtriBot");
 
     let _out = tokio::task::spawn_blocking(|| {
         if let Err(e) = handle_standard_output() {
@@ -104,7 +104,7 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
                     info!("{}", s);
                 }
                 "exit" | "quit" | "stop" => {
-                    info!("正在停止AtriQQ");
+                    info!("正在停止AtriBot");
                     break;
                 }
                 plugin if plugin.starts_with(PLUGIN_COMMAND) => {

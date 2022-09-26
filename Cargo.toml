@@ -1,9 +1,9 @@
 [package]
-name = "atri_qq"
+name = "atri_bot"
 version = "0.2.5"
 edition = "2021"
 authors = ["LaoLittle"]
-description = "AtriQQ"
+description = "A simple bot"
 readme = "README.md"
 keywords = [
     "Atri",
@@ -11,12 +11,13 @@ keywords = [
     "oicq"
 ]
 license = "AGPL-3.0"
-homepage = "https://github.com/LaoLittle/atri_qq"
-repository = "https://github.com/LaoLittle/atri_qq"
+homepage = "https://github.com/LaoLittle/atri_bot"
+repository = "https://github.com/LaoLittle/atri_bot"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# serilize
 serde = "1"
 serde_json = "1"
 toml = "0"
@@ -34,7 +35,7 @@ libloading = "0"
 rand = "0"
 crossbeam-deque = "0"
 
-#terminal
+# terminal
 crossterm = "0"
 libc = "0"
 cfg-if = "1"

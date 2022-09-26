@@ -2,7 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/atri-plugin?label=latest)](https://crates.io/crates/atri-plugin)
 
-编写可以被AtriQQ所加载的插件
+编写可以被AtriBot所加载的插件
 
 ### 开发示例
 Cargo.toml: 
@@ -56,8 +56,8 @@ impl Plugin for MyPlugin {
 
 也可以为插件实现`Drop`, 将根据规则释放
 
-最后, 将`cargo build`编译得到的动态库放入`AtriQQ`的`plugins`文件夹内,
-开启`AtriQQ`即可
+最后, 将`cargo build`编译得到的动态库放入`AtriBot`的`plugins`文件夹内,
+开启`AtriBot`即可
 
 详细文档另请参阅本crate源码
 

@@ -78,7 +78,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             info!("{}", s);
                         }
                         "exit" | "quit" | "stop" | "e" => {
-                            info!("正在停止AtriQQ");
+                            info!("正在停止AtriBot");
                             break;
                         }
                         plugin if plugin.starts_with(PLUGIN_COMMAND) => {

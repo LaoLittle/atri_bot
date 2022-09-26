@@ -3,7 +3,7 @@ name = "atri_plugin"
 version = "0.2.6"
 edition = "2021"
 authors = ["LaoLittle"]
-description = "AtriQQ plugin"
+description = "AtriBot plugin"
 readme = "README.md"
 keywords = [
     "Atri",
@@ -12,8 +12,8 @@ keywords = [
     "oicq"
 ]
 license = "AGPL-3.0"
-homepage = "https://github.com/LaoLittle/atri_qq"
-repository = "https://github.com/LaoLittle/atri_qq"
+homepage = "https://github.com/LaoLittle/atri_bot"
+repository = "https://github.com/LaoLittle/atri_bot"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

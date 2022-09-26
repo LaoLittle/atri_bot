@@ -2,7 +2,7 @@ use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenSt
 
 /// 标记一个结构体或枚举类型, 将其作为本插件的插件实例
 ///
-/// Marks a struct or an enum as a plugin can be loaded by atri_qq plugin module
+/// Marks a struct or an enum as a plugin can be loaded by atri_bot plugin module
 ///
 /// ## Usage
 ///

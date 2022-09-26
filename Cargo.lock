@@ -44,11 +44,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "atri_ffi"
-version = "0.2.2"
-
-[[package]]
-name = "atri_qq"
+name = "atri_bot"
 version = "0.2.5"
 dependencies = [
  "async-trait",
@@ -74,6 +70,10 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
 ]
+
+[[package]]
+name = "atri_ffi"
+version = "0.2.2"
 
 [[package]]
 name = "autocfg"
