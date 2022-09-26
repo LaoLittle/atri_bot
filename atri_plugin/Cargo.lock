@@ -12,7 +12,7 @@ version = "0.1.0"
 
 [[package]]
 name = "atri_plugin"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "atri_ffi",
  "atri_macros",

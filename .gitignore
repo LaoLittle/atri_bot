@@ -9,3 +9,6 @@
 /log
 /plugins
 /service
+/atri_ffi/target/
+/atri_plugin/target/
+/atri_macros/target/
