@@ -73,9 +73,9 @@ dependencies = [
 
 [[package]]
 name = "atri_ffi"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bdadaf84c53c42128de52debe86b2a45105fe9d94339e32957455605abdb319"
+checksum = "204dde8ed7070c50ef9ce54cbe7a71e09475b388b50ff8c172a8cfc5cc9bc770"
 
 [[package]]
 name = "autocfg"
