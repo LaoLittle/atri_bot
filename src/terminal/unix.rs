@@ -18,11 +18,11 @@ impl Write for RawStdout {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let n = unsafe { libc::write(self.fd, buf.as_ptr() as _, buf.len() as _) };
 
-        if n < 0 {
-            return Err(std::io::Error::last_os_error());
+        if n > 0 {
+            Ok(n as usize)
+        } else {
+            Err(std::io::Error::last_os_error())
         }
-
-        Ok(n as usize)
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
