@@ -130,7 +130,8 @@ jobs:
           CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER: x86_64-linux-android26-clang
 
       - name: Upload
-        uses: actions/upload-artifact@v3
+        uses: svenstaro/upload-release-action@v2
         with:
-          name: atri_bot-${{ matrix.arch }}-linux-android
-          path: target/${{ matrix.arch }}-linux-android/release/atri_bot
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/${{ matrix.arch }}-linux-android/release/atri_bot
+          asset_name: atri_bot-${{ matrix.arch }}-linux-android
