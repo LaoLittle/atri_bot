@@ -165,39 +165,6 @@ impl GroupMessageEvent {
     where
         F: Fn(&GroupMessageEvent) -> bool,
     {
-        /*tokio::time::timeout(timeout, async move {
-            let (tx, mut rx) = tokio::sync::mpsc::channel(8);
-            let group_id = self.group().id();
-            let sender = self.message().from_uin;
-
-            let guard = Listener::listening_on_always(move |e: GroupMessageEvent| {
-                let tx = tx.clone();
-                async move {
-                    if group_id != e.group().id() {
-                        return;
-                    }
-                    if sender != e.message().from_uin {
-                        return;
-                    }
-
-                    tx.send(e).await.unwrap_or_else(|_| unreachable!());
-                }
-            })
-            .start();
-
-            while let Some(e) = rx.recv().await {
-                if !filter(&e) {
-                    continue;
-                }
-
-                drop(guard);
-                return e;
-            }
-
-            unreachable!()
-        })
-        .await*/
-
         let group_id = self.group().id();
         let sender_id = self.sender().id();
 

@@ -2,6 +2,12 @@ use crate::plugin::cast_ref;
 use crate::Bot;
 use atri_ffi::{ManagedCloneable, RustString, RustVec};
 
+pub extern "C" fn find_bot(id: i64) -> ManagedCloneable {
+    Bot::find(id)
+        .map(ManagedCloneable::from_value)
+        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
+}
+
 pub extern "C" fn bot_get_id(bot: *const ()) -> i64 {
     let b: &Bot = cast_ref(bot);
     b.id()
@@ -19,12 +25,6 @@ pub extern "C" fn bot_get_list() -> RustVec<ManagedCloneable> {
         .collect();
 
     RustVec::from(bots)
-}
-
-pub extern "C" fn find_bot(id: i64) -> ManagedCloneable {
-    Bot::find(id)
-        .map(ManagedCloneable::from_value)
-        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
 }
 
 pub extern "C" fn bot_find_group(bot: *const (), id: i64) -> ManagedCloneable {

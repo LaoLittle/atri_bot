@@ -89,6 +89,10 @@ impl Bot {
         self.0.start().await
     }
 
+    pub fn find(id: i64) -> Option<Self> {
+        get_app().bots.get(&id).map(|b| b.clone())
+    }
+
     pub fn id(&self) -> i64 {
         self.0.id
     }
@@ -115,10 +119,6 @@ impl Bot {
 
     pub fn list() -> Vec<Bot> {
         get_app().bots.iter().map(|bot| bot.clone()).collect()
-    }
-
-    pub fn find(id: i64) -> Option<Self> {
-        get_app().bots.get(&id).map(|b| b.clone())
     }
 
     pub async fn refresh_friend_list(&self) -> RQResult<()> {
