@@ -7,7 +7,7 @@ use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tracing::info;
 
 use crate::contact::member::{AnonymousMember, NamedMember};
-use crate::event::{BotOnlineEvent, Event, EventInner, FriendMessageEvent, GroupMessageEvent};
+use crate::event::{BotLoginEvent, Event, EventInner, FriendMessageEvent, GroupMessageEvent};
 use crate::service::listeners::get_global_worker;
 use crate::{get_app, get_listener_runtime, unwrap_result_or_print_err_return, Bot};
 
@@ -55,8 +55,8 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     return;
                 };
 
-                let base = BotOnlineEvent::from(bot);
-                Event::BotOnlineEvent(base)
+                let base = BotLoginEvent::from(bot);
+                Event::BotLoginEvent(base)
             }
             QEvent::GroupMessage(e) => {
                 fn get_filter_regex() -> &'static Regex {

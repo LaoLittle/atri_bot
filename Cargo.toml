@@ -59,7 +59,7 @@ version = "0.1.17"
 version = "0.1.0"
 
 [dependencies.atri_ffi]
-version = "0.2.4"
+version = "0.2.5"
 
 [profile.release]
 lto = true

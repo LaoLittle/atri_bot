@@ -20,7 +20,7 @@ pub mod listener;
 
 #[derive(Clone)]
 pub enum Event {
-    BotOnlineEvent(BotOnlineEvent),
+    BotLoginEvent(BotLoginEvent),
     GroupMessageEvent(GroupMessageEvent),
     FriendMessageEvent(FriendMessageEvent),
     Unknown(EventInner<QEvent>),
@@ -39,7 +39,7 @@ impl Event {
         }
 
         let (t, intercepted, base) = ffi_get! {
-            BotOnlineEvent => 0;
+            BotLoginEvent => 0;
             GroupMessageEvent => 1;
             FriendMessageEvent => 2;
             Unknown => 255;
@@ -253,9 +253,9 @@ impl HasSubject for FriendMessageEvent {
     }
 }
 
-pub type BotOnlineEvent = EventInner<imp::BotOnlineEvent>;
+pub type BotLoginEvent = EventInner<imp::BotOnlineEvent>;
 
-impl BotOnlineEvent {
+impl BotLoginEvent {
     pub fn from(bot: Bot) -> Self {
         Self::new(imp::BotOnlineEvent { bot })
     }
