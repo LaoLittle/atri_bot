@@ -7,7 +7,7 @@ use atri_ffi::message::meta::{
     FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
 };
 use atri_ffi::message::{
-    FFIAt, FFIMessageChain, FFIMessageValue, MessageValueUnion, AT, AT_ALL, IMAGE, TEXT,
+    FFIAt, FFIMessageChain, FFIMessageValue, MessageValueFlag, MessageValueUnion,
 };
 use atri_ffi::{Managed, RustString, RustVec};
 use std::mem::{ManuallyDrop, MaybeUninit};
@@ -43,19 +43,19 @@ impl ForFFI for MessageValue {
     fn into_ffi(self) -> Self::FFIValue {
         match self {
             MessageValue::Text(s) => FFIMessageValue {
-                t: TEXT,
+                t: MessageValueFlag::Text.value(),
                 union: MessageValueUnion {
                     text: ManuallyDrop::new(RustString::from(s)),
                 },
             },
             MessageValue::Image(img) => FFIMessageValue {
-                t: IMAGE,
+                t: MessageValueFlag::Image.value(),
                 union: MessageValueUnion {
                     image: ManuallyDrop::new(Managed::from_value(img)),
                 },
             },
             MessageValue::At(At { target, display }) => FFIMessageValue {
-                t: AT,
+                t: MessageValueFlag::At.value(),
                 union: MessageValueUnion {
                     at: ManuallyDrop::new({
                         FFIAt {
@@ -66,11 +66,11 @@ impl ForFFI for MessageValue {
                 },
             },
             MessageValue::AtAll => FFIMessageValue {
-                t: AT_ALL,
+                t: MessageValueFlag::AtAll.value(),
                 union: MessageValueUnion { at_all: () },
             },
             or => FFIMessageValue {
-                t: 255,
+                t: MessageValueFlag::Unknown.value(),
                 union: MessageValueUnion {
                     unknown: ManuallyDrop::new(Managed::from_value(or)),
                 },
@@ -80,20 +80,26 @@ impl ForFFI for MessageValue {
 
     fn from_ffi(value: Self::FFIValue) -> Self {
         unsafe {
-            match value.t {
-                TEXT => MessageValue::Text(ManuallyDrop::into_inner(value.union.text).into()),
-                IMAGE => {
+            match MessageValueFlag::try_from(value.t)
+                .unwrap_or_else(|e| panic!("Unknown message value flag: {}", e))
+            {
+                MessageValueFlag::Text => {
+                    MessageValue::Text(ManuallyDrop::into_inner(value.union.text).into())
+                }
+                MessageValueFlag::Image => {
                     MessageValue::Image(ManuallyDrop::into_inner(value.union.image).into_value())
                 }
-                AT => {
+                MessageValueFlag::At => {
                     let inner = ManuallyDrop::into_inner(value.union.at);
                     MessageValue::At(At {
                         target: inner.target,
                         display: String::from(inner.display),
                     })
                 }
-                AT_ALL => MessageValue::AtAll,
-                _ => ManuallyDrop::into_inner(value.union.unknown).into_value(),
+                MessageValueFlag::AtAll => MessageValue::AtAll,
+                MessageValueFlag::Unknown => {
+                    ManuallyDrop::into_inner(value.union.unknown).into_value()
+                }
             }
         }
     }

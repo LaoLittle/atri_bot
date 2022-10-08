@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::env::current_dir;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -8,12 +7,12 @@ pub mod config;
 
 pub static DATA_PATH: &str = "data";
 
-struct DataHolder<T> {
+struct Holder<T> {
     path: PathBuf,
     data: T,
 }
 
-impl<T> DataHolder<T> {
+impl<T> Holder<T> {
     pub fn new<P, F>(path: P, data: F) -> std::io::Result<Self>
     where
         P: AsRef<Path>,
@@ -63,4 +62,4 @@ impl<T> DataHolder<T> {
     }
 }
 
-pub struct Data<T>(DataHolder<T>);
+pub struct Data<T>(Holder<T>);

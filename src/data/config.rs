@@ -1,3 +1,3 @@
-use crate::data::DataHolder;
+use crate::data::Holder;
 
-pub struct Config<T>(DataHolder<T>);
+pub struct Config<T>(Holder<T>);

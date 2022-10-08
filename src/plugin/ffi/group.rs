@@ -5,7 +5,7 @@ use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::{Managed, ManagedCloneable, RustStr, RustString, RustVec};
+use atri_ffi::{Managed, ManagedCloneable, RustStr, RustVec};
 
 pub extern "C" fn group_get_id(group: *const ()) -> i64 {
     let group: &Group = cast_ref(group);

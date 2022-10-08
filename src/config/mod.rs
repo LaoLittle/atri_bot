@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 pub mod login;

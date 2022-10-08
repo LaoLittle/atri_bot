@@ -1,6 +1,6 @@
 use crate::plugin::cast_ref;
 use crate::PluginManager;
-use atri_ffi::{RustStr, RustString};
+use atri_ffi::RustStr;
 
 pub extern "C" fn log(handle: usize, manager: *const (), level: u8, str: RustStr) {
     let manager: &PluginManager = cast_ref(manager);

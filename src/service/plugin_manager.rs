@@ -30,6 +30,13 @@ const EXTENSION: &str = "dll";
 #[cfg(all(unix, not(target_os = "macos")))]
 const EXTENSION: &str = "so";
 
+#[cfg(target_os = "macos")]
+const EXTENSION_PT: &str = ".dylib";
+#[cfg(windows)]
+const EXTENSION_PT: &str = ".dll";
+#[cfg(all(unix, not(target_os = "macos")))]
+const EXTENSION_PT: &str = ".so";
+
 pub struct PluginManager {
     pub(crate) plugins: HashMap<usize, Plugin>,
     dependencies: Vec<Library>,
@@ -359,4 +366,18 @@ impl Drop for Plugin {
             (self.drop_fn)(self.instance.load(Ordering::Relaxed))
         }
     }
+}
+
+fn filename_to_libname(filename: &str) -> Option<&str> {
+    #[cfg(unix)]
+    if filename.starts_with("lib") {
+        let index = filename.find(EXTENSION_PT)?;
+
+        Some(&filename[3..index])
+    } else {
+        None
+    }
+
+    #[cfg(windows)]
+    filename.find(EXTENSION_PT).map(|index| &filename[..index])
 }

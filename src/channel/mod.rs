@@ -56,7 +56,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 };
 
                 let base = BotLoginEvent::from(bot);
-                Event::BotLoginEvent(base)
+                Event::BotLogin(base)
             }
             QEvent::GroupMessage(e) => {
                 fn get_filter_regex() -> &'static Regex {
@@ -106,7 +106,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 );
 
                 let base = GroupMessageEvent::from(group, e);
-                Event::GroupMessageEvent(base)
+                Event::GroupMessage(base)
             }
             QEvent::FriendMessage(e) => {
                 bot_id = e.client.uin().await;
@@ -135,7 +135,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 let base = FriendMessageEvent::from(friend, e);
 
-                Event::FriendMessageEvent(base)
+                Event::FriendMessage(base)
             }
             QEvent::DeleteFriend(e) => {
                 bot = get_bot!(e.client);

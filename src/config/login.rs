@@ -5,6 +5,8 @@ pub const DEFAULT_CONFIG: &[u8] = include_bytes!("../../default_config/default_l
 #[derive(Deserialize, Serialize, Debug, Default)]
 pub struct LoginConfig {
     pub default_protocol: Protocol,
+    #[serde(default = "true_bool")]
+    pub auto_reconnect: bool,
     #[serde(rename = "bot")]
     pub bots: Vec<BotConfig>,
 }

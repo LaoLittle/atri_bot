@@ -20,9 +20,9 @@ pub mod listener;
 
 #[derive(Clone)]
 pub enum Event {
-    BotLoginEvent(BotLoginEvent),
-    GroupMessageEvent(GroupMessageEvent),
-    FriendMessageEvent(FriendMessageEvent),
+    BotLogin(BotLoginEvent),
+    GroupMessage(GroupMessageEvent),
+    FriendMessage(FriendMessageEvent),
     Unknown(EventInner<QEvent>),
 }
 
@@ -39,9 +39,9 @@ impl Event {
         }
 
         let (t, intercepted, base) = ffi_get! {
-            BotLoginEvent => 0;
-            GroupMessageEvent => 1;
-            FriendMessageEvent => 2;
+            BotLogin => 0;
+            GroupMessage => 1;
+            FriendMessage => 2;
             Unknown => 255;
         };
 
@@ -67,9 +67,9 @@ macro_rules! event_fun_impl {
     ($($name:ident: $ret:ty as $func:expr);+ $(;)?) => {
         $(
         event_impl! {
-            BotOnlineEvent,
-            GroupMessageEvent,
-            FriendMessageEvent,
+            BotLogin,
+            GroupMessage,
+            FriendMessage,
             Unknown;
             $name: $ret as $func
         }
@@ -208,7 +208,7 @@ impl HasSubject for GroupMessageEvent {
 
 impl FromEvent for GroupMessageEvent {
     fn from_event(e: Event) -> Option<Self> {
-        if let Event::GroupMessageEvent(e) = e {
+        if let Event::GroupMessage(e) = e {
             Some(e)
         } else {
             None
@@ -239,7 +239,7 @@ impl FriendMessageEvent {
 
 impl FromEvent for FriendMessageEvent {
     fn from_event(e: Event) -> Option<Self> {
-        if let Event::FriendMessageEvent(e) = e {
+        if let Event::FriendMessage(e) = e {
             Some(e)
         } else {
             None
@@ -297,8 +297,8 @@ pub enum MessageEvent {
 impl FromEvent for MessageEvent {
     fn from_event(e: Event) -> Option<Self> {
         match e {
-            Event::GroupMessageEvent(e) => Some(Self::Group(e)),
-            Event::FriendMessageEvent(e) => Some(Self::Friend(e)),
+            Event::GroupMessage(e) => Some(Self::Group(e)),
+            Event::FriendMessage(e) => Some(Self::Friend(e)),
             _ => None,
         }
     }

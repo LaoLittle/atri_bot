@@ -16,7 +16,7 @@ use crate::bot::Bot;
 use crate::event::listener::Listener;
 use crate::event::Event;
 use crate::service::listeners::ListenerWorker;
-use crate::service::plugin::PluginManager;
+use crate::service::plugin_manager::PluginManager;
 
 pub mod bot;
 pub mod channel;
