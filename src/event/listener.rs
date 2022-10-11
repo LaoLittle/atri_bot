@@ -22,14 +22,14 @@ pub struct Listener {
 }
 
 impl Listener {
-    fn new_listener<F, Fu>(handler: F) -> ListenerBuilder
+    fn new<F, Fu>(handler: F) -> ListenerBuilder
     where
         F: Fn(Event) -> Fu,
         F: Send + 'static,
         Fu: Future<Output = bool>,
         Fu: Send + 'static,
     {
-        let handler = Box::new(move |e: Event| {
+        let handler = Box::new(move |e| {
             let fu = handler(e);
             let b: Box<dyn Future<Output = bool> + Send + 'static> = Box::new(fu);
 
@@ -44,21 +44,20 @@ impl Listener {
         }
     }
 
-    fn new_listener_always<F, Fu>(handler: F) -> ListenerBuilder
+    fn new_always<F, Fu>(handler: F) -> ListenerBuilder
     where
         F: Fn(Event) -> Fu,
         F: Send + 'static,
         Fu: Future<Output = ()>,
         Fu: Send + 'static,
     {
-        Self::new_listener(move |e: Event| {
+        Self::new(move |e| {
             let fu = handler(e);
-            let b: Box<dyn Future<Output = bool> + Send + 'static> = Box::new(async move {
+
+            async move {
                 fu.await;
                 true
-            });
-
-            Box::into_pin(b)
+            }
         })
     }
 
@@ -70,16 +69,16 @@ impl Listener {
         Fu: Send + 'static,
         E: FromEvent,
     {
-        Self::new_listener(move |e: Event| {
-            let b: Box<dyn Future<Output = bool> + Send + 'static> =
-                if let Some(e) = E::from_event(e) {
-                    let fu = handler(e);
-                    Box::new(fu)
-                } else {
-                    Box::new(bool_true())
-                };
+        Self::new(move |e| {
+            let fu = E::from_event(e).and_then(|e| Some(handler(e)));
 
-            Box::into_pin(b)
+            async move {
+                if let Some(fu) = fu {
+                    fu.await
+                } else {
+                    true
+                }
+            }
         })
     }
 
@@ -91,18 +90,14 @@ impl Listener {
         Fu: Send + 'static,
         E: FromEvent,
     {
-        Self::new_listener_always(move |e: Event| {
-            let b: Box<dyn Future<Output = ()> + Send + 'static> = if let Some(e) = E::from_event(e)
-            {
-                let fu = handler(e);
-                Box::new(async move {
-                    fu.await;
-                })
-            } else {
-                Box::new(nop())
-            };
+        Self::new_always(move |e| {
+            let fu = E::from_event(e).and_then(|e| Some(handler(e)));
 
-            Box::into_pin(b)
+            async move {
+                if let Some(fu) = fu {
+                    fu.await;
+                }
+            }
         })
     }
 
@@ -186,13 +181,13 @@ impl ListenerBuilder {
         self
     }
 
-    pub fn synchronize(mut self) -> Self {
-        self.concurrent = false;
+    pub fn synchronize(mut self, is: bool) -> Self {
+        self.concurrent = is;
         self
     }
 
-    pub fn concurrent(mut self) -> Self {
-        self.concurrent = false;
+    pub fn concurrent(mut self, is: bool) -> Self {
+        self.concurrent = is;
         self
     }
 
@@ -236,9 +231,3 @@ impl Drop for ListenerGuard {
         self.closed.swap(true, Ordering::Relaxed);
     }
 }
-
-async fn bool_true() -> bool {
-    true
-}
-
-async fn nop() {}
