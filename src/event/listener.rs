@@ -181,11 +181,6 @@ impl ListenerBuilder {
         self
     }
 
-    pub fn synchronize(mut self, is: bool) -> Self {
-        self.concurrent = is;
-        self
-    }
-
     pub fn concurrent(mut self, is: bool) -> Self {
         self.concurrent = is;
         self
