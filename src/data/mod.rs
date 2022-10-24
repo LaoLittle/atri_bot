@@ -7,37 +7,38 @@ pub mod config;
 
 pub static DATA_PATH: &str = "data";
 
-struct Holder<T> {
+pub struct Holder<T, S, D> {
     path: PathBuf,
     data: T,
+    ser: S,
+    deser: D,
 }
 
-impl<T> Holder<T> {
-    pub fn new<P, F>(path: P, data: F) -> std::io::Result<Self>
+impl<T, S, D> Holder<T, S, D>
+where
+    S: Fn(Option<&[u8]>) -> T,
+    D: Fn(&T) -> &[u8],
+{
+    pub fn new<P>(path: P, ser: S, deser: D) -> Self
     where
         P: AsRef<Path>,
-        F: FnOnce(Option<&[u8]>) -> T,
     {
         let p = path.as_ref();
 
-        let path = current_dir()
-            .map(|buf| buf.join(p))
-            .unwrap_or_else(|_| p.to_path_buf());
-
-        let result = File::open(&path).and_then(|f| {
-            let mut bytes = vec![];
-            (&f).read_to_end(&mut bytes)?;
-
-            Ok(bytes)
-        });
+        let result = std::fs::read(p);
 
         let data = if let Ok(bytes) = result {
-            data(Some(&bytes))
+            ser(Some(&bytes))
         } else {
-            data(None)
+            ser(None)
         };
 
-        Ok(Self { path, data })
+        Self {
+            path: p.to_path_buf(),
+            data,
+            ser,
+            deser,
+        }
     }
 
     pub fn reload<F: FnOnce(&[u8]) -> T>(&mut self, data: F) -> std::io::Result<()> {
@@ -61,5 +62,3 @@ impl<T> Holder<T> {
         Ok(())
     }
 }
-
-pub struct Data<T>(Holder<T>);
