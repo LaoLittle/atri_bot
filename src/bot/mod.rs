@@ -238,7 +238,7 @@ mod imp {
     use tokio::net::TcpSocket;
     use tokio::task::yield_now;
     use tokio::{fs, io};
-    use tracing::error;
+    use tracing::{error, warn};
 
     use crate::bot::info::BotAccountInfo;
     use crate::bot::BotConfiguration;
@@ -349,7 +349,7 @@ mod imp {
                     break s;
                 } else {
                     times += 1;
-                    error!("连接服务器{}失败, 尝试重连({}/{})", addr, times, total);
+                    warn!("连接服务器{}失败, 尝试重连({}/{})", addr, times, total);
                 }
             };
 

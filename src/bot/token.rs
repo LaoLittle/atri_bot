@@ -55,8 +55,8 @@ impl From<ricq::client::Token> for Token {
 }
 
 impl From<Token> for ricq::client::Token {
-    fn from(token: Token) -> Self {
-        let Token {
+    fn from(
+        Token {
             uin,
             d2,
             d2key,
@@ -67,8 +67,8 @@ impl From<Token> for ricq::client::Token {
             out_packet_session_id,
             tgtgt_key,
             wt_session_ticket_key,
-        } = token;
-
+        }: Token,
+    ) -> Self {
         Self {
             uin,
             d2,
