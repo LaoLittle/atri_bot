@@ -3,7 +3,7 @@ use std::error::Error;
 use std::io::{stdout, Write};
 use std::sync::RwLock;
 
-use crate::service::command::{handle_plugin_command, PLUGIN_COMMAND};
+use crate::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
 use crate::PluginManager;
 use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, KeyCode};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};

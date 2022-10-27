@@ -4,7 +4,7 @@ use std::error::Error;
 
 use std::time::Duration;
 
-use atri_bot::service::command::{handle_plugin_command, PLUGIN_COMMAND};
+use atri_bot::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
 use atri_bot::service::listeners::get_global_worker;
 use atri_bot::service::log::init_logger;
 use atri_bot::service::login::login_bots;
