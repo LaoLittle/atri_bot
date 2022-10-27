@@ -120,7 +120,7 @@ jobs:
           EOF
 
       - name: Build Android ${{ matrix.arch }}
-        run: cargo build --target ${{ matrix.arch }}-linux-android
+        run: cargo build --target ${{ matrix.arch }}-linux-android --release
         env:
           CC_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang
           CXX_AARCH64_LINUX_ANDROID: aarch64-linux-android26-clang++

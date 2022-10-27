@@ -1,12 +1,7 @@
 pub mod builtin;
 
-use crate::PluginManager;
-use std::collections::hash_map::Entry;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::mem;
-use std::str::FromStr;
-use tracing::info;
 
 pub trait Command {
     fn handle(&self) {}

@@ -2,6 +2,7 @@ use crate::service::command::{CommandError, CommandResult, PLUGIN_COMMAND};
 use crate::service::plugin_manager::PluginManager;
 use std::collections::hash_map::Entry;
 use std::mem;
+use std::str::FromStr;
 use tracing::info;
 
 pub fn handle_plugin_command(
