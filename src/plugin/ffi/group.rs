@@ -18,9 +18,9 @@ pub extern "C" fn group_get_name(group: *const ()) -> RustStr {
     RustStr::from(s)
 }
 
-pub extern "C" fn group_get_bot(group: *const ()) -> ManagedCloneable {
+pub extern "C" fn group_get_client(group: *const ()) -> ManagedCloneable {
     let group: &Group = cast_ref(group);
-    ManagedCloneable::from_value(group.bot().clone())
+    ManagedCloneable::from_value(group.client().clone())
 }
 
 pub extern "C" fn group_get_members(group: *const ()) -> FFIFuture<RustVec<ManagedCloneable>> {

@@ -14,7 +14,7 @@ use crate::contact::group::Group;
 use crate::contact::member::{AnonymousMember, Member};
 use crate::contact::{Contact, HasSubject};
 use crate::message::MessageChain;
-use crate::{Bot, Listener};
+use crate::{Client, Listener};
 
 pub mod listener;
 
@@ -32,7 +32,7 @@ impl Event {
             ($($e:ident => $t:expr);* $(;)?) => {
                 match self {
                     $(
-                    Self::$e(e) => ($t, &*e.intercepted as *const AtomicBool, ManagedCloneable::from_value(e)),
+                    Self::$e(e) => ($t, &e.event.intercepted as *const AtomicBool, ManagedCloneable::from_value(e)),
                     )*
                 }
             };
@@ -90,41 +90,48 @@ impl FromEvent for Event {
 
 #[derive(Debug)]
 pub struct EventInner<T> {
-    intercepted: Arc<AtomicBool>,
-    event: Arc<T>,
-}
-
-impl<T> EventInner<T> {
-    fn new(event: T) -> Self {
-        Self {
-            intercepted: AtomicBool::new(false).into(),
-            event: event.into(),
-        }
-    }
-
-    pub fn intercept(&self) {
-        self.intercepted.swap(true, Ordering::Release);
-    }
-
-    pub fn is_intercepted(&self) -> bool {
-        self.intercepted.load(Ordering::Relaxed)
-    }
-
-    pub fn into_inner(self) -> Result<T, Self> {
-        let e = Arc::try_unwrap(self.event);
-
-        e.map_err(|arc| Self {
-            intercepted: self.intercepted,
-            event: arc,
-        })
-    }
+    event: Arc<EventWithFlag<T>>,
 }
 
 impl<T> Clone for EventInner<T> {
     fn clone(&self) -> Self {
         Self {
-            intercepted: self.intercepted.clone(),
             event: self.event.clone(),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct EventWithFlag<T> {
+    intercepted: AtomicBool,
+    inner: T,
+}
+
+impl<T> EventInner<T> {
+    fn new(event: T) -> Self {
+        Self {
+            event: EventWithFlag {
+                intercepted: AtomicBool::new(false),
+                inner: event,
+            }
+            .into(),
+        }
+    }
+
+    pub fn intercept(&self) {
+        self.event.intercepted.swap(true, Ordering::Release);
+    }
+
+    pub fn is_intercepted(&self) -> bool {
+        self.event.intercepted.load(Ordering::Relaxed)
+    }
+
+    pub fn into_inner(self) -> Result<T, Self> {
+        let e = Arc::try_unwrap(self.event);
+
+        match e {
+            Ok(e) => Ok(e.inner),
+            Err(arc) => Err(Self { event: arc }),
         }
     }
 }
@@ -133,11 +140,11 @@ pub type GroupMessageEvent = EventInner<imp::GroupMessageEvent>;
 
 impl GroupMessageEvent {
     pub fn group(&self) -> &Group {
-        &self.event.group
+        &self.event.inner.group
     }
 
-    pub fn bot(&self) -> &Bot {
-        self.group().bot()
+    pub fn bot(&self) -> &Client {
+        self.group().client()
     }
 
     pub fn sender(&self) -> Member {
@@ -158,7 +165,7 @@ impl GroupMessageEvent {
     }
 
     pub fn message(&self) -> &MessageChain {
-        &self.event.message
+        &self.event.inner.message
     }
 
     pub async fn next_event<F>(&self, timeout: Duration, filter: F) -> Option<GroupMessageEvent>
@@ -220,11 +227,11 @@ pub type FriendMessageEvent = EventInner<imp::FriendMessageEvent>;
 
 impl FriendMessageEvent {
     pub fn friend(&self) -> &Friend {
-        &self.event.friend
+        &self.event.inner.friend
     }
 
     pub fn message(&self) -> &MessageChain {
-        &self.event.message
+        &self.event.inner.message
     }
 
     pub(crate) fn from(friend: Friend, ori: ricq::client::event::FriendMessageEvent) -> Self {
@@ -256,7 +263,7 @@ impl HasSubject for FriendMessageEvent {
 pub type BotLoginEvent = EventInner<imp::BotOnlineEvent>;
 
 impl BotLoginEvent {
-    pub fn from(bot: Bot) -> Self {
+    pub fn from(bot: Client) -> Self {
         Self::new(imp::BotOnlineEvent { bot })
     }
 }
@@ -272,7 +279,7 @@ mod imp {
     use crate::contact::friend::Friend;
     use crate::contact::group::Group;
     use crate::message::MessageChain;
-    use crate::Bot;
+    use crate::Client;
 
     pub struct GroupMessageEvent {
         pub group: Group,
@@ -285,7 +292,7 @@ mod imp {
     }
 
     pub struct BotOnlineEvent {
-        pub bot: Bot,
+        pub bot: Client,
     }
 }
 

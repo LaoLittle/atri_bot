@@ -1,6 +1,6 @@
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -9,6 +9,12 @@ use tokio::sync::Mutex;
 use crate::event::FromEvent;
 use crate::service::listeners::get_global_worker;
 use crate::{get_listener_runtime, Event};
+
+static UNIQUE_ID: AtomicUsize = AtomicUsize::new(0);
+
+fn next_unique_id() -> usize {
+    UNIQUE_ID.fetch_add(1, Ordering::Relaxed)
+}
 
 pub type ListenerHandler =
     Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output = bool> + Send + 'static>> + Send + 'static>;
@@ -101,7 +107,11 @@ impl Listener {
         })
     }
 
-    pub async fn next_event<E, F>(timeout: Duration, filter: F) -> Option<E>
+    pub async fn next_event_with_priority<E, F>(
+        timeout: Duration,
+        filter: F,
+        priority: Priority,
+    ) -> Option<E>
     where
         E: FromEvent,
         E: Send + 'static,
@@ -115,12 +125,14 @@ impl Listener {
                     let _ = tx.send(e).await;
                 }
             })
+            .priority(priority)
             .start();
 
             while let Some(e) = rx.recv().await {
                 if !filter(&e) {
                     continue;
                 }
+                drop(_guard);
 
                 return e;
             }
@@ -129,6 +141,15 @@ impl Listener {
         })
         .await
         .ok()
+    }
+
+    pub async fn next_event<E, F>(timeout: Duration, filter: F) -> Option<E>
+    where
+        E: FromEvent,
+        E: Send + 'static,
+        F: Fn(&E) -> bool,
+    {
+        Self::next_event_with_priority(timeout, filter, Default::default()).await
     }
 
     pub fn name(&self) -> &str {
@@ -176,8 +197,8 @@ impl ListenerBuilder {
         }
     }
 
-    pub fn with_name(mut self, name: impl ToString) -> Self {
-        self.name = Some(name.to_string());
+    pub fn name<S: Into<String>>(mut self, name: S) -> Self {
+        self.name = Some(name.into());
         self
     }
 
@@ -186,7 +207,7 @@ impl ListenerBuilder {
         self
     }
 
-    pub fn set_priority(mut self, priority: Priority) -> Self {
+    pub fn priority(mut self, priority: Priority) -> Self {
         self.priority = priority;
         self
     }
@@ -200,6 +221,19 @@ pub enum Priority {
     Middle = 2,
     Low = 3,
     Base = 4,
+}
+
+impl From<u8> for Priority {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::Top,
+            1 => Self::High,
+            2 => Self::Middle,
+            3 => Self::Low,
+            4 => Self::Base,
+            _ => Self::Middle,
+        }
+    }
 }
 
 unsafe impl Send for Listener {}

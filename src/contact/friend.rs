@@ -1,7 +1,7 @@
 use crate::message::image::Image;
 use crate::message::meta::MetaMessage;
 use crate::message::MessageChain;
-use crate::Bot;
+use crate::Client;
 use ricq::structs::{FriendInfo, MessageReceipt};
 use ricq::RQResult;
 use std::sync::Arc;
@@ -23,12 +23,16 @@ impl Friend {
         &self.0.info.remark
     }
 
-    pub fn bot(&self) -> &Bot {
-        &self.0.bot
+    pub fn client(&self) -> &Client {
+        &self.0.client
     }
 
     pub async fn delete(&self) -> bool {
-        let result = self.bot().client().delete_friend(self.id()).await;
+        let result = self
+            .client()
+            .request_client()
+            .delete_friend(self.id())
+            .await;
 
         if let Err(e) = result {
             error!(
@@ -40,22 +44,22 @@ impl Friend {
             return false;
         }
 
-        let map = self.bot().delete_friend(self.id());
+        let map = self.client().remove_friend_cache(self.id());
 
         map.is_some()
     }
 
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
         let result = self
-            .bot()
             .client()
+            .request_client()
             .send_friend_message(self.id(), chain.into())
             .await;
 
         if let Err(ref e) = result {
             error!(
                 "{}发送消息失败, 目标好友: {}({}), {:?}",
-                self.bot(),
+                self.client(),
                 self.nickname(),
                 self.id(),
                 e
@@ -66,8 +70,8 @@ impl Friend {
     }
 
     pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<Image> {
-        self.bot()
-            .client()
+        self.client()
+            .request_client()
             .upload_friend_image(self.id(), image)
             .await
             .map(Image::Friend)
@@ -75,8 +79,8 @@ impl Friend {
 
     pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> RQResult<()> {
         let meta = msg.metadata();
-        self.bot()
-            .client()
+        self.client()
+            .request_client()
             .recall_friend_message(
                 self.id(),
                 meta.time as i64,
@@ -86,19 +90,19 @@ impl Friend {
             .await
     }
 
-    pub(crate) fn from(bot: Bot, info: FriendInfo) -> Self {
-        let f = imp::Friend { bot, info };
+    pub(crate) fn from(client: Client, info: FriendInfo) -> Self {
+        let f = imp::Friend { client, info };
 
         Self(Arc::new(f))
     }
 }
 
 mod imp {
-    use crate::Bot;
+    use crate::Client;
     use ricq::structs::FriendInfo;
 
     pub struct Friend {
-        pub bot: Bot,
+        pub client: Client,
         pub info: FriendInfo,
     }
 }

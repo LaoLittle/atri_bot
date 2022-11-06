@@ -7,12 +7,12 @@ pub struct LoginConfig {
     pub default_protocol: Protocol,
     #[serde(default = "true_bool")]
     pub auto_reconnect: bool,
-    #[serde(rename = "bot")]
-    pub bots: Vec<BotConfig>,
+    #[serde(rename = "client")]
+    pub bots: Vec<ClientConfig>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct BotConfig {
+pub struct ClientConfig {
     pub account: i64,
     pub password: Option<String>,
     pub protocol: Option<Protocol>,

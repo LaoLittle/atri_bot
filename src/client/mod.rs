@@ -8,10 +8,10 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use ricq::ext::common::after_login;
-use ricq::{Client, LoginResponse, RQError, RQResult};
+use ricq::{Client as RQClient, LoginResponse, RQError, RQResult};
 
-use crate::bot::info::BotAccountInfo;
-use crate::bot::token::Token;
+use crate::client::info::BotAccountInfo;
+use crate::client::token::Token;
 use crate::contact::friend::Friend;
 use tokio::io;
 use tracing::error;
@@ -20,11 +20,11 @@ use crate::contact::group::Group;
 use crate::get_app;
 
 #[derive(Clone)]
-pub struct Bot(Arc<imp::Bot>);
+pub struct Client(Arc<imp::Client>);
 
-impl Bot {
+impl Client {
     pub async fn new(id: i64, conf: BotConfiguration) -> Self {
-        let b = imp::Bot::new(id, conf).await;
+        let b = imp::Client::new(id, conf).await;
         Self(Arc::new(b))
     }
 
@@ -52,7 +52,7 @@ impl Bot {
                     gender: info.gender.into(),
                 });
 
-                let rq = self.client().gen_token().await;
+                let rq = self.request_client().gen_token().await;
                 let token = Token::from(rq);
 
                 tokio::task::spawn_blocking(move || {
@@ -90,7 +90,7 @@ impl Bot {
     }
 
     pub fn find(id: i64) -> Option<Self> {
-        get_app().bots.get(&id).map(|b| b.clone())
+        get_app().clients.get(&id).map(|b| b.clone())
     }
 
     pub fn id(&self) -> i64 {
@@ -114,15 +114,19 @@ impl Bot {
     }
 
     pub fn is_online(&self) -> bool {
-        self.client().online.load(Ordering::Relaxed)
+        self.request_client().online.load(Ordering::Relaxed)
     }
 
-    pub fn list() -> Vec<Bot> {
-        get_app().bots.iter().map(|bot| bot.clone()).collect()
+    pub fn list() -> Vec<Client> {
+        get_app()
+            .clients
+            .iter()
+            .map(|client| client.clone())
+            .collect()
     }
 
     pub async fn refresh_friend_list(&self) -> RQResult<()> {
-        let list = self.client().get_friend_list().await?;
+        let list = self.request_client().get_friend_list().await?;
 
         for info in list.friends {
             self.0
@@ -134,7 +138,7 @@ impl Bot {
     }
 
     pub async fn refresh_group_list(&self) -> RQResult<()> {
-        let infos = self.client().get_group_list().await?;
+        let infos = self.request_client().get_group_list().await?;
         self.0.group_list.clear();
 
         for info in infos {
@@ -150,7 +154,7 @@ impl Bot {
     }
 
     pub async fn refresh_group_info(&self, group_id: i64) -> RQResult<()> {
-        let info = self.client().get_group_info(group_id).await?;
+        let info = self.request_client().get_group_info(group_id).await?;
         if let Some(info) = info {
             let g = Group::from(self.clone(), info);
             self.0.group_list.insert(group_id, g);
@@ -161,11 +165,11 @@ impl Bot {
         Ok(())
     }
 
-    pub(crate) fn delete_friend(&self, friend_id: i64) -> Option<Friend> {
+    pub(crate) fn remove_friend_cache(&self, friend_id: i64) -> Option<Friend> {
         self.0.friend_list.remove(&friend_id).map(|(_, f)| f)
     }
 
-    pub(crate) fn delete_group(&self, group_id: i64) -> Option<Group> {
+    pub(crate) fn remove_group_cache(&self, group_id: i64) -> Option<Group> {
         self.0.group_list.remove(&group_id).map(|(_, g)| g)
     }
 
@@ -197,7 +201,7 @@ impl Bot {
         self.0.friend_list.iter().map(|f| f.clone()).collect()
     }
 
-    pub(crate) fn client(&self) -> &Client {
+    pub(crate) fn request_client(&self) -> &RQClient {
         &self.0.client
     }
 
@@ -206,19 +210,19 @@ impl Bot {
     }*/
 }
 
-impl PartialEq for Bot {
+impl PartialEq for Client {
     fn eq(&self, other: &Self) -> bool {
         self.id() == other.id()
     }
 }
 
-impl Debug for Bot {
+impl Debug for Client {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Bot").field("id", &self.id()).finish()
     }
 }
 
-impl Display for Bot {
+impl Display for Client {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Bot({})", self.id())
     }
@@ -233,30 +237,30 @@ mod imp {
 
     use dashmap::DashMap;
     use ricq::device::Device;
-    use ricq::Client;
+    use ricq::Client as RQClient;
     use tokio::io::AsyncReadExt;
     use tokio::net::TcpSocket;
     use tokio::task::yield_now;
     use tokio::{fs, io};
     use tracing::{error, warn};
 
-    use crate::bot::info::BotAccountInfo;
-    use crate::bot::BotConfiguration;
     use crate::channel::GlobalEventBroadcastHandler;
+    use crate::client::info::BotAccountInfo;
+    use crate::client::BotConfiguration;
     use crate::contact::friend::Friend;
     use crate::contact::group::Group;
 
-    pub struct Bot {
+    pub struct Client {
         pub id: i64,
         pub info: OnceLock<BotAccountInfo>,
         pub enable: AtomicBool,
-        pub client: Arc<Client>,
+        pub client: Arc<RQClient>,
         pub friend_list: DashMap<i64, Friend>,
         pub group_list: DashMap<i64, Group>,
         pub work_dir: PathBuf,
     }
 
-    impl Bot {
+    impl Client {
         pub async fn new(id: i64, conf: BotConfiguration) -> Self {
             let work_dir = conf.work_dir(id);
 
@@ -316,7 +320,7 @@ mod imp {
                 device
             };
 
-            let client = Client::new(device, conf.version, GlobalEventBroadcastHandler);
+            let client = RQClient::new(device, conf.version, GlobalEventBroadcastHandler);
             let client = Arc::new(client);
 
             Self {

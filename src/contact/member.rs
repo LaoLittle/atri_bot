@@ -1,7 +1,7 @@
 use crate::contact::group::Group;
 use crate::message::meta::Anonymous;
 use crate::message::MessageChain;
-use crate::{Bot, GroupMemberInfo};
+use crate::{Client, GroupMemberInfo};
 use atri_ffi::contact::{FFIMember, MemberUnion};
 use atri_ffi::ManagedCloneable;
 use ricq::structs::MessageReceipt;
@@ -95,14 +95,14 @@ impl NamedMember {
         &self.0.group
     }
 
-    pub fn bot(&self) -> &Bot {
-        self.group().bot()
+    pub fn client(&self) -> &Client {
+        self.group().client()
     }
 
     pub async fn mute(&self, duration: Duration) -> RQResult<()> {
         self.group()
-            .bot()
             .client()
+            .request_client()
             .group_mute(self.group().id(), self.id(), duration)
             .await
     }
@@ -111,26 +111,27 @@ impl NamedMember {
         let msg = msg.as_ref().map(AsRef::<str>::as_ref).unwrap_or("");
 
         self.group()
-            .bot()
             .client()
+            .request_client()
             .group_kick(self.group().id(), vec![self.id()], msg, block)
             .await
     }
 
     pub async fn change_card_name<S: ToString>(&self, new: S) -> RQResult<()> {
         self.group()
-            .bot()
             .client()
+            .request_client()
             .edit_group_member_card(self.group().id(), self.id(), new.to_string())
             .await
     }
 
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
-        let bot = self.group().bot();
-        if let Some(f) = bot.find_friend(self.id()) {
+        let client = self.group().client();
+        if let Some(f) = client.find_friend(self.id()) {
             f.send_message(chain).await
         } else {
-            bot.client()
+            client
+                .request_client()
                 .send_group_temp_message(self.group().id(), self.id(), chain.into())
                 .await
         }
@@ -169,8 +170,8 @@ impl AnonymousMember {
         &self.0.group
     }
 
-    pub fn bot(&self) -> &Bot {
-        self.group().bot()
+    pub fn bot(&self) -> &Client {
+        self.group().client()
     }
 }
 

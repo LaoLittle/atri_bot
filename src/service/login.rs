@@ -8,9 +8,9 @@ use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use tracing::{error, info, warn};
 
-use crate::bot::BotConfiguration;
+use crate::client::BotConfiguration;
 use crate::config::login::{LoginConfig, DEFAULT_CONFIG};
-use crate::{config, get_app, Bot};
+use crate::{config, get_app, Client};
 
 pub async fn login_bots() -> Result<(), RQError> {
     let login_conf_dir = {
@@ -118,35 +118,35 @@ async fn login_bot(
     account: i64,
     password: &Option<String>,
     conf: BotConfiguration,
-) -> Result<Bot, RQError> {
-    let bot = Bot::new(account, conf).await;
-    get_app().add_bot(bot.clone());
-    bot.start().await?;
+) -> Result<Client, RQError> {
+    let client = Client::new(account, conf).await;
+    get_app().add_client(client.clone());
+    client.start().await?;
 
     info!("Bot({})登陆中", account);
-    match bot.try_login().await {
+    match client.try_login().await {
         Ok(_) => {
-            info!("{}登陆成功", bot);
-            Ok(bot)
+            info!("{}登陆成功", client);
+            Ok(client)
         }
         Err(e) => {
             //error!("Bot({})登陆失败: {:?}", account, e);
             if let Some(pwd) = password {
-                info!("{}尝试密码登陆", bot);
-                let mut resp = bot.client().password_login(account, pwd).await?;
+                info!("{}尝试密码登陆", client);
+                let mut resp = client.request_client().password_login(account, pwd).await?;
 
                 loop {
                     match resp {
                         LoginResponse::DeviceLockLogin(..) => {
-                            resp = bot.client().device_lock_login().await?;
+                            resp = client.request_client().device_lock_login().await?;
                         }
                         LoginResponse::Success(..) => {
-                            info!("{}登陆成功", bot);
-                            let mut dir = bot.work_dir();
+                            info!("{}登陆成功", client);
+                            let mut dir = client.work_dir();
                             dir.push("token.json");
 
                             if let Ok(mut f) = fs::File::create(&dir).await {
-                                let token = bot.client().gen_token().await;
+                                let token = client.request_client().gen_token().await;
                                 let s = serde_json::to_string_pretty(&token)
                                     .expect("Cannot serialize token");
                                 let _ = f.write_all(s.as_bytes()).await;
@@ -155,23 +155,23 @@ async fn login_bot(
                             break;
                         }
                         LoginResponse::UnknownStatus(ref s) => {
-                            error!("{}登陆失败: {}", bot, s.message);
+                            error!("{}登陆失败: {}", client, s.message);
                             return Err(e);
                         }
                         LoginResponse::AccountFrozen => {
-                            error!("{}登陆失败: 账号被冻结", bot);
+                            error!("{}登陆失败: 账号被冻结", client);
                             return Err(e);
                         }
                         or => {
-                            error!("{}登陆失败, 服务器返回: {:?}", bot, or);
+                            error!("{}登陆失败, 服务器返回: {:?}", client, or);
                             return Err(e);
                         }
                     }
                 }
 
-                Ok(bot)
+                Ok(client)
             } else {
-                error!("{}登陆失败: {:?}", bot, e);
+                error!("{}登陆失败: {:?}", client, e);
                 Err(e)
             }
         }

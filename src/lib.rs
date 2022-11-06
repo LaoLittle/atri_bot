@@ -11,15 +11,15 @@ use ricq::structs::GroupMemberInfo;
 use tokio::runtime;
 use tokio::runtime::Runtime;
 
-use crate::bot::Bot;
+use crate::client::Client;
 
 use crate::event::listener::Listener;
 use crate::event::Event;
 use crate::service::listeners::ListenerWorker;
 use crate::service::plugin_manager::PluginManager;
 
-pub mod bot;
 pub mod channel;
+pub mod client;
 pub mod config;
 pub mod contact;
 pub mod data;
@@ -90,19 +90,19 @@ pub fn get_listener_runtime() -> &'static Runtime {
 }
 
 pub struct App {
-    bots: DashMap<i64, Bot>,
+    clients: DashMap<i64, Client>,
 }
 
 impl App {
     pub fn new() -> Self {
         Self {
-            bots: DashMap::new(),
+            clients: DashMap::new(),
         }
     }
 
-    pub fn bots(&self) -> Vec<Bot> {
+    pub fn bots(&self) -> Vec<Client> {
         let mut bots = vec![];
-        for bot in self.bots.iter() {
+        for bot in self.clients.iter() {
             let c = bot.clone();
             bots.push(c);
         }
@@ -110,12 +110,12 @@ impl App {
         bots
     }
 
-    pub(crate) fn add_bot(&self, bot: Bot) -> Option<Bot> {
-        self.bots.insert(bot.id(), bot)
+    pub(crate) fn add_client(&self, bot: Client) -> Option<Client> {
+        self.clients.insert(bot.id(), bot)
     }
 
-    pub(crate) fn remove_bot(&self, bot: i64) -> Option<Bot> {
-        self.bots.remove(&bot).map(|(_, bot)| bot)
+    pub(crate) fn remove_bot(&self, bot: i64) -> Option<Client> {
+        self.clients.remove(&bot).map(|(_, bot)| bot)
     }
 }
 

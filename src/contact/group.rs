@@ -11,15 +11,15 @@ use crate::contact::member::NamedMember;
 use crate::message::image::Image;
 use crate::message::meta::MetaMessage;
 use crate::message::MessageChain;
-use crate::Bot;
+use crate::Client;
 
 #[derive(Clone)]
 pub struct Group(Arc<imp::Group>);
 
 impl Group {
-    pub fn from(bot: Bot, info: GroupInfo) -> Self {
+    pub fn from(bot: Client, info: GroupInfo) -> Self {
         let imp = imp::Group {
-            bot,
+            client: bot,
             info,
             member_list_refreshed: AtomicBool::new(false),
             members: DashMap::new(),
@@ -32,8 +32,8 @@ impl Group {
         self.0.info.code
     }
 
-    pub fn bot(&self) -> &Bot {
-        &self.0.bot
+    pub fn client(&self) -> &Client {
+        &self.0.client
     }
 
     pub fn name(&self) -> &str {
@@ -53,8 +53,8 @@ impl Group {
             self.0.members.iter().map(|named| named.clone()).collect()
         } else {
             let owner = self.0.info.owner_uin;
-            self.bot()
-                .client()
+            self.client()
+                .request_client()
                 .get_group_member_list(self.id(), owner)
                 .await
                 .map(|r| {
@@ -81,8 +81,8 @@ impl Group {
         }
 
         let named = self
-            .bot()
             .client()
+            .request_client()
             .get_group_member_info(self.id(), id)
             .await
             .map(|info| {
@@ -99,14 +99,14 @@ impl Group {
     }
 
     pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
-        self.bot()
-            .client()
+        self.client()
+            .request_client()
             .send_group_message(self.id(), chain.into())
             .await
             .map_err(|err| {
                 error!(
                     "{}发送信息失败, 目标群: {}({}), {:?}",
-                    self.bot(),
+                    self.client(),
                     self.name(),
                     self.id(),
                     err
@@ -116,15 +116,15 @@ impl Group {
     }
 
     pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<Image> {
-        self.bot()
-            .client()
+        self.client()
+            .request_client()
             .upload_group_image(self.id(), image)
             .await
             .map(Image::Group)
             .map_err(|err| {
                 error!(
                     "{}上传图片失败, 目标群: {}({}), {:?}",
-                    self.bot(),
+                    self.client(),
                     self.name(),
                     self.id(),
                     err
@@ -135,14 +135,17 @@ impl Group {
 
     pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> RQResult<()> {
         let meta = msg.metadata();
-        self.bot()
-            .client()
+        self.client()
+            .request_client()
             .recall_group_message(self.id(), meta.seqs.clone(), meta.rands.clone())
             .await
     }
 
     pub async fn change_name(&self, name: String) -> RQResult<()> {
-        self.bot().client().update_group_name(self.id(), name).await
+        self.client()
+            .request_client()
+            .update_group_name(self.id(), name)
+            .await
     }
 
     pub async fn kick<M: ToKickMember, S: AsRef<str>>(
@@ -154,20 +157,20 @@ impl Group {
         let members = member.to_member_vec();
         let msg = msg.as_ref().map(AsRef::<str>::as_ref).unwrap_or("");
 
-        self.bot()
-            .client()
+        self.client()
+            .request_client()
             .group_kick(self.id(), members, msg, block)
             .await
     }
 
     pub async fn quit(&self) -> bool {
-        let result = self.bot().client().group_quit(self.id()).await;
+        let result = self.client().request_client().group_quit(self.id()).await;
         if let Err(e) = result {
             error!("尝试退出群 {}({}) 时失败: {:?}", self.name(), self.id(), e);
             return false;
         }
 
-        let map = self.bot().delete_group(self.id());
+        let map = self.client().remove_group_cache(self.id());
 
         map.is_some()
     }
@@ -185,10 +188,10 @@ mod imp {
     use std::sync::atomic::AtomicBool;
 
     use crate::contact::member::NamedMember;
-    use crate::Bot;
+    use crate::Client;
 
     pub struct Group {
-        pub bot: Bot,
+        pub client: Client,
         pub info: GroupInfo,
         pub member_list_refreshed: AtomicBool,
         pub members: DashMap<i64, NamedMember>,

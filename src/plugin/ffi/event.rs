@@ -8,12 +8,12 @@ use atri_ffi::ManagedCloneable;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub extern "C" fn event_intercept(intercepted: *const ()) {
-    let intercepted = unsafe { &*(intercepted as *const AtomicBool) };
+    let intercepted: &AtomicBool = cast_ref(intercepted);
     intercepted.swap(true, Ordering::Release);
 }
 
 pub extern "C" fn event_is_intercepted(intercepted: *const ()) -> bool {
-    let intercepted = unsafe { &*(intercepted as *const AtomicBool) };
+    let intercepted: &AtomicBool = cast_ref(intercepted);
     intercepted.load(Ordering::Relaxed)
 }
 

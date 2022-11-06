@@ -5,8 +5,8 @@ default_protocol = 'IPAD'
 [[bot]]
 account = 123456
 
-# 可配置多个Bot
-[[bot]]
+# 可配置多个Client
+[[client]]
 # Bot的账号(必须)
 account = 114514
 # Bot的密码, 此为可选, token登陆失败会自动尝试密码登陆

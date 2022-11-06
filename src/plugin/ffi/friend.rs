@@ -20,7 +20,7 @@ pub extern "C" fn friend_get_nickname(friend: *const ()) -> RustStr {
 
 pub extern "C" fn friend_get_bot(friend: *const ()) -> ManagedCloneable {
     let f: &Friend = cast_ref(friend);
-    ManagedCloneable::from_value(f.bot().clone())
+    ManagedCloneable::from_value(f.client().clone())
 }
 
 pub extern "C" fn friend_send_message(

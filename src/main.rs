@@ -18,7 +18,7 @@ use tracing::{error, info};
 type MainResult = Result<(), Box<dyn Error>>;
 
 fn main() -> MainResult {
-    let _guard = init_logger();
+    let _guards = init_logger();
     let mut atri = Atri::new();
 
     get_listener_runtime().spawn(get_global_worker().start());

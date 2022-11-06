@@ -1,4 +1,4 @@
-mod bot;
+mod client;
 mod event;
 mod friend;
 mod group;
@@ -7,9 +7,9 @@ mod log;
 mod member;
 mod message;
 
-use crate::plugin::ffi::bot::{
-    bot_find_friend, bot_find_group, bot_get_friends, bot_get_groups, bot_get_id, bot_get_list,
-    bot_get_nickname, find_bot,
+use crate::plugin::ffi::client::{
+    client_find_friend, client_find_group, client_get_friends, client_get_groups, client_get_id,
+    client_get_list, client_get_nickname, find_client,
 };
 use crate::plugin::ffi::event::{
     event_intercept, event_is_intercepted, friend_message_event_get_friend,
@@ -17,7 +17,7 @@ use crate::plugin::ffi::event::{
     group_message_event_get_message, group_message_event_get_sender,
 };
 use crate::plugin::ffi::group::{
-    group_change_name, group_find_member, group_get_bot, group_get_id, group_get_members,
+    group_change_name, group_find_member, group_get_client, group_get_id, group_get_members,
     group_get_name, group_get_named_member, group_quit, group_send_message, group_upload_image,
 };
 use crate::plugin::ffi::listener::new_listener;
@@ -64,20 +64,20 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         200 => event_intercept,
         201 => event_is_intercepted,
 
-        // bot
-        300 => bot_get_id,
-        301 => bot_get_nickname,
-        302 => bot_get_list,
-        303 => find_bot,
-        304 => bot_find_group,
-        305 => bot_find_friend,
-        306 => bot_get_groups,
-        307 => bot_get_friends,
+        // client
+        300 => client_get_id,
+        301 => client_get_nickname,
+        302 => client_get_list,
+        303 => find_client,
+        304 => client_find_group,
+        305 => client_find_friend,
+        306 => client_get_groups,
+        307 => client_get_friends,
 
         // group
         400 => group_get_id,
         401 => group_get_name,
-        402 => group_get_bot,
+        402 => group_get_client,
         403 => group_get_members,
         404 => group_find_member,
         405 => group_get_named_member,
