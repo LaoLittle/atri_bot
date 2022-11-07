@@ -20,7 +20,7 @@ pub mod listener;
 
 #[derive(Clone)]
 pub enum Event {
-    BotLogin(BotLoginEvent),
+    ClientLogin(ClientLoginEvent),
     GroupMessage(GroupMessageEvent),
     FriendMessage(FriendMessageEvent),
     Unknown(EventInner<QEvent>),
@@ -39,7 +39,7 @@ impl Event {
         }
 
         let (t, intercepted, base) = ffi_get! {
-            BotLogin => 0;
+            ClientLogin => 0;
             GroupMessage => 1;
             FriendMessage => 2;
             Unknown => 255;
@@ -67,7 +67,7 @@ macro_rules! event_fun_impl {
     ($($name:ident: $ret:ty as $func:expr);+ $(;)?) => {
         $(
         event_impl! {
-            BotLogin,
+            ClientLogin,
             GroupMessage,
             FriendMessage,
             Unknown;
@@ -126,7 +126,7 @@ impl<T> EventInner<T> {
         self.event.intercepted.load(Ordering::Relaxed)
     }
 
-    pub fn into_inner(self) -> Result<T, Self> {
+    fn try_into_inner(self) -> Result<T, Self> {
         let e = Arc::try_unwrap(self.event);
 
         match e {
@@ -260,9 +260,9 @@ impl HasSubject for FriendMessageEvent {
     }
 }
 
-pub type BotLoginEvent = EventInner<imp::BotOnlineEvent>;
+pub type ClientLoginEvent = EventInner<imp::BotOnlineEvent>;
 
-impl BotLoginEvent {
+impl ClientLoginEvent {
     pub fn from(bot: Client) -> Self {
         Self::new(imp::BotOnlineEvent { bot })
     }

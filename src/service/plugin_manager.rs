@@ -206,32 +206,33 @@ impl PluginManager {
             get_fun: plugin_get_function,
         });
 
-        let catch = catch_unwind(move || {
-            let plugin_instance = on_init();
+        let plugin_instance = on_init();
 
-            let should_drop = plugin_instance.should_drop;
+        if plugin_instance.instance.pointer.is_null() {
+            return Err(AtriError::PluginInitializeError("无效的插件实例"));
+        }
 
-            let managed = plugin_instance.instance;
-            let ptr = managed.pointer;
-            let drop_fn = managed.drop;
+        let should_drop = plugin_instance.should_drop;
 
-            mem::forget(managed);
+        let managed = plugin_instance.instance;
+        let ptr = managed.pointer;
+        let drop_fn = managed.drop;
 
-            Plugin {
-                enabled: AtomicBool::new(false),
-                instance: AtomicPtr::new(ptr),
-                vtb: plugin_instance.vtb,
-                should_drop,
-                handle,
-                drop_fn,
-                _lib: lib,
-            }
-        })
-        .map_err(|_| AtriError::PluginLoadError("插件加载错误, 可能是插件发生了panic!".into()))?;
+        mem::forget(managed);
+
+        let plugin = Plugin {
+            enabled: AtomicBool::new(false),
+            instance: AtomicPtr::new(ptr),
+            vtb: plugin_instance.vtb,
+            should_drop,
+            handle,
+            drop_fn,
+            _lib: lib,
+        };
 
         trace!("正在启用插件");
 
-        Ok(catch)
+        Ok(plugin)
     }
 
     unsafe fn load_dependencies<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
