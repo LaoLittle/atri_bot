@@ -8,7 +8,7 @@ use tracing::info;
 
 use crate::contact::member::{AnonymousMember, NamedMember};
 use crate::event::{BotLoginEvent, Event, EventInner, FriendMessageEvent, GroupMessageEvent};
-use crate::service::listeners::get_global_worker;
+use crate::get_global_listener_worker;
 use crate::{get_app, get_listener_runtime, unwrap_result_or_print_err_return, Client};
 
 static GLOBAL_EVENT_CHANNEL: OnceLock<Sender<Event>> = OnceLock::<Sender<Event>>::new();
@@ -195,7 +195,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
         let e = self_event.clone();
         get_listener_runtime().spawn(async move {
-            get_global_worker().handle(&e).await;
+            get_global_listener_worker().handle(&e).await;
         });
 
         let _ = global_sender().send(self_event);

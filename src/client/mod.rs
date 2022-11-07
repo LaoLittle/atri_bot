@@ -17,7 +17,7 @@ use tokio::io;
 use tracing::error;
 
 use crate::contact::group::Group;
-use crate::get_app;
+use crate::{config, get_app};
 
 #[derive(Clone)]
 pub struct Client(Arc<imp::Client>);
@@ -218,13 +218,16 @@ impl PartialEq for Client {
 
 impl Debug for Client {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Bot").field("id", &self.id()).finish()
+        f.debug_struct("Client")
+            .field("id", &self.id())
+            .field("name", &self.nickname())
+            .finish()
     }
 }
 
 impl Display for Client {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Bot({})", self.id())
+        write!(f, "Client({})", self.id())
     }
 }
 
@@ -377,6 +380,6 @@ impl BotConfiguration {
         self.work_dir
             .as_ref()
             .cloned()
-            .unwrap_or_else(|| PathBuf::new().join("bots").join(id.to_string()))
+            .unwrap_or_else(|| config::clients_dir_path().join(id.to_string()))
     }
 }

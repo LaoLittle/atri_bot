@@ -7,8 +7,7 @@ use std::time::Duration;
 use tokio::sync::Mutex;
 
 use crate::event::FromEvent;
-use crate::service::listeners::get_global_worker;
-use crate::{get_listener_runtime, Event};
+use crate::{get_global_listener_worker, get_listener_runtime, Event};
 
 static UNIQUE_ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -189,7 +188,7 @@ impl ListenerBuilder {
             priority,
         };
 
-        get_listener_runtime().spawn(get_global_worker().schedule(listener));
+        get_listener_runtime().spawn(get_global_listener_worker().schedule(listener));
 
         ListenerGuard {
             name: arc_name,

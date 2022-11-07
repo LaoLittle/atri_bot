@@ -3,7 +3,7 @@ use crate::{Event, Listener};
 use atri_ffi::closure::FFIFn;
 use atri_ffi::ffi::FFIEvent;
 use atri_ffi::future::FFIFuture;
-use atri_ffi::Managed;
+use atri_ffi::{FFIOption, Managed};
 use std::time::Duration;
 
 pub extern "C" fn new_listener(f: FFIFn<FFIEvent, FFIFuture<bool>>) -> Managed {
@@ -16,8 +16,8 @@ pub extern "C" fn listener_next_event_with_priority(
     millis: u64,
     filter: FFIFn<FFIEvent, bool>,
     priority: u8,
-) {
-    let fu = FFIFuture::from(async move {
+) -> FFIFuture<FFIOption<FFIEvent>> {
+    FFIFuture::from(async move {
         let option = Listener::next_event_with_priority(
             Duration::from_millis(millis),
             move |e: &Event| {
@@ -27,6 +27,9 @@ pub extern "C" fn listener_next_event_with_priority(
             },
             Priority::from(priority),
         )
-        .await;
-    });
+        .await
+        .map(Event::into_ffi);
+
+        FFIOption::from(option)
+    })
 }

@@ -49,22 +49,22 @@ pub async fn login_bots() -> Result<(), RQError> {
         }
     };
 
-    let bots_path = config::bots_dir_path();
-    if !bots_path.is_dir() {
-        fs::create_dir(&bots_path).await?;
+    let clients_path = config::clients_dir_path();
+    if !clients_path.is_dir() {
+        fs::create_dir(&clients_path).await?;
     }
     let mut logins = vec![];
-    for bot in login_conf.bots {
-        if !bot.auto_login {
+    for client in login_conf.clients {
+        if !client.auto_login {
             continue;
         }
 
-        let account = bot.account;
-        let pwd = bot.password;
+        let account = client.account;
+        let pwd = client.password;
 
-        let bot_path = bots_path.join(account.to_string()).join("device.json");
+        let bot_path = clients_path.join(account.to_string()).join("device.json");
         if !bot_path.is_file() {
-            warn!("未找到Bot({})的登陆信息，跳过登陆", account);
+            warn!("未找到Client({})的登陆信息，跳过登陆", account);
             continue;
         }
 
@@ -74,7 +74,7 @@ pub async fn login_bots() -> Result<(), RQError> {
                 &pwd,
                 BotConfiguration {
                     work_dir: None,
-                    version: bot
+                    version: client
                         .protocol
                         .unwrap_or(login_conf.default_protocol)
                         .as_version(),
@@ -92,7 +92,7 @@ pub async fn login_bots() -> Result<(), RQError> {
                     Ok(bot)
                 }
                 Err(e) => {
-                    get_app().remove_bot(account);
+                    get_app().remove_client(account);
                     Err(e)
                 }
             }
@@ -123,7 +123,7 @@ async fn login_bot(
     get_app().add_client(client.clone());
     client.start().await?;
 
-    info!("Bot({})登陆中", account);
+    info!("Client({})登陆中", account);
     match client.try_login().await {
         Ok(_) => {
             info!("{}登陆成功", client);

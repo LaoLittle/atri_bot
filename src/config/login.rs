@@ -8,7 +8,7 @@ pub struct LoginConfig {
     #[serde(default = "true_bool")]
     pub auto_reconnect: bool,
     #[serde(rename = "client")]
-    pub bots: Vec<ClientConfig>,
+    pub clients: Vec<ClientConfig>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

@@ -1,6 +1,6 @@
 use std::collections::LinkedList;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use tokio::sync::{Mutex, RwLock};
 
@@ -13,10 +13,16 @@ pub struct ListenerWorker {
     listener_rx: Mutex<tokio::sync::mpsc::Receiver<Arc<Listener>>>,
     listener_tx: tokio::sync::mpsc::Sender<Arc<Listener>>,
     closed: AtomicBool,
+    runtime: tokio::runtime::Runtime,
 }
 
 impl ListenerWorker {
+    #[inline]
     pub fn new() -> Self {
+        Self::new_with_runtime(tokio::runtime::Runtime::new().unwrap())
+    }
+
+    pub fn new_with_runtime(runtime: tokio::runtime::Runtime) -> Self {
         let listeners = [
             LinkedList::new(),
             LinkedList::new(),
@@ -32,7 +38,12 @@ impl ListenerWorker {
             listener_rx: rx.into(),
             listener_tx: tx,
             closed: AtomicBool::new(false),
+            runtime,
         }
+    }
+
+    pub fn runtime(&self) -> &tokio::runtime::Runtime {
+        &self.runtime
     }
 
     pub async fn schedule(&self, listener: Listener) {
@@ -137,9 +148,4 @@ impl Drop for ListenerWorker {
     fn drop(&mut self) {
         self.close();
     }
-}
-
-pub fn get_global_worker() -> &'static ListenerWorker {
-    static WORKER: OnceLock<ListenerWorker> = OnceLock::new();
-    WORKER.get_or_init(ListenerWorker::new)
 }

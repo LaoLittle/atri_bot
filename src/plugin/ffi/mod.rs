@@ -20,7 +20,7 @@ use crate::plugin::ffi::group::{
     group_change_name, group_find_member, group_get_client, group_get_id, group_get_members,
     group_get_name, group_get_named_member, group_quit, group_send_message, group_upload_image,
 };
-use crate::plugin::ffi::listener::new_listener;
+use crate::plugin::ffi::listener::{listener_next_event_with_priority, new_listener};
 use atri_ffi::error::FFIResult;
 
 use crate::plugin::cast_ref;
@@ -59,6 +59,7 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
 
         // listener
         100 => new_listener,
+        101 => listener_next_event_with_priority,
 
         // event
         200 => event_intercept,

@@ -46,15 +46,6 @@ impl Atri {
             .build()
             .unwrap();
 
-        let _listener_runtime = runtime::Builder::new_multi_thread()
-            .worker_threads(8)
-            .thread_name("Listeners")
-            .enable_all()
-            .build()
-            .unwrap();
-
-        let _listener_worker = ListenerWorker::new();
-
         Self {
             global_runtime,
             //listener_runtime,
@@ -70,33 +61,37 @@ impl Default for Atri {
     }
 }
 
+pub struct App {
+    clients: DashMap<i64, Client>,
+    listener_worker: ListenerWorker,
+}
+
 static APP: OnceLock<App> = OnceLock::new();
 
 pub fn get_app() -> &'static App {
     APP.get_or_init(App::new)
 }
 
-static LISTENER_RUNTIME: OnceLock<Runtime> = OnceLock::new();
-
 pub fn get_listener_runtime() -> &'static Runtime {
-    LISTENER_RUNTIME.get_or_init(|| {
-        runtime::Builder::new_multi_thread()
-            .worker_threads(8)
-            .thread_name("Listeners")
-            .enable_all()
-            .build()
-            .unwrap()
-    })
+    get_app().listener_worker().runtime()
 }
 
-pub struct App {
-    clients: DashMap<i64, Client>,
+pub fn get_global_listener_worker() -> &'static ListenerWorker {
+    &get_app().listener_worker()
 }
 
 impl App {
     pub fn new() -> Self {
+        let listener_runtime = runtime::Builder::new_multi_thread()
+            .worker_threads(8)
+            .thread_name("Global-Listener-Executor")
+            .enable_all()
+            .build()
+            .unwrap();
+
         Self {
             clients: DashMap::new(),
+            listener_worker: ListenerWorker::new_with_runtime(listener_runtime),
         }
     }
 
@@ -110,11 +105,15 @@ impl App {
         bots
     }
 
+    pub fn listener_worker(&self) -> &ListenerWorker {
+        &self.listener_worker
+    }
+
     pub(crate) fn add_client(&self, bot: Client) -> Option<Client> {
         self.clients.insert(bot.id(), bot)
     }
 
-    pub(crate) fn remove_bot(&self, bot: i64) -> Option<Client> {
+    pub(crate) fn remove_client(&self, bot: i64) -> Option<Client> {
         self.clients.remove(&bot).map(|(_, bot)| bot)
     }
 }

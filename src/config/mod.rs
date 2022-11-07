@@ -8,10 +8,10 @@ pub fn service_config_dir_path() -> &'static Path {
     Path::new(SERVICE_CONFIG_PATH)
 }
 
-const BOTS_PATH: &str = "bots";
+const CLIENTS_PATH: &str = "clients";
 
-pub fn bots_dir_path() -> &'static Path {
-    Path::new(BOTS_PATH)
+pub fn clients_dir_path() -> &'static Path {
+    Path::new(CLIENTS_PATH)
 }
 
 const _DEFAULT_CONFIG_PATH: &str = "config";

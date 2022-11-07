@@ -2,7 +2,7 @@
 # 可使用 IPAD/AndroidPhone/AndroidWatch/MacOS/QiDian
 default_protocol = 'IPAD'
 
-[[bot]]
+[[client]]
 account = 123456
 
 # 可配置多个Client
