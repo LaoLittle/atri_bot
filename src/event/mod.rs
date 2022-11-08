@@ -119,14 +119,14 @@ impl<T> EventInner<T> {
     }
 
     pub fn intercept(&self) {
-        self.event.intercepted.swap(true, Ordering::Release);
+        self.event.intercepted.store(true, Ordering::Relaxed);
     }
 
     pub fn is_intercepted(&self) -> bool {
         self.event.intercepted.load(Ordering::Relaxed)
     }
 
-    fn try_into_inner(self) -> Result<T, Self> {
+    pub fn try_into_inner(self) -> Result<T, Self> {
         let e = Arc::try_unwrap(self.event);
 
         match e {

@@ -3,13 +3,12 @@ use std::path::{Path, PathBuf};
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::marker::{PhantomData, PhantomPinned};
-use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-use std::{fs, io, mem, ptr};
-
-use std::panic::catch_unwind;
 use std::ptr::null_mut;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
+use std::{fs, io, mem};
 
 use libloading::Library;
 
@@ -17,7 +16,7 @@ use tokio::runtime;
 use tokio::runtime::Runtime;
 use tracing::{error, info, trace, warn};
 
-use crate::error::AtriError;
+use crate::error::{AtriError, PluginError};
 use atri_ffi::ffi::AtriManager;
 use atri_ffi::plugin::{PluginInstance, PluginVTable};
 
@@ -126,30 +125,27 @@ impl PluginManager {
                         continue;
                     };
 
-                    let name = f_name.to_str().expect("Unable to get file name");
-                    let ext_curr: Vec<&str> = name.split('.').collect();
+                    let plugin_file_name = f_name.to_str().expect("Unable to get file name");
+                    let ext_curr: Vec<&str> = plugin_file_name.split('.').collect();
 
                     if ext_curr
                         .last()
                         .map(|&ext| ext == EXTENSION)
                         .unwrap_or_default()
                     {
-                        info!("正在加载插件: {}", name);
+                        info!("正在加载插件: {}", plugin_file_name);
                         let result = self.load_plugin(&path);
                         match result {
                             Ok(p) => {
+                                let plugin_display = p.to_string();
+
                                 match self.plugins.entry(p.handle) {
                                     Entry::Occupied(_old) => {
-                                        unsafe {
-                                            let lib = ptr::read(&p);
-                                            drop(lib);
-                                        }
-                                        mem::forget(p);
                                         error!(
-                                            "插件({})被重复加载, 这是一个Bug, 请报告此Bug",
-                                            name
+                                            "{} 被重复加载, 这是一个Bug, 请报告此Bug",
+                                            plugin_display
                                         );
-                                        warn!("未加载插件{}", name);
+                                        warn!("未加载 {}", plugin_display);
                                         continue;
                                     }
                                     Entry::Vacant(vac) => {
@@ -157,10 +153,10 @@ impl PluginManager {
                                     }
                                 }
 
-                                info!("插件({})加载成功", name);
+                                info!("{} 加载成功", plugin_display);
                             }
                             Err(e) => {
-                                error!("插件({})加载失败: {}", name, e);
+                                error!("{} 加载失败: {}", plugin_file_name, e);
                             }
                         };
                     }
@@ -182,17 +178,17 @@ impl PluginManager {
         let ptr = self as *const PluginManager as usize;
         let lib = unsafe {
             Library::new(path)
-                .map_err(|e| AtriError::PluginLoadError(format!("无法加载插件动态库: {}", e)))?
+                .map_err(|e| PluginError::LoadFail(format!("无法加载插件动态库: {}", e)))?
         };
 
         let (atri_manager_init, on_init) = unsafe {
             (
                 *lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")
-                    .or(Err(AtriError::PluginInitializeError(
+                    .or(Err(PluginError::InitializeFail(
                         "无法找到插件初始化函数'atri_manager_init', 或许这不是一个插件",
                     )))?,
                 *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")
-                    .or(Err(AtriError::PluginInitializeError(
+                    .or(Err(PluginError::InitializeFail(
                         "无法找到插件初始化函数'on_init', 或许是插件作者太粗心了?",
                     )))?,
             )
@@ -209,7 +205,7 @@ impl PluginManager {
         let plugin_instance = on_init();
 
         if plugin_instance.instance.pointer.is_null() {
-            return Err(AtriError::PluginInitializeError("无效的插件实例"));
+            return Err(PluginError::InitializeFail("无效的插件实例").into());
         }
 
         let should_drop = plugin_instance.should_drop;
@@ -224,6 +220,7 @@ impl PluginManager {
             enabled: AtomicBool::new(false),
             instance: AtomicPtr::new(ptr),
             vtb: plugin_instance.vtb,
+            name: Rc::new(plugin_instance.name.to_string()),
             should_drop,
             handle,
             drop_fn,
@@ -279,6 +276,7 @@ pub struct Plugin {
     enabled: AtomicBool,
     instance: AtomicPtr<()>,
     vtb: PluginVTable,
+    name: Rc<String>,
     should_drop: bool,
     drop_fn: extern "C" fn(*mut ()),
     handle: usize,
@@ -352,11 +350,21 @@ impl Plugin {
     pub fn should_drop(&self) -> bool {
         self.should_drop
     }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
 }
 
 impl Debug for Plugin {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Plugin({:p})", self.handle as *const ())
+    }
+}
+
+impl Display for Plugin {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "插件#{}", self.name)
     }
 }
 

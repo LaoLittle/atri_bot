@@ -75,7 +75,7 @@ impl Listener {
         E: FromEvent,
     {
         Self::new(move |e| {
-            let fu = E::from_event(e).and_then(|e| Some(handler(e)));
+            let fu = E::from_event(e).map(&handler);
 
             async move {
                 if let Some(fu) = fu {

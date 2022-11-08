@@ -56,9 +56,9 @@ impl ListenerWorker {
             return;
         }
 
-        let mut handlers = vec![];
+        let mut handles = vec![];
         for list in &self.listeners {
-            handlers.reserve(list.len());
+            handles.reserve(list.len());
             for opt in list.iter().map(Arc::clone) {
                 let event = event.clone();
                 let handle = tokio::spawn(async move {
@@ -77,26 +77,24 @@ impl ListenerWorker {
                             let _ = mutex.lock().await;
                         }
 
-                        if listener.closed.load(Ordering::Acquire) {
+                        if listener.closed.load(Ordering::Relaxed) {
                             close_listener.await;
                             return;
                         }
 
                         let fu = (listener.handler)(event);
-                        let con: bool = fu.await;
 
-                        if !con {
+                        let keep: bool = fu.await;
+                        if !keep {
                             close_listener.await;
                         };
                     }
                 });
 
-                handlers.push(handle);
+                handles.push(handle);
             }
 
-            //waiting for all task finish
-            for _ in 0..handlers.len() {
-                let handle = handlers.pop().expect("Cannot get handle");
+            while let Some(handle) = handles.pop() {
                 let _ = handle.await;
             }
 

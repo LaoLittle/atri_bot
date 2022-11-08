@@ -5,11 +5,17 @@ pub type AtriResult<T> = Result<T, AtriError>;
 
 #[derive(Debug)]
 pub enum AtriError {
-    PluginInitializeError(&'static str),
-    PluginLoadError(String),
+    PluginError(PluginError),
     IO(io::Error),
     RQ(ricq::RQError),
     ConnectFailed,
+}
+
+#[derive(Debug)]
+pub enum PluginError {
+    InitializeFail(&'static str),
+    LoadFail(String),
+    NameConflict,
 }
 
 impl Display for AtriError {
@@ -32,5 +38,11 @@ impl From<io::Error> for AtriError {
 impl From<ricq::RQError> for AtriError {
     fn from(err: ricq::RQError) -> Self {
         Self::RQ(err)
+    }
+}
+
+impl From<PluginError> for AtriError {
+    fn from(err: PluginError) -> Self {
+        Self::PluginError(err)
     }
 }
