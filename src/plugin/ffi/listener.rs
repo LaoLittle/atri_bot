@@ -6,8 +6,11 @@ use atri_ffi::future::FFIFuture;
 use atri_ffi::{FFIOption, Managed};
 use std::time::Duration;
 
-pub extern "C" fn new_listener(f: FFIFn<FFIEvent, FFIFuture<bool>>) -> Managed {
-    let guard = Listener::listening_on(move |e: Event| f.invoke(e.into_ffi())).start();
+pub extern "C" fn new_listener(concurrent: bool,f: FFIFn<FFIEvent, FFIFuture<bool>>, priority: u8) -> Managed {
+    let guard = Listener::listening_on(move |e: Event| f.invoke(e.into_ffi()))
+        .concurrent(concurrent)
+        .priority(Priority::from(priority))
+        .start();
 
     Managed::from_value(guard)
 }

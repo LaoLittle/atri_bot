@@ -142,6 +142,7 @@ impl Listener {
         .ok()
     }
 
+    #[inline]
     pub async fn next_event<E, F>(timeout: Duration, filter: F) -> Option<E>
     where
         E: FromEvent,
@@ -151,6 +152,7 @@ impl Listener {
         Self::next_event_with_priority(timeout, filter, Default::default()).await
     }
 
+    #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -196,16 +198,19 @@ impl ListenerBuilder {
         }
     }
 
+    #[inline]
     pub fn name<S: Into<String>>(mut self, name: S) -> Self {
         self.name = Some(name.into());
         self
     }
 
+    #[inline]
     pub fn concurrent(mut self, is: bool) -> Self {
         self.concurrent = is;
         self
     }
 
+    #[inline]
     pub fn priority(mut self, priority: Priority) -> Self {
         self.priority = priority;
         self
@@ -223,6 +228,7 @@ pub enum Priority {
 }
 
 impl From<u8> for Priority {
+    #[inline]
     fn from(value: u8) -> Self {
         match value {
             0 => Self::Top,
@@ -245,16 +251,19 @@ pub struct ListenerGuard {
 }
 
 impl ListenerGuard {
+    #[inline]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[inline]
     pub fn closed(&self) -> bool {
         self.closed.load(Ordering::Acquire)
     }
 }
 
 impl Drop for ListenerGuard {
+    #[inline]
     fn drop(&mut self) {
         self.closed.swap(true, Ordering::Relaxed);
     }
