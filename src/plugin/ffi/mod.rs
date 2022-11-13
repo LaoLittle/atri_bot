@@ -6,6 +6,7 @@ mod listener;
 mod log;
 mod member;
 mod message;
+mod env;
 
 use crate::plugin::ffi::client::{
     client_find_friend, client_find_group, client_get_friends, client_get_groups, client_get_id,
@@ -36,10 +37,11 @@ use crate::plugin::ffi::message::{image_get_id, image_get_url};
 use crate::PluginManager;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
+use crate::plugin::ffi::env::env_get_workspace;
 
 pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
     extern "C" fn not_impl() {
-        panic!("No such sig");
+        panic!("No such operation");
     }
 
     macro_rules! match_function {
@@ -116,6 +118,9 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
 
         // log
         20000 => log,
+        
+        // env
+        30000 => env_get_workspace,
     }
 }
 
