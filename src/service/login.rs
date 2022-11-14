@@ -10,6 +10,7 @@ use tracing::{error, info, warn};
 
 use crate::client::BotConfiguration;
 use crate::config::login::{LoginConfig, DEFAULT_CONFIG};
+use crate::error::AtriResult;
 use crate::{config, global_status, Client};
 
 pub async fn login_bots() -> Result<(), RQError> {
@@ -118,7 +119,7 @@ async fn login_bot(
     account: i64,
     password: &Option<String>,
     conf: BotConfiguration,
-) -> Result<Client, RQError> {
+) -> AtriResult<Client> {
     let client = Client::new(account, conf).await;
     global_status().add_client(client.clone());
     client.start().await?;

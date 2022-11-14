@@ -17,8 +17,8 @@ use tokio::io;
 use tracing::error;
 
 use crate::contact::group::Group;
-use crate::{config, global_status};
 use crate::error::AtriResult;
+use crate::{config, global_status};
 
 #[derive(Clone)]
 pub struct Client(Arc<imp::Client>);
@@ -29,7 +29,7 @@ impl Client {
         Self(Arc::new(b))
     }
 
-    pub async fn try_login(&self) -> RQResult<()> {
+    pub async fn try_login(&self) -> AtriResult<()> {
         let p = self.0.work_dir.join("token.json");
 
         if p.is_file() {
@@ -75,12 +75,12 @@ impl Client {
             } else {
                 error!("{}登陆失败: {:?}", self, resp);
 
-                return Err(RQError::TokenLoginFailed);
+                return Err(RQError::TokenLoginFailed.into());
             }
         } else {
             error!("{}登陆失败: 未找到Token", self);
 
-            return Err(RQError::TokenLoginFailed);
+            return Err(RQError::TokenLoginFailed.into());
         }
 
         Ok(())

@@ -9,7 +9,7 @@ use tracing::info;
 use crate::contact::member::{AnonymousMember, NamedMember};
 use crate::event::{ClientLoginEvent, Event, EventInner, FriendMessageEvent, GroupMessageEvent};
 use crate::get_global_listener_worker;
-use crate::{global_status, get_listener_runtime, unwrap_result_or_print_err_return, Client};
+use crate::{get_listener_runtime, global_status, unwrap_result_or_print_err_return, Client};
 
 static GLOBAL_EVENT_CHANNEL: OnceLock<Sender<Event>> = OnceLock::<Sender<Event>>::new();
 
@@ -39,7 +39,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
         macro_rules! get_client {
             ($client:expr) => {
-                if let Some(b) = get_app()
+                if let Some(b) = global_status()
                     .clients
                     .get(&$client.uin().await)
                     .map(|b| b.clone())
