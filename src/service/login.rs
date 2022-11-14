@@ -10,7 +10,7 @@ use tracing::{error, info, warn};
 
 use crate::client::BotConfiguration;
 use crate::config::login::{LoginConfig, DEFAULT_CONFIG};
-use crate::{config, get_app, Client};
+use crate::{config, global_status, Client};
 
 pub async fn login_bots() -> Result<(), RQError> {
     let login_conf_dir = {
@@ -92,7 +92,7 @@ pub async fn login_bots() -> Result<(), RQError> {
                     Ok(bot)
                 }
                 Err(e) => {
-                    get_app().remove_client(account);
+                    global_status().remove_client(account);
                     Err(e)
                 }
             }
@@ -120,7 +120,7 @@ async fn login_bot(
     conf: BotConfiguration,
 ) -> Result<Client, RQError> {
     let client = Client::new(account, conf).await;
-    get_app().add_client(client.clone());
+    global_status().add_client(client.clone());
     client.start().await?;
 
     info!("Client({})登陆中", account);

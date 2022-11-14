@@ -17,7 +17,8 @@ use tokio::io;
 use tracing::error;
 
 use crate::contact::group::Group;
-use crate::{config, get_app};
+use crate::{config, global_status};
+use crate::error::AtriResult;
 
 #[derive(Clone)]
 pub struct Client(Arc<imp::Client>);
@@ -90,7 +91,7 @@ impl Client {
     }
 
     pub fn find(id: i64) -> Option<Self> {
-        get_app().clients.get(&id).map(|b| b.clone())
+        global_status().clients.get(&id).map(|b| b.clone())
     }
 
     pub fn id(&self) -> i64 {
@@ -118,14 +119,14 @@ impl Client {
     }
 
     pub fn list() -> Vec<Client> {
-        get_app()
+        global_status()
             .clients
             .iter()
             .map(|client| client.clone())
             .collect()
     }
 
-    pub async fn refresh_friend_list(&self) -> RQResult<()> {
+    pub async fn refresh_friend_list(&self) -> AtriResult<()> {
         let list = self.request_client().get_friend_list().await?;
 
         for info in list.friends {
@@ -137,7 +138,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn refresh_group_list(&self) -> RQResult<()> {
+    pub async fn refresh_group_list(&self) -> AtriResult<()> {
         let infos = self.request_client().get_group_list().await?;
         self.0.group_list.clear();
 
@@ -153,7 +154,7 @@ impl Client {
         Ok(())
     }
 
-    pub async fn refresh_group_info(&self, group_id: i64) -> RQResult<()> {
+    pub async fn refresh_group_info(&self, group_id: i64) -> AtriResult<()> {
         let info = self.request_client().get_group_info(group_id).await?;
         if let Some(info) = info {
             let g = Group::from(self.clone(), info);

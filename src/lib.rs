@@ -61,26 +61,26 @@ impl Default for Atri {
     }
 }
 
-pub struct App {
+pub struct AtriGlobalStatus {
     clients: DashMap<i64, Client>,
     listener_worker: ListenerWorker,
 }
 
-static APP: OnceLock<App> = OnceLock::new();
+static ATRI_GLOBAL_STATUS: OnceLock<AtriGlobalStatus> = OnceLock::new();
 
-pub fn get_app() -> &'static App {
-    APP.get_or_init(App::new)
+pub fn global_status() -> &'static AtriGlobalStatus {
+    ATRI_GLOBAL_STATUS.get_or_init(AtriGlobalStatus::new)
 }
 
 pub fn get_listener_runtime() -> &'static Runtime {
-    get_app().listener_worker().runtime()
+    global_status().listener_worker().runtime()
 }
 
 pub fn get_global_listener_worker() -> &'static ListenerWorker {
-    &get_app().listener_worker()
+    &global_status().listener_worker()
 }
 
-impl App {
+impl AtriGlobalStatus {
     pub fn new() -> Self {
         let listener_runtime = runtime::Builder::new_multi_thread()
             .worker_threads(8)
@@ -118,7 +118,7 @@ impl App {
     }
 }
 
-impl Default for App {
+impl Default for AtriGlobalStatus {
     fn default() -> Self {
         Self::new()
     }
