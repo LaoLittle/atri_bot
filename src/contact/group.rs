@@ -8,6 +8,7 @@ use ricq::RQResult;
 use tracing::error;
 
 use crate::contact::member::NamedMember;
+use crate::error::{AtriError, AtriResult};
 use crate::message::image::Image;
 use crate::message::meta::MetaMessage;
 use crate::message::MessageChain;
@@ -80,25 +81,37 @@ impl Group {
             return Some(named);
         }
 
-        let named = self
+        self.try_get_named_member(id)
+            .await
+            .map_err(|e| {
+                error!("{}", e);
+                e
+            })
+            .unwrap_or(None)
+    }
+
+    pub async fn try_get_named_member(&self, id: i64) -> AtriResult<Option<NamedMember>> {
+        if let Some(named) = self.find_member(id) {
+            return Ok(Some(named));
+        }
+
+        let info = self
             .client()
             .request_client()
             .get_group_member_info(self.id(), id)
-            .await
-            .map(|info| {
-                if info.join_time == 0 {
-                    return None;
-                }
+            .await?;
 
-                let named = NamedMember::from(self.clone(), info);
-                self.0.members.insert(id, named.clone());
-                Some(named)
-            });
+        if info.join_time == 0 {
+            return Ok(None);
+        }
 
-        named.unwrap_or(None)
+        let named = NamedMember::from(self.clone(), info);
+        self.0.members.insert(id, named.clone());
+
+        Ok(Some(named))
     }
 
-    pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
+    pub async fn send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
         self.client()
             .request_client()
             .send_group_message(self.id(), chain.into())
@@ -111,11 +124,12 @@ impl Group {
                     self.id(),
                     err
                 );
-                err
+
+                AtriError::from(err)
             })
     }
 
-    pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<Image> {
+    pub async fn upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {
         self.client()
             .request_client()
             .upload_group_image(self.id(), image)
@@ -129,23 +143,26 @@ impl Group {
                     self.id(),
                     err
                 );
-                err
+
+                AtriError::from(err)
             })
     }
 
-    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> RQResult<()> {
+    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> AtriResult<()> {
         let meta = msg.metadata();
         self.client()
             .request_client()
             .recall_group_message(self.id(), meta.seqs.clone(), meta.rands.clone())
             .await
+            .map_err(AtriError::from)
     }
 
-    pub async fn change_name(&self, name: String) -> RQResult<()> {
+    pub async fn change_name(&self, name: String) -> AtriResult<()> {
         self.client()
             .request_client()
             .update_group_name(self.id(), name)
             .await
+            .map_err(AtriError::from)
     }
 
     pub async fn kick<M: ToKickMember, S: AsRef<str>>(
@@ -153,7 +170,7 @@ impl Group {
         member: M,
         msg: Option<S>,
         block: bool,
-    ) -> RQResult<()> {
+    ) -> AtriResult<()> {
         let members = member.to_member_vec();
         let msg = msg.as_ref().map(AsRef::<str>::as_ref).unwrap_or("");
 
@@ -161,6 +178,7 @@ impl Group {
             .request_client()
             .group_kick(self.id(), members, msg, block)
             .await
+            .map_err(AtriError::from)
     }
 
     pub async fn quit(&self) -> bool {

@@ -1,4 +1,5 @@
 use crate::contact::group::Group;
+use crate::error::{AtriError, AtriResult};
 use crate::message::meta::Anonymous;
 use crate::message::MessageChain;
 use crate::{Client, GroupMemberInfo};
@@ -31,10 +32,12 @@ impl Member {
         }
     }
 
-    pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
+    pub async fn send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
         match self {
             Self::Named(named) => named.send_message(chain).await,
-            Self::Anonymous(..) => Err(RQError::Other("cannot send anonymous yet".into())),
+            Self::Anonymous(..) => Err(AtriError::Protocol(RQError::Other(
+                "Send message to anonymous member is not supported".into(),
+            ))),
         }
     }
 
@@ -99,15 +102,16 @@ impl NamedMember {
         self.group().client()
     }
 
-    pub async fn mute(&self, duration: Duration) -> RQResult<()> {
+    pub async fn mute(&self, duration: Duration) -> AtriResult<()> {
         self.group()
             .client()
             .request_client()
             .group_mute(self.group().id(), self.id(), duration)
             .await
+            .map_err(AtriError::from)
     }
 
-    pub async fn kick<S: AsRef<str>>(&self, msg: Option<S>, block: bool) -> RQResult<()> {
+    pub async fn kick<S: AsRef<str>>(&self, msg: Option<S>, block: bool) -> AtriResult<()> {
         let msg = msg.as_ref().map(AsRef::<str>::as_ref).unwrap_or("");
 
         self.group()
@@ -115,26 +119,30 @@ impl NamedMember {
             .request_client()
             .group_kick(self.group().id(), vec![self.id()], msg, block)
             .await
+            .map_err(AtriError::from)
     }
 
-    pub async fn change_card_name<S: ToString>(&self, new: S) -> RQResult<()> {
+    pub async fn change_card_name<S: ToString>(&self, new: S) -> AtriResult<()> {
         self.group()
             .client()
             .request_client()
             .edit_group_member_card(self.group().id(), self.id(), new.to_string())
             .await
+            .map_err(AtriError::from)
     }
 
-    pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
+    pub async fn send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
         let client = self.group().client();
-        if let Some(f) = client.find_friend(self.id()) {
-            f.send_message(chain).await
+        let receipt = if let Some(f) = client.find_friend(self.id()) {
+            f.send_message(chain).await?
         } else {
             client
                 .request_client()
                 .send_group_temp_message(self.group().id(), self.id(), chain.into())
-                .await
-        }
+                .await?
+        };
+
+        Ok(receipt)
     }
 
     pub(crate) fn from(group: Group, info: GroupMemberInfo) -> Self {

@@ -1,4 +1,5 @@
 mod client;
+mod env;
 mod event;
 mod friend;
 mod group;
@@ -6,7 +7,6 @@ mod listener;
 mod log;
 mod member;
 mod message;
-mod env;
 
 use crate::plugin::ffi::client::{
     client_find_friend, client_find_group, client_get_friends, client_get_groups, client_get_id,
@@ -25,6 +25,7 @@ use crate::plugin::ffi::listener::{listener_next_event_with_priority, new_listen
 use atri_ffi::error::FFIResult;
 
 use crate::plugin::cast_ref;
+use crate::plugin::ffi::env::env_get_workspace;
 use crate::plugin::ffi::friend::{
     friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message, friend_upload_image,
 };
@@ -37,7 +38,6 @@ use crate::plugin::ffi::message::{image_get_id, image_get_url};
 use crate::PluginManager;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
-use crate::plugin::ffi::env::env_get_workspace;
 
 pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
     extern "C" fn not_impl() {
@@ -118,7 +118,7 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
 
         // log
         20000 => log,
-        
+
         // env
         30000 => env_get_workspace,
     }

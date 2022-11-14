@@ -7,7 +7,7 @@ pub type AtriResult<T> = Result<T, AtriError>;
 pub enum AtriError {
     PluginError(PluginError),
     IO(io::Error),
-    RQ(ricq::RQError),
+    Protocol(ricq::RQError),
     ConnectFailed,
 }
 
@@ -37,7 +37,7 @@ impl From<io::Error> for AtriError {
 
 impl From<ricq::RQError> for AtriError {
     fn from(err: ricq::RQError) -> Self {
-        Self::RQ(err)
+        Self::Protocol(err)
     }
 }
 

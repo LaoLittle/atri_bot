@@ -1,3 +1,4 @@
+use crate::error::{AtriError, AtriResult};
 use crate::message::image::Image;
 use crate::message::meta::MetaMessage;
 use crate::message::MessageChain;
@@ -49,7 +50,7 @@ impl Friend {
         map.is_some()
     }
 
-    pub async fn send_message(&self, chain: MessageChain) -> RQResult<MessageReceipt> {
+    pub async fn send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
         let result = self
             .client()
             .request_client()
@@ -66,18 +67,20 @@ impl Friend {
             );
         }
 
-        result
+        result.map_err(AtriError::from)
     }
 
-    pub async fn upload_image(&self, image: Vec<u8>) -> RQResult<Image> {
-        self.client()
+    pub async fn upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {
+        let f = self
+            .client()
             .request_client()
             .upload_friend_image(self.id(), image)
-            .await
-            .map(Image::Friend)
+            .await?;
+
+        Ok(Image::Friend(f))
     }
 
-    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> RQResult<()> {
+    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> AtriResult<()> {
         let meta = msg.metadata();
         self.client()
             .request_client()
@@ -88,6 +91,7 @@ impl Friend {
                 meta.rands.clone(),
             )
             .await
+            .map_err(AtriError::from)
     }
 
     pub(crate) fn from(client: Client, info: FriendInfo) -> Self {
