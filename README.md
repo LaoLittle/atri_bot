@@ -7,7 +7,7 @@ QQ群怎能少得了高性能亚托莉的身影呢？
 本项目致力于快速部署，简单使用。
 </div>
 
-## 注意
+## 声明
 本项目仅供学习参考，请勿用于非法或商业用途。
 
 本项目形象均来自《[Atri-MyDearMoments](https://atri-mdm.com)》
@@ -49,7 +49,7 @@ QQ群怎能少得了高性能亚托莉的身影呢？
 若需要使用其他的Native语言编写插件, 请参阅:
 [插件加载方式](https://github.com/AtriKawaii/atri_plugin/blob/main/Load.md)
 
-### 二次开发
+## 二次开发
 可直接基于本项目进行二次开发, 而不是作为插件加载
 
 配置 Cargo.toml:
