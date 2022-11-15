@@ -6,7 +6,7 @@ use crate::{Client, GroupMemberInfo};
 use atri_ffi::contact::{FFIMember, MemberUnion};
 use atri_ffi::ManagedCloneable;
 use ricq::structs::MessageReceipt;
-use ricq::{RQError, RQResult};
+use ricq::RQError;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::time::Duration;

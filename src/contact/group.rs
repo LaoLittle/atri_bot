@@ -4,7 +4,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use ricq::structs::{GroupInfo, MessageReceipt};
-use ricq::RQResult;
 use tracing::error;
 
 use crate::contact::member::NamedMember;

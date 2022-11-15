@@ -1,7 +1,6 @@
 use crate::plugin::cast_ref;
 use crate::service::plugin_manager::PluginManager;
 use atri_ffi::RustString;
-use std::path::PathBuf;
 use tracing::error;
 
 pub extern "C" fn env_get_workspace(handle: usize, manager: *const ()) -> RustString {

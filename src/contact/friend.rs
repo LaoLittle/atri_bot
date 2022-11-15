@@ -4,7 +4,6 @@ use crate::message::meta::MetaMessage;
 use crate::message::MessageChain;
 use crate::Client;
 use ricq::structs::{FriendInfo, MessageReceipt};
-use ricq::RQResult;
 use std::sync::Arc;
 use tracing::error;
 

@@ -1,14 +1,14 @@
 pub mod info;
-mod token;
+pub mod token;
 
 use std::fmt::{Debug, Display, Formatter};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use ricq::ext::common::after_login;
-use ricq::{Client as RQClient, LoginResponse, RQError, RQResult};
+use ricq::{Client as RQClient, LoginResponse, RQError};
 
 use crate::client::info::BotAccountInfo;
 use crate::client::token::Token;
@@ -30,55 +30,47 @@ impl Client {
     }
 
     pub async fn try_login(&self) -> AtriResult<()> {
-        let p = self.0.work_dir.join("token.json");
+        let binp = self.work_dir().join("token.bin");
 
-        if p.is_file() {
-            //let s = tokio::fs::read_to_string(&p).await.expect("Cannot open file");
-            //let token: ricq::client::Token = serde_json::from_str(&s).expect("Cannot read token from file");
+        let token: Token = if let Ok(bytes) = tokio::fs::read(&binp).await {
+            prost::Message::decode(&*bytes).expect("Cannot decode token")
+        } else if let Ok(f) = tokio::fs::File::open(self.work_dir().join("token.json")).await {
+            let std_file = f.into_std().await;
+            tokio::task::block_in_place(|| {
+                serde_json::from_reader(&std_file).expect("Cannot read token from file")
+            })
+        } else {
+            error!("{}登陆失败: 无法读取Token", self);
 
-            let token: ricq::client::Token = tokio::task::block_in_place(|| {
-                let file = std::fs::File::open(&p).unwrap();
-                serde_json::from_reader(&file).expect("Cannot read token from file")
+            return Err(RQError::TokenLoginFailed.into());
+        };
+
+        let rq_token: ricq::client::Token = token.into();
+
+        let resp = self.0.client.token_login(rq_token).await?;
+
+        if let LoginResponse::Success(..) = resp {
+            after_login(&self.0.client).await;
+
+            let info = self.0.client.account_info.read().await;
+            self.0.info.get_or_init(|| BotAccountInfo {
+                nickname: info.nickname.clone().into(),
+                age: info.age.into(),
+                gender: info.gender.into(),
             });
 
-            let resp = self.0.client.token_login(token).await?;
+            let token = self.gen_token().await;
 
-            if let LoginResponse::Success(..) = resp {
-                after_login(&self.0.client).await;
+            tokio::task::spawn_blocking(move || {
+                if let Ok(mut file) = std::fs::File::create(&binp) {
+                    let proto = prost::Message::encode_to_vec(&token);
+                    let _ = file.write_all(&proto);
+                }
+            });
 
-                let info = self.0.client.account_info.read().await;
-                self.0.info.get_or_init(|| BotAccountInfo {
-                    nickname: info.nickname.clone().into(),
-                    age: info.age.into(),
-                    gender: info.gender.into(),
-                });
-
-                let rq = self.request_client().gen_token().await;
-                let token = Token::from(rq);
-
-                tokio::task::spawn_blocking(move || {
-                    let mut p = p;
-
-                    if let Ok(file) = std::fs::File::create(&p) {
-                        let _ = serde_json::to_writer_pretty(&file, &token);
-                    }
-                    p.pop();
-                    p.push("token.bin");
-
-                    if let Ok(mut file) = std::fs::File::create(&p) {
-                        let proto = prost::Message::encode_to_vec(&token);
-                        let _ = file.write_all(&proto);
-                    }
-                });
-
-                self.0.enable.swap(true, Ordering::Relaxed);
-            } else {
-                error!("{}登陆失败: {:?}", self, resp);
-
-                return Err(RQError::TokenLoginFailed.into());
-            }
+            self.0.enable.swap(true, Ordering::Relaxed);
         } else {
-            error!("{}登陆失败: 未找到Token", self);
+            error!("{}登陆失败: {:?}", self, resp);
 
             return Err(RQError::TokenLoginFailed.into());
         }
@@ -116,6 +108,10 @@ impl Client {
 
     pub fn is_online(&self) -> bool {
         self.request_client().online.load(Ordering::Relaxed)
+    }
+
+    pub async fn gen_token(&self) -> Token {
+        self.request_client().gen_token().await.into()
     }
 
     pub fn list() -> Vec<Client> {
@@ -174,8 +170,8 @@ impl Client {
         self.0.group_list.remove(&group_id).map(|(_, g)| g)
     }
 
-    pub fn work_dir(&self) -> PathBuf {
-        self.0.work_dir.clone()
+    pub fn work_dir(&self) -> &Path {
+        &self.0.work_dir
     }
 
     pub fn find_group(&self, id: i64) -> Option<Group> {

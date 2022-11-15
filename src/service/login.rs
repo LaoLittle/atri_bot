@@ -143,10 +143,9 @@ async fn login_bot(
                         }
                         LoginResponse::Success(..) => {
                             info!("{}登陆成功", client);
-                            let mut dir = client.work_dir();
-                            dir.push("token.json");
+                            let tokenp = client.work_dir().join("token.json");
 
-                            if let Ok(mut f) = fs::File::create(&dir).await {
+                            if let Ok(mut f) = fs::File::create(&tokenp).await {
                                 let token = client.request_client().gen_token().await;
                                 let s = serde_json::to_string_pretty(&token)
                                     .expect("Cannot serialize token");
