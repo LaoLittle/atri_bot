@@ -106,15 +106,12 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                             None
                         });
 
-                    if member.is_none() {
+                    if let Some(m) = &member {
+                        m.nickname()
+                    } else {
                         warn!("群成员({})信息获取失败", sender);
                         return;
                     }
-
-                    member
-                        .as_ref()
-                        .map(|m| m.nickname())
-                        .unwrap_or("NamedMember");
                 };
 
                 info!(
