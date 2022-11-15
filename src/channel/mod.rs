@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use regex::Regex;
 use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
-use tracing::info;
+use tracing::{error, info, warn};
 
 use crate::contact::member::{AnonymousMember, NamedMember};
 use crate::event::{ClientLoginEvent, Event, EventInner, FriendMessageEvent, GroupMessageEvent};
@@ -98,11 +98,23 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let nick = if sender == AnonymousMember::ID {
                     "匿名"
                 } else {
-                    member = group.get_named_member(sender).await;
+                    member = group
+                        .try_get_named_member(sender)
+                        .await
+                        .unwrap_or_else(|e| {
+                            warn!("获取群成员({})发生错误: {}", sender, e);
+                            None
+                        });
+
+                    if member.is_none() {
+                        warn!("群成员({})信息获取失败", sender);
+                        return;
+                    }
+
                     member
                         .as_ref()
                         .map(|m| m.nickname())
-                        .unwrap_or("NamedMember")
+                        .unwrap_or("NamedMember");
                 };
 
                 info!(
