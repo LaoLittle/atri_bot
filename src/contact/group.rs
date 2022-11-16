@@ -9,7 +9,7 @@ use tracing::error;
 use crate::contact::member::NamedMember;
 use crate::error::{AtriError, AtriResult};
 use crate::message::image::Image;
-use crate::message::meta::MetaMessage;
+use crate::message::meta::{MessageMetadata, MetaMessage};
 use crate::message::MessageChain;
 use crate::Client;
 
@@ -40,14 +40,6 @@ impl Group {
         &self.0.info.name
     }
 
-    pub fn find_member(&self, id: i64) -> Option<NamedMember> {
-        if let Some(member) = self.0.members.get(&id) {
-            return Some(member.clone());
-        }
-
-        None
-    }
-
     pub async fn members(&self) -> Vec<NamedMember> {
         if self.0.member_list_refreshed.load(Ordering::Relaxed) {
             self.0.members.iter().map(|named| named.clone()).collect()
@@ -75,42 +67,46 @@ impl Group {
         }
     }
 
-    pub async fn get_named_member(&self, id: i64) -> Option<NamedMember> {
+    pub fn find_member(&self, id: i64) -> Option<NamedMember> {
+        if let Some(member) = self.0.members.get(&id) {
+            return Some(member.clone());
+        }
+
+        None
+    }
+
+    pub async fn try_refresh_member(&self, id: i64) -> AtriResult<Option<NamedMember>> {
+        let named = self
+            .client()
+            .request_client()
+            .get_group_member_info(self.id(), id)
+            .await
+            .map(|info| {
+                if info.join_time == 0 {
+                    return None;
+                }
+
+                let named = NamedMember::from(self.clone(), info);
+                self.cache_member(named.clone());
+                Some(named)
+            })?;
+
+        Ok(named)
+    }
+
+    pub async fn refresh_member(&self, id: i64) -> Option<NamedMember> {
+        self.try_refresh_member(id).await.unwrap_or(None)
+    }
+
+    pub async fn find_or_refresh_member(&self, id: i64) -> Option<NamedMember> {
         if let Some(named) = self.find_member(id) {
             return Some(named);
         }
 
-        self.try_get_named_member(id)
-            .await
-            .map_err(|e| {
-                error!("{}", e);
-                e
-            })
-            .unwrap_or(None)
+        self.refresh_member(id).await
     }
 
-    pub async fn try_get_named_member(&self, id: i64) -> AtriResult<Option<NamedMember>> {
-        if let Some(named) = self.find_member(id) {
-            return Ok(Some(named));
-        }
-
-        let info = self
-            .client()
-            .request_client()
-            .get_group_member_info(self.id(), id)
-            .await?;
-
-        if info.join_time == 0 {
-            return Ok(None);
-        }
-
-        let named = NamedMember::from(self.clone(), info);
-        self.0.members.insert(id, named.clone());
-
-        Ok(Some(named))
-    }
-
-    pub async fn send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
+    async fn _send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
         self.client()
             .request_client()
             .send_group_message(self.id(), chain.into())
@@ -128,7 +124,11 @@ impl Group {
             })
     }
 
-    pub async fn upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {
+    pub async fn send_message<M: Into<MessageChain>>(&self, msg: M) -> AtriResult<MessageReceipt> {
+        self._send_message(msg.into()).await
+    }
+
+    async fn _upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {
         self.client()
             .request_client()
             .upload_group_image(self.id(), image)
@@ -147,8 +147,11 @@ impl Group {
             })
     }
 
-    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> AtriResult<()> {
-        let meta = msg.metadata();
+    pub async fn upload_image<I: Into<Vec<u8>>>(&self, image: I) -> AtriResult<Image> {
+        self._upload_image(image.into()).await
+    }
+
+    async fn _recall_message(&self, meta: &MessageMetadata) -> AtriResult<()> {
         self.client()
             .request_client()
             .recall_group_message(self.id(), meta.seqs.clone(), meta.rands.clone())
@@ -156,12 +159,20 @@ impl Group {
             .map_err(AtriError::from)
     }
 
-    pub async fn change_name(&self, name: String) -> AtriResult<()> {
+    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> AtriResult<()> {
+        self._recall_message(msg.metadata()).await
+    }
+
+    async fn _change_name(&self, name: String) -> AtriResult<()> {
         self.client()
             .request_client()
             .update_group_name(self.id(), name)
             .await
             .map_err(AtriError::from)
+    }
+
+    pub async fn change_name<S: Into<String>>(&self, name: S) -> AtriResult<()> {
+        self._change_name(name.into()).await
     }
 
     pub async fn kick<M: ToKickMember, S: AsRef<str>>(
@@ -190,6 +201,10 @@ impl Group {
         let map = self.client().remove_group_cache(self.id());
 
         map.is_some()
+    }
+
+    pub(crate) fn cache_member(&self, member: NamedMember) {
+        self.0.members.insert(member.id(), member);
     }
 }
 

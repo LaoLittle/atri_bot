@@ -46,13 +46,17 @@ impl ListenerWorker {
         &self.runtime
     }
 
+    pub fn closed(&self) -> bool {
+        self.closed.load(Ordering::Relaxed)
+    }
+
     pub async fn schedule(&self, listener: Listener) {
         let arc = Arc::new(listener);
         let _ = self.listener_tx.send(arc).await;
     }
 
     pub async fn handle(&self, event: &Event) {
-        if self.closed.load(Ordering::Relaxed) {
+        if self.closed() {
             return;
         }
 

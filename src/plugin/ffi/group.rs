@@ -46,11 +46,14 @@ pub extern "C" fn group_find_member(group: *const (), id: i64) -> ManagedCloneab
         .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
 }
 
-pub extern "C" fn group_get_named_member(group: *const (), id: i64) -> FFIFuture<ManagedCloneable> {
+pub extern "C" fn group_find_or_refresh_member(
+    group: *const (),
+    id: i64,
+) -> FFIFuture<ManagedCloneable> {
     FFIFuture::from(async move {
         let group: &Group = cast_ref(group);
         group
-            .get_named_member(id)
+            .find_or_refresh_member(id)
             .await
             .map(ManagedCloneable::from_value)
             .unwrap_or_else(|| unsafe { ManagedCloneable::null() })

@@ -12,10 +12,11 @@ use atri_ffi::ManagedCloneable;
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
 use crate::contact::member::{AnonymousMember, Member};
-use crate::contact::{Contact, HasSubject};
+use crate::contact::{Contact, ContactSubject};
 use crate::message::MessageChain;
 use crate::{Client, Listener};
 
+pub mod custom;
 pub mod listener;
 
 #[derive(Clone)]
@@ -207,7 +208,7 @@ impl GroupMessageEvent {
     }
 }
 
-impl HasSubject for GroupMessageEvent {
+impl ContactSubject for GroupMessageEvent {
     fn subject(&self) -> Contact {
         Contact::Group(self.group().clone())
     }
@@ -254,7 +255,7 @@ impl FromEvent for FriendMessageEvent {
     }
 }
 
-impl HasSubject for FriendMessageEvent {
+impl ContactSubject for FriendMessageEvent {
     fn subject(&self) -> Contact {
         Contact::Friend(self.friend().clone())
     }
@@ -268,9 +269,9 @@ impl ClientLoginEvent {
     }
 }
 
-impl EventInner<QEvent> {
-    pub fn from(e: QEvent) -> Self {
-        Self::new(e)
+impl From<QEvent> for EventInner<QEvent> {
+    fn from(value: QEvent) -> Self {
+        Self::new(value)
     }
 }
 

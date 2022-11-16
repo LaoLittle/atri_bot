@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 pub extern "C" fn event_intercept(intercepted: *const ()) {
     let intercepted: &AtomicBool = cast_ref(intercepted);
-    intercepted.swap(true, Ordering::Release);
+    intercepted.store(true, Ordering::Relaxed);
 }
 
 pub extern "C" fn event_is_intercepted(intercepted: *const ()) -> bool {

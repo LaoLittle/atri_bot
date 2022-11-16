@@ -150,16 +150,17 @@ impl Client {
         Ok(())
     }
 
-    pub async fn refresh_group_info(&self, group_id: i64) -> AtriResult<()> {
+    pub async fn refresh_group(&self, group_id: i64) -> AtriResult<Option<Group>> {
         let info = self.request_client().get_group_info(group_id).await?;
         if let Some(info) = info {
             let g = Group::from(self.clone(), info);
-            self.0.group_list.insert(group_id, g);
+            self.0.group_list.insert(group_id, g.clone());
+            return Ok(Some(g));
         } else {
             self.0.group_list.remove(&group_id);
         }
 
-        Ok(())
+        Ok(None)
     }
 
     pub(crate) fn remove_friend_cache(&self, friend_id: i64) -> Option<Friend> {
@@ -182,12 +183,39 @@ impl Client {
         None
     }
 
+    pub async fn find_or_refresh_group(&self, id: i64) -> Option<Group> {
+        if let Some(g) = self.find_group(id) {
+            return Some(g);
+        }
+
+        self.refresh_group(id)
+            .await
+            .map_err(|e| {
+                error!("获取群成员({})时发生错误: {}", id, e);
+
+                e
+            })
+            .unwrap_or(None)
+    }
+
     pub fn find_friend(&self, id: i64) -> Option<Friend> {
         if let Some(f) = self.0.friend_list.get(&id) {
             return Some(f.clone());
         }
 
         None
+    }
+
+    pub async fn find_or_refresh_friend_list(&self, id: i64) -> Option<Friend> {
+        if let Some(f) = self.find_friend(id) {
+            return Some(f);
+        }
+
+        if let Err(e) = self.refresh_friend_list().await {
+            error!("获取好友({})失败: {}", id, e);
+        }
+
+        self.find_friend(id)
     }
 
     pub fn groups(&self) -> Vec<Group> {

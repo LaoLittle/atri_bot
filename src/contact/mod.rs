@@ -15,6 +15,6 @@ pub enum Contact {
 
 impl Contact {}
 
-pub trait HasSubject {
+pub trait ContactSubject {
     fn subject(&self) -> Contact;
 }
