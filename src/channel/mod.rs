@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::sync::OnceLock;
 
 use async_trait::async_trait;
@@ -7,9 +8,9 @@ use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tracing::{error, info, warn};
 
 use crate::contact::member::{AnonymousMember, NamedMember};
-use crate::event::{ClientLoginEvent, Event, EventInner, FriendMessageEvent, GroupMessageEvent};
+use crate::event::{ClientLoginEvent, Event, FriendMessageEvent, GroupMessageEvent};
 use crate::get_global_listener_worker;
-use crate::{get_listener_runtime, global_status, unwrap_result_or_print_err_return, Client};
+use crate::{get_listener_runtime, global_status, Client};
 
 static GLOBAL_EVENT_CHANNEL: OnceLock<Sender<Event>> = OnceLock::<Sender<Event>>::new();
 
@@ -30,10 +31,9 @@ pub struct GlobalEventBroadcastHandler;
 #[async_trait]
 impl ricq::handler::Handler for GlobalEventBroadcastHandler {
     async fn handle(&self, event: QEvent) {
-        let bot_id: i64;
         let client: Client;
 
-        fn get_bot(id: i64) -> Option<Client> {
+        fn get_client(id: i64) -> Option<Client> {
             global_status().clients.get(&id).map(|b| b.clone())
         }
 
@@ -53,7 +53,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
         let self_event = match event {
             QEvent::Login(id) => {
-                client = if let Some(b) = get_bot(id) {
+                client = if let Some(b) = get_client(id) {
                     b
                 } else {
                     return;
@@ -85,10 +85,10 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     return;
                 }
 
-                let group = if let Some(g) = client.find_group(group_id) {
-                    g
-                } else {
-                    unwrap_result_or_print_err_return!(client.refresh_group_info(group_id).await);
+                let Some(group) = client.find_or_refresh_group(group_id).await else {
+                    cannot_find_group(group_id);
+                    error_more_info(&e);
+
                     return;
                 };
 
@@ -98,13 +98,10 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let nick = if sender == AnonymousMember::ID {
                     "匿名"
                 } else {
-                    member = group
-                        .try_get_named_member(sender)
-                        .await
-                        .unwrap_or_else(|e| {
-                            warn!("获取群成员({})发生错误: {}", sender, e);
-                            None
-                        });
+                    member = group.try_refresh_member(sender).await.unwrap_or_else(|e| {
+                        warn!("获取群成员({})发生错误: {}", sender, e);
+                        None
+                    });
 
                     if let Some(m) = &member {
                         m.nickname()
@@ -127,20 +124,11 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 Event::GroupMessage(base)
             }
             QEvent::FriendMessage(e) => {
-                bot_id = e.client.uin().await;
-                if bot_id == e.inner.from_uin {
-                    return;
-                }
-                client = if let Some(b) = get_bot(bot_id) {
-                    b
-                } else {
-                    return;
-                };
+                client = get_client!(e.client);
 
-                let friend = if let Some(f) = client.find_friend(e.inner.from_uin) {
-                    f
-                } else {
-                    client.refresh_friend_list().await.expect("Cannot refresh");
+                let friend_id = e.inner.from_uin;
+
+                let Some(friend) = client.find_or_refresh_friend_list(friend_id).await else {
                     return;
                 };
 
@@ -160,33 +148,47 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 client.remove_friend_cache(e.inner.uin);
 
-                Event::Unknown(EventInner::<QEvent>::from(QEvent::DeleteFriend(e)))
+                Event::Unknown(QEvent::DeleteFriend(e).into())
             }
             QEvent::GroupDisband(e) => {
                 client = get_client!(e.client);
 
+                let group_id = e.inner.group_code;
+                let op_id = e.inner.operator_uin;
+
+                if let Some(g) = client.find_group(group_id) {
+                    let member = g.find_member(e.inner.operator_uin);
+
+                    let name = member
+                        .map(|n| n.card_name().to_owned())
+                        .unwrap_or_else(|| op_id.to_string());
+                    info!("群 {}({})解散, 操作人: {}", g.name(), g.id(), name);
+                } else {
+                    info!("群({})解散, 操作人: {}", group_id, op_id);
+                }
+
                 client.remove_group_cache(e.inner.group_code);
 
-                Event::Unknown(EventInner::<QEvent>::from(QEvent::GroupDisband(e)))
+                Event::Unknown(QEvent::GroupDisband(e).into())
             }
             QEvent::NewMember(e) => {
                 client = get_client!(e.client);
                 let group_id = e.inner.group_code;
-                let member = e.inner.member_uin;
+                let member_id = e.inner.member_uin;
 
-                let group = if let Some(g) = client.find_group(group_id) {
-                    g
-                } else {
-                    unwrap_result_or_print_err_return!(client.refresh_group_info(group_id).await);
-                    client.find_group(group_id).unwrap()
+                let Some(group) = client.find_or_refresh_group(group_id).await else {
+                    cannot_find_group(group_id);
+                    error_more_info(&e);
+
+                    return;
                 };
 
-                if member == client.id() {
+                if member_id == client.id() {
                 } else {
-                    let _member = group.get_named_member(e.inner.member_uin).await;
+                    let _member = group.refresh_member(member_id).await;
                 }
 
-                Event::Unknown(EventInner::<QEvent>::from(QEvent::NewMember(e)))
+                Event::Unknown(QEvent::NewMember(e).into())
             }
             QEvent::GroupLeave(e) => {
                 client = get_client!(e.client);
@@ -197,9 +199,27 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 } else {
                 }
 
-                Event::Unknown(EventInner::<QEvent>::from(QEvent::GroupLeave(e)))
+                Event::Unknown(QEvent::GroupLeave(e).into())
             }
-            or => Event::Unknown(EventInner::<QEvent>::from(or)),
+            QEvent::KickedOffline(e) => {
+                client = get_client!(e.client);
+
+                info!("{}下线, Kicked: {:?}", client, e);
+
+                global_status().remove_client(client.id());
+
+                Event::Unknown(QEvent::KickedOffline(e).into())
+            }
+            QEvent::MSFOffline(e) => {
+                client = get_client!(e.client);
+
+                info!("{}下线, MSF: {:?}", client, e);
+
+                global_status().remove_client(client.id());
+
+                Event::Unknown(QEvent::MSFOffline(e).into())
+            }
+            or => Event::Unknown(or.into()),
         };
 
         let e = self_event.clone();
@@ -209,4 +229,12 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
         let _ = global_sender().send(self_event);
     }
+}
+
+fn cannot_find_group(group_id: i64) {
+    error!("无法找到群({}), 这是一个Bug, 请报告此问题", group_id);
+}
+
+fn error_more_info<D: Debug>(d: &D) {
+    error!("额外信息: {:?}", d);
 }
