@@ -373,7 +373,7 @@ mod imp {
                 let socket = TcpSocket::new_v4()?;
                 let addr = servers
                     .pop()
-                    .ok_or(io::Error::new(ErrorKind::AddrNotAvailable, "重连失败"))?;
+                    .ok_or_else(|| io::Error::new(ErrorKind::AddrNotAvailable, "重连失败"))?;
 
                 if let Ok(Ok(s)) =
                     tokio::time::timeout(Duration::from_secs(2), socket.connect(addr)).await

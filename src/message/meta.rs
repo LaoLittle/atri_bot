@@ -127,11 +127,11 @@ impl PushElem for Reply {
     fn push_to(elem: Self, vec: &mut Vec<MessageElem>) {
         let rq = ricq::msg::elem::Reply::from(elem);
 
-        let index = if let Some(MessageElem::AnonGroupMsg(..)) = vec.get(0) {
-            1
-        } else {
-            0
+        let index = match vec.get(0) {
+            Some(MessageElem::AnonGroupMsg(..)) => 1,
+            _ => 0,
         };
+
         vec.insert(index, rq.into());
     }
 }

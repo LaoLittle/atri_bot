@@ -24,7 +24,7 @@ pub enum Event {
     ClientLogin(ClientLoginEvent),
     GroupMessage(GroupMessageEvent),
     FriendMessage(FriendMessageEvent),
-    Unknown(EventInner<QEvent>),
+    Unknown(SharedEvent<QEvent>),
 }
 
 impl Event {
@@ -79,8 +79,8 @@ macro_rules! event_fun_impl {
 }
 
 event_fun_impl! {
-    intercept: () as EventInner::intercept;
-    is_intercepted: bool as EventInner::is_intercepted;
+    intercept: () as SharedEvent::intercept;
+    is_intercepted: bool as SharedEvent::is_intercepted;
 }
 
 impl FromEvent for Event {
@@ -90,11 +90,11 @@ impl FromEvent for Event {
 }
 
 #[derive(Debug)]
-pub struct EventInner<T> {
+pub struct SharedEvent<T> {
     event: Arc<EventWithFlag<T>>,
 }
 
-impl<T> Clone for EventInner<T> {
+impl<T> Clone for SharedEvent<T> {
     fn clone(&self) -> Self {
         Self {
             event: self.event.clone(),
@@ -108,7 +108,7 @@ struct EventWithFlag<T> {
     inner: T,
 }
 
-impl<T> EventInner<T> {
+impl<T> SharedEvent<T> {
     fn new(event: T) -> Self {
         Self {
             event: EventWithFlag {
@@ -137,7 +137,7 @@ impl<T> EventInner<T> {
     }
 }
 
-pub type GroupMessageEvent = EventInner<imp::GroupMessageEvent>;
+pub type GroupMessageEvent = SharedEvent<imp::GroupMessageEvent>;
 
 impl GroupMessageEvent {
     pub fn group(&self) -> &Group {
@@ -224,7 +224,7 @@ impl FromEvent for GroupMessageEvent {
     }
 }
 
-pub type FriendMessageEvent = EventInner<imp::FriendMessageEvent>;
+pub type FriendMessageEvent = SharedEvent<imp::FriendMessageEvent>;
 
 impl FriendMessageEvent {
     pub fn friend(&self) -> &Friend {
@@ -261,7 +261,7 @@ impl ContactSubject for FriendMessageEvent {
     }
 }
 
-pub type ClientLoginEvent = EventInner<imp::BotOnlineEvent>;
+pub type ClientLoginEvent = SharedEvent<imp::BotOnlineEvent>;
 
 impl ClientLoginEvent {
     pub fn from(bot: Client) -> Self {
@@ -269,7 +269,7 @@ impl ClientLoginEvent {
     }
 }
 
-impl From<QEvent> for EventInner<QEvent> {
+impl From<QEvent> for SharedEvent<QEvent> {
     fn from(value: QEvent) -> Self {
         Self::new(value)
     }

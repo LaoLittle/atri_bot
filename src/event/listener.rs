@@ -7,7 +7,7 @@ use std::time::Duration;
 use tokio::sync::Mutex;
 
 use crate::event::FromEvent;
-use crate::{get_global_listener_worker, get_listener_runtime, Event};
+use crate::{global_listener_runtime, global_listener_worker, Event};
 
 static UNIQUE_ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -27,46 +27,7 @@ pub struct Listener {
 }
 
 impl Listener {
-    fn new<F, Fu>(handler: F) -> ListenerBuilder
-    where
-        F: Fn(Event) -> Fu,
-        F: Send + 'static,
-        Fu: Future<Output = bool>,
-        Fu: Send + 'static,
-    {
-        let handler = Box::new(move |e| {
-            let fu = handler(e);
-            let b: Box<dyn Future<Output = bool> + Send + 'static> = Box::new(fu);
-
-            Box::into_pin(b)
-        });
-
-        ListenerBuilder {
-            name: None,
-            concurrent: true,
-            handler,
-            priority: Priority::Middle,
-        }
-    }
-
-    fn new_always<F, Fu>(handler: F) -> ListenerBuilder
-    where
-        F: Fn(Event) -> Fu,
-        F: Send + 'static,
-        Fu: Future<Output = ()>,
-        Fu: Send + 'static,
-    {
-        Self::new(move |e| {
-            let fu = handler(e);
-
-            async move {
-                fu.await;
-                true
-            }
-        })
-    }
-
-    pub fn listening_on<E, F, Fu>(handler: F) -> ListenerBuilder
+    pub fn listening_on<E, F, Fu>(handler: F) -> ListenerGuard
     where
         F: Fn(E) -> Fu,
         F: Send + 'static,
@@ -74,20 +35,10 @@ impl Listener {
         Fu: Send + 'static,
         E: FromEvent,
     {
-        Self::new(move |e| {
-            let fu = E::from_event(e).map(&handler);
-
-            async move {
-                if let Some(fu) = fu {
-                    fu.await
-                } else {
-                    true
-                }
-            }
-        })
+        ListenerBuilder::listening_on(handler).start()
     }
 
-    pub fn listening_on_always<E, F, Fu>(handler: F) -> ListenerBuilder
+    pub fn listening_on_always<E, F, Fu>(handler: F) -> ListenerGuard
     where
         F: Fn(E) -> Fu,
         F: Send + 'static,
@@ -95,15 +46,7 @@ impl Listener {
         Fu: Send + 'static,
         E: FromEvent,
     {
-        Self::new_always(move |e| {
-            let fu = E::from_event(e).and_then(|e| Some(handler(e)));
-
-            async move {
-                if let Some(fu) = fu {
-                    fu.await;
-                }
-            }
-        })
+        ListenerBuilder::listening_on_always(handler).start()
     }
 
     pub async fn next_event_with_priority<E, F>(
@@ -118,7 +61,7 @@ impl Listener {
     {
         tokio::time::timeout(timeout, async {
             let (tx, mut rx) = tokio::sync::mpsc::channel(8);
-            let _guard = Listener::listening_on_always(move |e: E| {
+            let _guard = ListenerBuilder::listening_on_always(move |e: E| {
                 let tx = tx.clone();
                 async move {
                     let _ = tx.send(e).await;
@@ -166,6 +109,85 @@ pub struct ListenerBuilder {
 }
 
 impl ListenerBuilder {
+    fn new<F, Fu>(handler: F) -> Self
+    where
+        F: Fn(Event) -> Fu,
+        F: Send + 'static,
+        Fu: Future<Output = bool>,
+        Fu: Send + 'static,
+    {
+        let handler = Box::new(move |e| {
+            let fu = handler(e);
+            let b: Box<dyn Future<Output = bool> + Send + 'static> = Box::new(fu);
+
+            Box::into_pin(b)
+        });
+
+        Self {
+            name: None,
+            concurrent: true,
+            handler,
+            priority: Priority::Middle,
+        }
+    }
+
+    fn new_always<F, Fu>(handler: F) -> Self
+    where
+        F: Fn(Event) -> Fu,
+        F: Send + 'static,
+        Fu: Future<Output = ()>,
+        Fu: Send + 'static,
+    {
+        Self::new(move |e| {
+            let fu = handler(e);
+
+            async move {
+                fu.await;
+                true
+            }
+        })
+    }
+
+    pub fn listening_on<E, F, Fu>(handler: F) -> Self
+    where
+        F: Fn(E) -> Fu,
+        F: Send + 'static,
+        Fu: Future<Output = bool>,
+        Fu: Send + 'static,
+        E: FromEvent,
+    {
+        Self::new(move |e| {
+            let fu = E::from_event(e).map(&handler);
+
+            async move {
+                if let Some(fu) = fu {
+                    fu.await
+                } else {
+                    true
+                }
+            }
+        })
+    }
+
+    pub fn listening_on_always<E, F, Fu>(handler: F) -> Self
+    where
+        F: Fn(E) -> Fu,
+        F: Send + 'static,
+        Fu: Future<Output = ()>,
+        Fu: Send + 'static,
+        E: FromEvent,
+    {
+        Self::new_always(move |e| {
+            let fu = E::from_event(e).map(&handler);
+
+            async move {
+                if let Some(fu) = fu {
+                    fu.await;
+                }
+            }
+        })
+    }
+
     pub fn start(self) -> ListenerGuard {
         let Self {
             name,
@@ -190,7 +212,7 @@ impl ListenerBuilder {
             priority,
         };
 
-        get_listener_runtime().spawn(get_global_listener_worker().schedule(listener));
+        global_listener_runtime().spawn(global_listener_worker().schedule(listener));
 
         ListenerGuard {
             name: arc_name,

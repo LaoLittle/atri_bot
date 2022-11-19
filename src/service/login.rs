@@ -105,10 +105,17 @@ pub async fn login_bots() -> Result<(), RQError> {
     }
 
     for result in logins {
-        match result.await.expect("Login panics!") {
-            // todo: optimize
-            Ok(_) => {}
-            Err(_) => {}
+        match result.await {
+            Ok(Ok(client)) => {
+                global_status().add_client(client.clone());
+                info!("{}登陆成功", client);
+            }
+            Ok(Err(_)) => {
+                //error!("登录失败", e);
+            }
+            Err(e) => {
+                error!("登录时发生意料之外的错误: {}", e);
+            }
         }
     }
 
@@ -121,17 +128,13 @@ async fn login_bot(
     conf: BotConfiguration,
 ) -> AtriResult<Client> {
     let client = Client::new(account, conf).await;
-    global_status().add_client(client.clone());
     client.start().await?;
 
     info!("Client({})登陆中", account);
     match client.try_login().await {
-        Ok(_) => {
-            info!("{}登陆成功", client);
-            Ok(client)
-        }
+        Ok(_) => Ok(client),
         Err(e) => {
-            //error!("Bot({})登陆失败: {:?}", account, e);
+            error!("Bot({})登陆失败: {}", account, e);
             if let Some(pwd) = password {
                 info!("{}尝试密码登陆", client);
                 let mut resp = client.request_client().password_login(account, pwd).await?;
@@ -142,7 +145,6 @@ async fn login_bot(
                             resp = client.request_client().device_lock_login().await?;
                         }
                         LoginResponse::Success(..) => {
-                            info!("{}登陆成功", client);
                             let tokenp = client.work_dir().join("token.json");
 
                             if let Ok(mut f) = fs::File::create(&tokenp).await {

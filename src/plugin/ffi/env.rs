@@ -18,7 +18,7 @@ pub extern "C" fn env_get_workspace(handle: usize, manager: *const ()) -> RustSt
                         p
                     })
                 })
-                .unwrap_or_else(String::new);
+                .unwrap_or_default();
 
             path.push_str("workspaces/");
             path.push_str(name);

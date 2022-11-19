@@ -72,12 +72,12 @@ pub fn global_status() -> &'static AtriGlobalStatus {
     ATRI_GLOBAL_STATUS.get_or_init(AtriGlobalStatus::new)
 }
 
-pub fn get_listener_runtime() -> &'static Runtime {
+pub fn global_listener_runtime() -> &'static Runtime {
     global_status().listener_worker().runtime()
 }
 
-pub fn get_global_listener_worker() -> &'static ListenerWorker {
-    &global_status().listener_worker()
+pub fn global_listener_worker() -> &'static ListenerWorker {
+    global_status().listener_worker()
 }
 
 impl AtriGlobalStatus {

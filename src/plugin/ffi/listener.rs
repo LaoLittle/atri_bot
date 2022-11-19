@@ -1,4 +1,4 @@
-use crate::event::listener::Priority;
+use crate::event::listener::{ListenerBuilder, Priority};
 use crate::{Event, Listener};
 use atri_ffi::closure::FFIFn;
 use atri_ffi::ffi::FFIEvent;
@@ -11,7 +11,7 @@ pub extern "C" fn new_listener(
     f: FFIFn<FFIEvent, FFIFuture<bool>>,
     priority: u8,
 ) -> Managed {
-    let guard = Listener::listening_on(move |e: Event| f.invoke(e.into_ffi()))
+    let guard = ListenerBuilder::listening_on(move |e: Event| f.invoke(e.into_ffi()))
         .concurrent(concurrent)
         .priority(Priority::from(priority))
         .start();

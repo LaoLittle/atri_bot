@@ -9,8 +9,8 @@ use tracing::{error, info, warn};
 
 use crate::contact::member::{AnonymousMember, NamedMember};
 use crate::event::{ClientLoginEvent, Event, FriendMessageEvent, GroupMessageEvent};
-use crate::get_global_listener_worker;
-use crate::{get_listener_runtime, global_status, Client};
+use crate::global_listener_worker;
+use crate::{global_listener_runtime, global_status, Client};
 
 static GLOBAL_EVENT_CHANNEL: OnceLock<Sender<Event>> = OnceLock::<Sender<Event>>::new();
 
@@ -222,12 +222,12 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
             or => Event::Unknown(or.into()),
         };
 
-        let e = self_event.clone();
-        get_listener_runtime().spawn(async move {
-            get_global_listener_worker().handle(&e).await;
+        global_listener_runtime().spawn(async move {
+            global_listener_worker().handle(&self_event).await;
+            if let Err(e) = global_sender().send(self_event) {
+                error!("广播事件时发生错误: {}", e);
+            }
         });
-
-        let _ = global_sender().send(self_event);
     }
 }
 

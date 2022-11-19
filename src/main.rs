@@ -4,13 +4,13 @@ use std::error::Error;
 
 use std::time::Duration;
 
-use atri_bot::get_global_listener_worker;
+use atri_bot::global_listener_worker;
 use atri_bot::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
 use atri_bot::service::log::init_logger;
 use atri_bot::service::login::login_bots;
 use atri_bot::service::plugin_manager::PluginManager;
 use atri_bot::terminal::{handle_standard_output, start_read_input, PROMPT};
-use atri_bot::{get_listener_runtime, Atri};
+use atri_bot::{global_listener_runtime, Atri};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::{io, signal};
 use tracing::{error, info};
@@ -21,7 +21,7 @@ fn main() -> MainResult {
     let _guards = init_logger();
     let mut atri = Atri::new();
 
-    get_listener_runtime().spawn(get_global_listener_worker().start());
+    global_listener_runtime().spawn(global_listener_worker().start());
 
     atri.plugin_manager.load_plugins()?;
 
