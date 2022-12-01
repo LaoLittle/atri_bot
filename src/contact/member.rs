@@ -1,5 +1,6 @@
 use crate::contact::group::Group;
 use crate::error::{AtriError, AtriResult};
+use crate::message::at::At;
 use crate::message::meta::Anonymous;
 use crate::message::MessageChain;
 use crate::{Client, GroupMemberInfo};
@@ -143,6 +144,13 @@ impl NamedMember {
         };
 
         Ok(receipt)
+    }
+
+    pub fn at(&self) -> At {
+        At {
+            target: self.id(),
+            display: self.card_name().into(),
+        }
     }
 
     pub(crate) fn from(group: Group, info: GroupMemberInfo) -> Self {

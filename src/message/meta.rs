@@ -1,7 +1,8 @@
-use crate::message::{MessageChain, MessageValue};
+use crate::message::{MessageChain, MessageElement};
 use ricq::msg::{MessageElem, PushElem};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct MessageMetadata {
     pub seqs: Vec<i32>,
     pub rands: Vec<i32>,
@@ -17,7 +18,7 @@ impl MetaMessage for MessageMetadata {
     }
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct Anonymous {
     pub anon_id: Vec<u8>,
     pub nick: String,
@@ -79,12 +80,12 @@ impl PushElem for Anonymous {
     }
 }
 
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Reply {
     pub reply_seq: i32,
     pub sender: i64,
     pub time: i32,
-    pub elements: Vec<MessageValue>,
+    pub elements: Vec<MessageElement>,
 }
 
 impl From<ricq::msg::elem::Reply> for Reply {

@@ -1,8 +1,9 @@
-use crate::message::MessageValue;
+use crate::message::MessageElement;
 use ricq::msg::elem::{FlashImage, FriendImage, GroupImage};
 use ricq::msg::{MessageElem, PushElem};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum Image {
     Group(GroupImage),
     Friend(FriendImage),
@@ -52,7 +53,7 @@ impl From<FriendImage> for Image {
     }
 }
 
-impl From<Image> for MessageValue {
+impl From<Image> for MessageElement {
     fn from(img: Image) -> Self {
         Self::Image(img)
     }

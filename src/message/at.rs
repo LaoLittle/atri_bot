@@ -1,10 +1,22 @@
-use crate::message::MessageValue;
+use crate::message::MessageElement;
 use ricq::msg::{MessageElem, PushElem};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct At {
     pub target: i64,
     pub display: String,
+}
+
+impl At {
+    pub const ALL: Self = Self {
+        target: 0,
+        display: String::new(),
+    };
+
+    pub fn all() -> Self {
+        Self::ALL
+    }
 }
 
 impl From<At> for ricq::msg::elem::At {
@@ -22,7 +34,7 @@ impl PushElem for At {
     }
 }
 
-impl From<At> for MessageValue {
+impl From<At> for MessageElement {
     fn from(at: At) -> Self {
         Self::At(at)
     }

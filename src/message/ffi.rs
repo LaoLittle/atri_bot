@@ -1,7 +1,7 @@
 use super::MessageChain;
 use crate::message::at::At;
 use crate::message::meta::{Anonymous, MessageMetadata, Reply};
-use crate::message::MessageValue;
+use crate::message::MessageElement;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::meta::{
     FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
@@ -17,8 +17,11 @@ impl ForFFI for MessageChain {
 
     fn into_ffi(self) -> Self::FFIValue {
         let meta = self.meta.into_ffi();
-        let ffi: Vec<FFIMessageValue> =
-            self.value.into_iter().map(MessageValue::into_ffi).collect();
+        let ffi: Vec<FFIMessageValue> = self
+            .value
+            .into_iter()
+            .map(MessageElement::into_ffi)
+            .collect();
 
         let raw = RustVec::from(ffi);
         FFIMessageChain { meta, inner: raw }
@@ -28,7 +31,7 @@ impl ForFFI for MessageChain {
         let meta = MessageMetadata::from_ffi(ffi.meta);
 
         let v = ffi.inner.into_vec();
-        let values: Vec<MessageValue> = v.into_iter().map(MessageValue::from_ffi).collect();
+        let values: Vec<MessageElement> = v.into_iter().map(MessageElement::from_ffi).collect();
 
         Self {
             meta,
@@ -37,24 +40,24 @@ impl ForFFI for MessageChain {
     }
 }
 
-impl ForFFI for MessageValue {
+impl ForFFI for MessageElement {
     type FFIValue = FFIMessageValue;
 
     fn into_ffi(self) -> Self::FFIValue {
         match self {
-            MessageValue::Text(s) => FFIMessageValue {
+            MessageElement::Text(s) => FFIMessageValue {
                 t: MessageValueFlag::Text.value(),
                 union: MessageValueUnion {
                     text: ManuallyDrop::new(RustString::from(s)),
                 },
             },
-            MessageValue::Image(img) => FFIMessageValue {
+            MessageElement::Image(img) => FFIMessageValue {
                 t: MessageValueFlag::Image.value(),
                 union: MessageValueUnion {
                     image: ManuallyDrop::new(Managed::from_value(img)),
                 },
             },
-            MessageValue::At(At { target, display }) => FFIMessageValue {
+            MessageElement::At(At { target, display }) => FFIMessageValue {
                 t: MessageValueFlag::At.value(),
                 union: MessageValueUnion {
                     at: ManuallyDrop::new({
@@ -65,7 +68,7 @@ impl ForFFI for MessageValue {
                     }),
                 },
             },
-            MessageValue::AtAll => FFIMessageValue {
+            MessageElement::AtAll => FFIMessageValue {
                 t: MessageValueFlag::AtAll.value(),
                 union: MessageValueUnion { at_all: () },
             },
@@ -84,19 +87,19 @@ impl ForFFI for MessageValue {
                 .unwrap_or_else(|e| panic!("Unknown message value flag: {}", e))
             {
                 MessageValueFlag::Text => {
-                    MessageValue::Text(ManuallyDrop::into_inner(value.union.text).into())
+                    MessageElement::Text(ManuallyDrop::into_inner(value.union.text).into())
                 }
                 MessageValueFlag::Image => {
-                    MessageValue::Image(ManuallyDrop::into_inner(value.union.image).into_value())
+                    MessageElement::Image(ManuallyDrop::into_inner(value.union.image).into_value())
                 }
                 MessageValueFlag::At => {
                     let inner = ManuallyDrop::into_inner(value.union.at);
-                    MessageValue::At(At {
+                    MessageElement::At(At {
                         target: inner.target,
                         display: String::from(inner.display),
                     })
                 }
-                MessageValueFlag::AtAll => MessageValue::AtAll,
+                MessageValueFlag::AtAll => MessageElement::AtAll,
                 MessageValueFlag::Unknown => {
                     ManuallyDrop::into_inner(value.union.unknown).into_value()
                 }
@@ -112,7 +115,7 @@ impl ForFFI for Reply {
         let ffi: Vec<FFIMessageValue> = self
             .elements
             .into_iter()
-            .map(MessageValue::into_ffi)
+            .map(MessageElement::into_ffi)
             .collect();
         let ffi_chain = RustVec::from(ffi);
 
@@ -133,7 +136,7 @@ impl ForFFI for Reply {
         } = value;
 
         let elems = elements.into_vec();
-        let values: Vec<MessageValue> = elems.into_iter().map(MessageValue::from_ffi).collect();
+        let values: Vec<MessageElement> = elems.into_iter().map(MessageElement::from_ffi).collect();
 
         Self {
             reply_seq,

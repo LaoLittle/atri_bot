@@ -11,22 +11,31 @@ use image::Image;
 use ricq::msg::elem::RQElem;
 use ricq::msg::{MessageElem, PushElem};
 use ricq::structs::{FriendMessage, GroupMessage};
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 use std::vec;
 
-#[derive(Clone, Default)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct MessageChain {
     meta: MessageMetadata,
-    value: Vec<MessageValue>,
+    value: Vec<MessageElement>,
 }
 
 impl MessageChain {
-    pub fn iter(&self) -> slice::Iter<'_, MessageValue> {
+    pub fn iter(&self) -> slice::Iter<'_, MessageElement> {
         self.into_iter()
     }
 
     pub fn metadata(&self) -> &MessageMetadata {
         &self.meta
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string(self).expect("Serializing error")
+    }
+
+    pub fn from_json(s: &str) -> serde_json::Result<Self> {
+        serde_json::from_str(s)
     }
 }
 
@@ -49,7 +58,7 @@ impl Debug for MessageChain {
 }
 
 impl IntoIterator for MessageChain {
-    type Item = MessageValue;
+    type Item = MessageElement;
     type IntoIter = vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -58,8 +67,8 @@ impl IntoIterator for MessageChain {
 }
 
 impl<'a> IntoIterator for &'a MessageChain {
-    type Item = &'a MessageValue;
-    type IntoIter = slice::Iter<'a, MessageValue>;
+    type Item = &'a MessageElement;
+    type IntoIter = slice::Iter<'a, MessageElement>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.value.iter()
@@ -96,8 +105,8 @@ impl From<FriendMessage> for MessageChain {
     }
 }
 
-impl From<Vec<MessageValue>> for MessageChain {
-    fn from(elems: Vec<MessageValue>) -> Self {
+impl From<Vec<MessageElement>> for MessageChain {
+    fn from(elems: Vec<MessageElement>) -> Self {
         Self {
             value: elems,
             ..Default::default()
@@ -110,7 +119,7 @@ impl From<ricq::msg::MessageChain> for MessageChain {
         let mut iter = chain.0.into_iter();
 
         let mut meta = MessageMetadata::default();
-        let mut value: Vec<MessageValue> = vec![];
+        let mut value: Vec<MessageElement> = vec![];
 
         for _ in 0..2 {
             match iter.next() {
@@ -124,7 +133,7 @@ impl From<ricq::msg::MessageChain> for MessageChain {
                 }
                 Some(or) => {
                     let rq = ricq::msg::elem::RQElem::from(or);
-                    value.push(MessageValue::from(rq));
+                    value.push(MessageElement::from(rq));
                 }
                 None => {}
             }
@@ -132,7 +141,7 @@ impl From<ricq::msg::MessageChain> for MessageChain {
 
         for val in iter {
             let rq = ricq::msg::elem::RQElem::from(val);
-            value.push(MessageValue::from(rq));
+            value.push(MessageElement::from(rq));
         }
 
         Self { meta, value }
@@ -160,73 +169,71 @@ impl PushElem for MessageChain {
         }
 
         for value in elem.value {
-            MessageValue::push_to(value, vec);
+            MessageElement::push_to(value, vec);
         }
     }
 }
 
-const AT_ALL_INSTANCE: At = At {
-    target: 0,
-    display: String::new(),
-};
-
-#[derive(Clone)]
-pub enum MessageValue {
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(tag = "type")]
+#[serde(rename_all = "snake_case")]
+pub enum MessageElement {
     Text(String),
     Image(Image),
     At(At),
     AtAll,
+    #[serde(skip)]
     Unknown(RQElem),
 }
 
-impl ToString for MessageValue {
+impl ToString for MessageElement {
     fn to_string(&self) -> String {
         let mut s = String::new();
         match self {
             Self::Text(t) => s.push_str(t),
-            Self::Image(img) => s.push_str(&format!("[Image:{}]", img.url())),
+            Self::Image(img) => s.push_str(&format!("$[Image:{}]", img.url())),
             Self::At(At { target, display }) => {
-                s.push_str(&format!("[At:{}({})]", display, target))
+                s.push_str(&format!("$[At:{}({})]", display, target))
             }
-            Self::AtAll => s.push_str("[AtAll]"),
+            Self::AtAll => s.push_str("$[AtAll]"),
             Self::Unknown(rq) => s.push_str(&rq.to_string()),
         }
         s
     }
 }
 
-impl From<String> for MessageValue {
+impl From<String> for MessageElement {
     fn from(s: String) -> Self {
         Self::Text(s)
     }
 }
 
-impl From<MessageValue> for RQElem {
-    fn from(val: MessageValue) -> Self {
+impl From<MessageElement> for RQElem {
+    fn from(val: MessageElement) -> Self {
         match val {
-            MessageValue::Text(s) => RQElem::Text(Text { content: s }),
-            MessageValue::Image(img) => match img {
+            MessageElement::Text(s) => RQElem::Text(Text { content: s }),
+            MessageElement::Image(img) => match img {
                 Image::Friend(img) => RQElem::FriendImage(img),
                 Image::Group(img) => RQElem::GroupImage(img),
             },
-            MessageValue::At(at) => RQElem::At(at.into()),
-            MessageValue::AtAll => RQElem::At(AT_ALL_INSTANCE.into()),
-            MessageValue::Unknown(rq) => rq,
+            MessageElement::At(at) => RQElem::At(at.into()),
+            MessageElement::AtAll => RQElem::At(At::ALL.into()),
+            MessageElement::Unknown(rq) => rq,
         }
     }
 }
 
-impl From<RQElem> for MessageValue {
+impl From<RQElem> for MessageElement {
     fn from(elem: RQElem) -> Self {
         match elem {
-            RQElem::Text(Text { content }) => MessageValue::Text(content),
-            RQElem::GroupImage(img) => MessageValue::Image(Image::Group(img)),
-            RQElem::FriendImage(img) => MessageValue::Image(Image::Friend(img)),
+            RQElem::Text(Text { content }) => MessageElement::Text(content),
+            RQElem::GroupImage(img) => MessageElement::Image(Image::Group(img)),
+            RQElem::FriendImage(img) => MessageElement::Image(Image::Friend(img)),
             RQElem::At(at) => {
                 if at.target == 0 {
-                    MessageValue::AtAll
+                    MessageElement::AtAll
                 } else {
-                    MessageValue::At(At {
+                    MessageElement::At(At {
                         target: at.target,
                         display: at.display,
                     })
@@ -237,13 +244,13 @@ impl From<RQElem> for MessageValue {
     }
 }
 
-impl PushElem for MessageValue {
+impl PushElem for MessageElement {
     fn push_to(elem: Self, vec: &mut Vec<MessageElem>) {
         match elem {
             Self::Text(s) => PushElem::push_to(Text::new(s), vec),
             Self::Image(img) => PushElem::push_to(img, vec),
             Self::At(at) => PushElem::push_to(at, vec),
-            Self::AtAll => PushElem::push_to(AT_ALL_INSTANCE, vec),
+            Self::AtAll => PushElem::push_to(At::ALL, vec),
             Self::Unknown(_rq) => {}
         }
     }

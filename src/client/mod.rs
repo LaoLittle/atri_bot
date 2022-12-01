@@ -6,13 +6,15 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-
-use ricq::ext::common::after_login;
-use ricq::{Client as RQClient, LoginResponse, RQError};
+use std::time::Duration;
 
 use crate::client::info::BotAccountInfo;
 use crate::client::token::Token;
 use crate::contact::friend::Friend;
+use ricq::client::DefaultConnector;
+use ricq::ext::common::after_login;
+use ricq::ext::reconnect::{auto_reconnect, Credential};
+use ricq::{Client as RQClient, LoginResponse, RQError};
 use tokio::io;
 use tracing::error;
 
@@ -108,6 +110,27 @@ impl Client {
 
     pub fn is_online(&self) -> bool {
         self.request_client().online.load(Ordering::Relaxed)
+    }
+
+    pub fn is_heartbeat_enabled(&self) -> bool {
+        self.request_client()
+            .heartbeat_enabled
+            .load(Ordering::Relaxed)
+    }
+
+    pub fn network_status(&self) -> u8 {
+        self.0.client.get_status()
+    }
+
+    pub async fn reconnect(&self) {
+        auto_reconnect(
+            self.0.client.clone(),
+            Credential::Token(self.request_client().gen_token().await),
+            Duration::from_secs(12),
+            5,
+            DefaultConnector,
+        )
+        .await;
     }
 
     pub async fn gen_token(&self) -> Token {
@@ -267,7 +290,7 @@ mod imp {
     use ricq::device::Device;
     use ricq::Client as RQClient;
     use tokio::io::AsyncReadExt;
-    use tokio::net::TcpSocket;
+    use tokio::net::{TcpSocket, TcpStream};
     use tokio::task::yield_now;
     use tokio::{fs, io};
     use tracing::{error, warn};
@@ -362,14 +385,12 @@ mod imp {
             }
         }
 
-        pub async fn start(&self) -> io::Result<()> {
-            let client = self.client.clone();
-
-            let mut servers = client.get_address_list().await;
+        pub async fn connect(&self) -> io::Result<TcpStream> {
+            let mut servers = self.client.get_address_list().await;
 
             let total = servers.len();
             let mut times = 0;
-            let stream = loop {
+            Ok(loop {
                 let socket = TcpSocket::new_v4()?;
                 let addr = servers
                     .pop()
@@ -383,7 +404,13 @@ mod imp {
                     times += 1;
                     warn!("连接服务器{}失败, 尝试重连({}/{})", addr, times, total);
                 }
-            };
+            })
+        }
+
+        pub async fn start(&self) -> io::Result<()> {
+            let client = self.client.clone();
+
+            let stream = self.connect().await?;
 
             tokio::spawn(async move {
                 client.start(stream).await;

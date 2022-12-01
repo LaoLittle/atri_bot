@@ -25,7 +25,7 @@ fn main() -> MainResult {
 
     atri.plugin_manager.load_plugins()?;
 
-    let runtime = &atri.global_runtime;
+    let runtime = &atri.runtime;
 
     runtime.spawn(async {
         main0().await.expect("Error");
@@ -48,8 +48,7 @@ fn main() -> MainResult {
         Ok::<_, Box<dyn Error>>(())
     })?;
 
-    atri.global_runtime
-        .shutdown_timeout(Duration::from_millis(800));
+    atri.runtime.shutdown_timeout(Duration::from_millis(800));
 
     println!("已成功停止服务");
 

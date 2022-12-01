@@ -2,6 +2,8 @@ use crate::message::image::Image;
 use crate::plugin::cast_ref;
 use atri_ffi::{Managed, RustStr, RustString};
 
+pub extern "C" fn message_chain_to_json() {}
+
 pub extern "C" fn image_get_id(img: *const ()) -> RustStr {
     let img: &Image = cast_ref(img);
     RustStr::from(img.id())

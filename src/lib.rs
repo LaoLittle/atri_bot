@@ -3,6 +3,7 @@
 extern crate core;
 
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use dashmap::DashMap;
 use ricq::msg::elem::Text;
@@ -10,6 +11,8 @@ use ricq::structs::GroupMemberInfo;
 
 use tokio::runtime;
 use tokio::runtime::Runtime;
+use tokio::task::JoinHandle;
+use tracing::{error, warn};
 
 use crate::client::Client;
 
@@ -32,24 +35,39 @@ pub mod service;
 pub mod terminal;
 
 pub struct Atri {
-    pub global_runtime: Runtime,
+    pub runtime: Runtime,
     //listener_runtime: Runtime,
     //listener_worker: ListenerWorker,
+    pub disconnect_provider: JoinHandle<()>,
     pub plugin_manager: PluginManager,
 }
 
 impl Atri {
     pub fn new() -> Self {
-        let global_runtime = runtime::Builder::new_multi_thread()
+        let runtime = runtime::Builder::new_multi_thread()
             .thread_name("GlobalRuntime")
             .enable_all()
             .build()
             .unwrap();
 
+        let provider = runtime.spawn(async {
+            loop {
+                for client in Client::list() {
+                    if client.network_status() == 4 {
+                        error!("{}因网络原因掉线, 尝试重连", client);
+                        client.reconnect().await;
+                    }
+                }
+
+                tokio::time::sleep(Duration::from_secs(60 * 2)).await;
+            }
+        });
+
         Self {
-            global_runtime,
+            runtime,
             //listener_runtime,
             //listener_worker,
+            disconnect_provider: provider,
             plugin_manager: PluginManager::new(),
         }
     }
