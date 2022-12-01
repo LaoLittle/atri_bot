@@ -224,9 +224,8 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
         global_listener_runtime().spawn(async move {
             global_listener_worker().handle(&self_event).await;
-            if let Err(e) = global_sender().send(self_event) {
-                error!("广播事件时发生错误: {}", e);
-            }
+
+            let _ = global_sender().send(self_event);
         });
     }
 }

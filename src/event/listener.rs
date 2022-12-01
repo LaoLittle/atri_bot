@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use tokio::sync::Mutex;
 
+use crate::channel::global_receiver;
 use crate::event::FromEvent;
 use crate::{global_listener_runtime, global_listener_worker, Event};
 
@@ -104,6 +105,7 @@ impl Listener {
 pub struct ListenerBuilder {
     pub name: Option<String>,
     pub concurrent: bool,
+    pub watcher: bool,
     handler: ListenerHandler,
     pub priority: Priority,
 }
@@ -126,6 +128,7 @@ impl ListenerBuilder {
         Self {
             name: None,
             concurrent: true,
+            watcher: false,
             handler,
             priority: Priority::Middle,
         }
@@ -192,6 +195,7 @@ impl ListenerBuilder {
         let Self {
             name,
             concurrent,
+            watcher,
             handler,
             priority,
         } = self;
@@ -212,7 +216,24 @@ impl ListenerBuilder {
             priority,
         };
 
-        global_listener_runtime().spawn(global_listener_worker().schedule(listener));
+        if watcher {
+            global_listener_runtime().spawn(async move {
+                while let Ok(event) = global_receiver().recv().await {
+                    if let Some(ref mutex) = listener.concurrent_mutex {
+                        let _ = mutex.lock().await;
+                    }
+
+                    let fu = (listener.handler)(event);
+
+                    let keep: bool = fu.await;
+                    if (!keep) || listener.closed.load(Ordering::Relaxed) {
+                        break;
+                    };
+                }
+            });
+        } else {
+            global_listener_runtime().spawn(global_listener_worker().schedule(listener));
+        }
 
         ListenerGuard {
             name: arc_name,
@@ -235,6 +256,11 @@ impl ListenerBuilder {
     #[inline]
     pub fn priority(mut self, priority: Priority) -> Self {
         self.priority = priority;
+        self
+    }
+
+    pub fn watcher(mut self, is: bool) -> Self {
+        self.watcher = is;
         self
     }
 }

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use tracing::error;
 
 pub mod command;
-pub mod listeners;
+pub mod listener;
 pub mod log;
 pub mod login;
 pub mod plugin_manager;

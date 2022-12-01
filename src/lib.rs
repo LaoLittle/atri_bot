@@ -12,13 +12,13 @@ use ricq::structs::GroupMemberInfo;
 use tokio::runtime;
 use tokio::runtime::Runtime;
 use tokio::task::JoinHandle;
-use tracing::{error, warn};
+use tracing::error;
 
 use crate::client::Client;
 
 use crate::event::listener::Listener;
 use crate::event::Event;
-use crate::service::listeners::ListenerWorker;
+use crate::service::listener::ListenerWorker;
 use crate::service::plugin_manager::PluginManager;
 
 pub mod channel;
@@ -52,14 +52,14 @@ impl Atri {
 
         let provider = runtime.spawn(async {
             loop {
+                tokio::time::sleep(Duration::from_secs(60 * 2)).await;
+
                 for client in Client::list() {
                     if client.network_status() == 4 {
                         error!("{}因网络原因掉线, 尝试重连", client);
                         client.reconnect().await;
                     }
                 }
-
-                tokio::time::sleep(Duration::from_secs(60 * 2)).await;
             }
         });
 
