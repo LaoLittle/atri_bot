@@ -83,17 +83,20 @@ pub async fn login_bots() -> Result<(), RQError> {
             )
             .await
             {
-                Ok(bot) => {
-                    if let Err(e) = bot.refresh_friend_list().await {
-                        warn!("{}刷新好友列表失败: {:?}", bot, e);
+                Ok(client) => {
+                    global_status().add_client(client.clone());
+                    info!("{}登陆成功", client);
+                    if let Err(e) = client.refresh_friend_list().await {
+                        warn!("{}刷新好友列表失败: {:?}", client, e);
                     }
-                    if let Err(e) = bot.refresh_group_list().await {
-                        warn!("{}刷新群列表失败: {:?}", bot, e);
+                    if let Err(e) = client.refresh_group_list().await {
+                        warn!("{}刷新群列表失败: {:?}", client, e);
                     }
-                    Ok(bot)
+                    Ok(client)
                 }
                 Err(e) => {
                     global_status().remove_client(account);
+                    error!("登录时发生意料之外的错误: {}", e);
                     Err(e)
                 }
             }
@@ -105,18 +108,7 @@ pub async fn login_bots() -> Result<(), RQError> {
     }
 
     for result in logins {
-        match result.await {
-            Ok(Ok(client)) => {
-                global_status().add_client(client.clone());
-                info!("{}登陆成功", client);
-            }
-            Ok(Err(_)) => {
-                //error!("登录失败", e);
-            }
-            Err(e) => {
-                error!("登录时发生意料之外的错误: {}", e);
-            }
-        }
+        let _ = result.await;
     }
 
     Ok(())
