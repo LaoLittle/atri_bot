@@ -6,6 +6,7 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use dashmap::DashMap;
+use ricq::client::NetworkStatus;
 use ricq::msg::elem::Text;
 use ricq::structs::GroupMemberInfo;
 
@@ -56,8 +57,18 @@ impl Atri {
 
                 for client in Client::list() {
                     if client.network_status() == 4 {
+                        global_status().remove_client(client.id());
                         error!("{}因网络原因掉线, 尝试重连", client);
-                        client.reconnect().await;
+
+                        client.request_client().stop(NetworkStatus::NetworkOffline);
+
+                        if let Err(e) = client.start().await {
+                            error!("重连失败: {}", e);
+                        }
+
+                        if let Err(e) = client.try_login().await {
+                            error!("登录失败: {}", e);
+                        }
                     }
                 }
             }

@@ -7,7 +7,7 @@ use std::time::Duration;
 use atri_bot::global_listener_worker;
 use atri_bot::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
 use atri_bot::service::log::init_logger;
-use atri_bot::service::login::login_bots;
+use atri_bot::service::login::login_clients;
 use atri_bot::service::plugin_manager::PluginManager;
 use atri_bot::terminal::{handle_standard_output, start_read_input, PROMPT};
 use atri_bot::{global_listener_runtime, Atri};
@@ -56,7 +56,7 @@ fn main() -> MainResult {
 }
 
 async fn main0() -> MainResult {
-    login_bots().await?;
+    login_clients().await?;
 
     Ok(())
 }

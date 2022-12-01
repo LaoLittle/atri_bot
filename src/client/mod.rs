@@ -80,6 +80,7 @@ impl Client {
         Ok(())
     }
 
+    #[inline]
     pub async fn start(&self) -> io::Result<()> {
         self.0.start().await
     }
@@ -88,6 +89,7 @@ impl Client {
         global_status().clients.get(&id).map(|b| b.clone())
     }
 
+    #[inline]
     pub fn id(&self) -> i64 {
         self.0.id
     }
@@ -118,6 +120,7 @@ impl Client {
             .load(Ordering::Relaxed)
     }
 
+    #[inline]
     pub fn network_status(&self) -> u8 {
         self.0.client.get_status()
     }
@@ -194,6 +197,7 @@ impl Client {
         self.0.group_list.remove(&group_id).map(|(_, g)| g)
     }
 
+    #[inline]
     pub fn work_dir(&self) -> &Path {
         &self.0.work_dir
     }
@@ -249,6 +253,7 @@ impl Client {
         self.0.friend_list.iter().map(|f| f.clone()).collect()
     }
 
+    #[inline]
     pub(crate) fn request_client(&self) -> &RQClient {
         &self.0.client
     }
@@ -259,6 +264,7 @@ impl Client {
 }
 
 impl PartialEq for Client {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.id() == other.id()
     }

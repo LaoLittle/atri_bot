@@ -13,7 +13,7 @@ use crate::config::login::{LoginConfig, DEFAULT_CONFIG};
 use crate::error::AtriResult;
 use crate::{config, global_status, Client};
 
-pub async fn login_bots() -> Result<(), RQError> {
+pub async fn login_clients() -> Result<(), RQError> {
     let login_conf_dir = {
         let path = config::service_config_dir_path();
         if !path.is_dir() {
@@ -70,7 +70,7 @@ pub async fn login_bots() -> Result<(), RQError> {
         }
 
         let handle = tokio::spawn(async move {
-            match login_bot(
+            match login_client(
                 account,
                 &pwd,
                 BotConfiguration {
@@ -96,7 +96,7 @@ pub async fn login_bots() -> Result<(), RQError> {
                 }
                 Err(e) => {
                     global_status().remove_client(account);
-                    error!("登录时发生意料之外的错误: {}", e);
+                    error!("Client({})登录失败: {}", account, e);
                     Err(e)
                 }
             }
@@ -114,7 +114,7 @@ pub async fn login_bots() -> Result<(), RQError> {
     Ok(())
 }
 
-async fn login_bot(
+async fn login_client(
     account: i64,
     password: &Option<String>,
     conf: BotConfiguration,
@@ -126,7 +126,6 @@ async fn login_bot(
     match client.try_login().await {
         Ok(_) => Ok(client),
         Err(e) => {
-            error!("Bot({})登陆失败: {}", account, e);
             if let Some(pwd) = password {
                 info!("{}尝试密码登陆", client);
                 let mut resp = client.request_client().password_login(account, pwd).await?;
