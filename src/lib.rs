@@ -64,11 +64,15 @@ impl Atri {
 
                         if let Err(e) = client.start().await {
                             error!("重连失败: {}", e);
+                            continue;
                         }
 
                         if let Err(e) = client.try_login().await {
                             error!("登录失败: {}", e);
+                            continue;
                         }
+
+                        global_status().add_client(client);
                     }
                 }
             }
