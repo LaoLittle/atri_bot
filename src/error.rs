@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::io;
 
 pub type AtriResult<T> = Result<T, AtriError>;
@@ -8,8 +8,43 @@ pub enum AtriError {
     PluginError(PluginError),
     IO(io::Error),
     Protocol(ricq::RQError),
-    ConnectFailed,
+    Login(LoginError),
 }
+
+impl Display for AtriError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Login(e) => Display::fmt(e, f),
+            Self::IO(e) => {
+                f.write_str("io error: ")?;
+                Display::fmt(e, f)
+            }
+            Self::PluginError(e) => Display::fmt(e, f),
+            Self::Protocol(e) => Display::fmt(e, f),
+        }
+    }
+}
+
+impl std::error::Error for AtriError {}
+
+#[derive(Debug)]
+pub enum LoginError {
+    TokenNotExist,
+    WrongToken,
+    TokenLoginFailed,
+}
+
+impl Display for LoginError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::TokenNotExist => f.write_str("token not exist"),
+            Self::WrongToken => f.write_str("wrong token"),
+            Self::TokenLoginFailed => f.write_str("token login failed. maybe the token is expired"),
+        }
+    }
+}
+
+impl std::error::Error for LoginError {}
 
 #[derive(Debug)]
 pub enum PluginError {
@@ -18,16 +53,22 @@ pub enum PluginError {
     NameConflict,
 }
 
-impl Display for AtriError {
+impl Display for PluginError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("plugin ")?;
         match self {
-            Self::ConnectFailed => write!(f, "连接失败"),
-            or => write!(f, "{:?}", or),
+            Self::InitializeFail(s) => {
+                f.write_str("initialize failed: ")?;
+                f.write_str(s)
+            }
+            Self::LoadFail(s) => {
+                f.write_str("load failed, cause: ")?;
+                f.write_str(s)
+            }
+            Self::NameConflict => f.write_str("name conflicted"),
         }
     }
 }
-
-impl std::error::Error for AtriError {}
 
 impl From<io::Error> for AtriError {
     fn from(err: io::Error) -> Self {
