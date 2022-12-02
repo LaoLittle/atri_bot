@@ -4,6 +4,8 @@ use atri_ffi::closure::FFIFn;
 use atri_ffi::ffi::FFIEvent;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::{FFIOption, Managed};
+use futures::FutureExt;
+use std::sync::Arc;
 use std::time::Duration;
 
 pub extern "C" fn new_listener(
@@ -46,10 +48,10 @@ pub extern "C" fn new_listener_closure(
     f: FFIFn<FFIEvent, bool>,
     priority: u8,
 ) -> Managed {
+    let arc = Arc::new(f);
     let guard = ListenerBuilder::listening_on(move |e: Event| {
-        let keep = tokio::task::block_in_place(|| f.invoke(e.into_ffi()));
-
-        async move { keep }
+        let f = Arc::clone(&arc);
+        tokio::task::spawn_blocking(move || f.invoke(e.into_ffi())).map(Result::unwrap)
     })
     .concurrent(concurrent)
     .priority(Priority::from(priority))
@@ -63,10 +65,12 @@ pub extern "C" fn new_listener_c_func(
     f: extern "C" fn(FFIEvent) -> bool,
     priority: u8,
 ) -> Managed {
-    let guard = ListenerBuilder::listening_on(move |e: Event| async move { f(e.into_ffi()) })
-        .concurrent(concurrent)
-        .priority(Priority::from(priority))
-        .start();
+    let guard = ListenerBuilder::listening_on(move |e: Event| {
+        tokio::task::spawn_blocking(move || f(e.into_ffi())).map(Result::unwrap)
+    })
+    .concurrent(concurrent)
+    .priority(Priority::from(priority))
+    .start();
 
     Managed::from_value(guard)
 }

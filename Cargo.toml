@@ -33,6 +33,7 @@ regex = "1"
 dashmap = "5"
 libloading = "0"
 rand = "0"
+futures = "0"
 crossbeam-deque = "0"
 
 # terminal

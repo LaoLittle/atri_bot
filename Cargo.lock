@@ -45,6 +45,7 @@ dependencies = [
  "crossbeam-deque",
  "crossterm",
  "dashmap",
+ "futures",
  "libc",
  "libloading",
  "prost",
