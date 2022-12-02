@@ -14,12 +14,12 @@ use crate::contact::friend::Friend;
 use ricq::client::DefaultConnector;
 use ricq::ext::common::after_login;
 use ricq::ext::reconnect::{auto_reconnect, Credential};
-use ricq::{Client as RQClient, LoginResponse, RQError};
+use ricq::{Client as RQClient, LoginResponse};
 use tokio::io;
 use tracing::error;
 
 use crate::contact::group::Group;
-use crate::error::AtriResult;
+use crate::error::{AtriError, AtriResult, LoginError};
 use crate::{config, global_status};
 
 #[derive(Clone)]
@@ -44,8 +44,12 @@ impl Client {
         } else {
             error!("{}登陆失败: 无法读取Token", self);
 
-            return Err(RQError::TokenLoginFailed.into());
+            return Err(AtriError::Login(LoginError::TokenNotExist));
         };
+
+        if token.uin != self.id() {
+            return Err(AtriError::Login(LoginError::WrongToken));
+        }
 
         let rq_token: ricq::client::Token = token.into();
 
@@ -74,7 +78,7 @@ impl Client {
         } else {
             error!("{}登陆失败: {:?}", self, resp);
 
-            return Err(RQError::TokenLoginFailed.into());
+            return Err(AtriError::Login(LoginError::TokenLoginFailed));
         }
 
         Ok(())

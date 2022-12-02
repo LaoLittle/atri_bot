@@ -13,7 +13,7 @@ pub mod command;
 pub mod listener;
 pub mod log;
 pub mod login;
-pub mod plugin_manager;
+pub mod plugin;
 
 fn get_service_path() -> &'static PathBuf {
     static PATH: OnceLock<PathBuf> = OnceLock::new();

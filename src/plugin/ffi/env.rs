@@ -1,5 +1,5 @@
 use crate::plugin::cast_ref;
-use crate::service::plugin_manager::PluginManager;
+use crate::service::plugin::PluginManager;
 use atri_ffi::RustString;
 use tracing::error;
 
