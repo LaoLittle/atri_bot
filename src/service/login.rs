@@ -164,7 +164,6 @@ async fn login_client(
 
                 Ok(client)
             } else {
-                error!("{}登陆失败: {:?}", client, e);
                 Err(e)
             }
         }
