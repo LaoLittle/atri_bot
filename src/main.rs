@@ -8,7 +8,7 @@ use atri_bot::global_listener_worker;
 use atri_bot::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
 use atri_bot::service::log::init_logger;
 use atri_bot::service::login::login_clients;
-use atri_bot::service::plugin_manager::PluginManager;
+use atri_bot::service::plugin::PluginManager;
 use atri_bot::terminal::{handle_standard_output, start_read_input, PROMPT};
 use atri_bot::{global_listener_runtime, Atri};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
