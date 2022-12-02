@@ -1,5 +1,5 @@
 use crate::service::command::{CommandError, CommandResult, PLUGIN_COMMAND};
-use crate::service::plugin_manager::PluginManager;
+use crate::service::plugin::PluginManager;
 use std::collections::hash_map::Entry;
 use std::mem;
 use std::str::FromStr;

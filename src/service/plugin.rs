@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::marker::{PhantomData, PhantomPinned};
 use std::ptr::null_mut;
 use std::rc::Rc;
@@ -357,7 +357,8 @@ impl Debug for Plugin {
 
 impl Display for Plugin {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "插件#{}", self.name)
+        f.write_str("插件#")?;
+        f.write_str(&self.name)
     }
 }
 

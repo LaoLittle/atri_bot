@@ -20,7 +20,7 @@ use crate::client::Client;
 use crate::event::listener::Listener;
 use crate::event::Event;
 use crate::service::listener::ListenerWorker;
-use crate::service::plugin_manager::PluginManager;
+use crate::service::plugin::PluginManager;
 
 pub mod channel;
 pub mod client;
