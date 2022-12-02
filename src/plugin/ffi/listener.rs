@@ -40,3 +40,33 @@ pub extern "C" fn listener_next_event_with_priority(
         FFIOption::from(option)
     })
 }
+
+pub extern "C" fn new_listener_closure(
+    concurrent: bool,
+    f: FFIFn<FFIEvent, bool>,
+    priority: u8,
+) -> Managed {
+    let guard = ListenerBuilder::listening_on(move |e: Event| {
+        let keep = tokio::task::block_in_place(|| f.invoke(e.into_ffi()));
+
+        async move { keep }
+    })
+    .concurrent(concurrent)
+    .priority(Priority::from(priority))
+    .start();
+
+    Managed::from_value(guard)
+}
+
+pub extern "C" fn new_listener_c_func(
+    concurrent: bool,
+    f: extern "C" fn(FFIEvent) -> bool,
+    priority: u8,
+) -> Managed {
+    let guard = ListenerBuilder::listening_on(move |e: Event| async move { f(e.into_ffi()) })
+        .concurrent(concurrent)
+        .priority(Priority::from(priority))
+        .start();
+
+    Managed::from_value(guard)
+}
