@@ -1,6 +1,7 @@
 use crate::contact::group::Group;
 use crate::message;
 use crate::plugin::cast_ref;
+use crate::plugin::ffi::future_block_on;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
@@ -75,6 +76,21 @@ pub extern "C" fn group_send_message(
     })
 }
 
+pub extern "C" fn group_send_message_blocking(
+    manager: *const (),
+    group: *const (),
+    chain: FFIMessageChain,
+) -> FFIResult<Managed> {
+    let group: &Group = cast_ref(group);
+    let chain = message::MessageChain::from_ffi(chain);
+
+    future_block_on(manager, async move {
+        let result = group.send_message(chain).await.map(Managed::from_value);
+
+        FFIResult::from(result)
+    })
+}
+
 pub extern "C" fn group_upload_image(
     group: *const (),
     data: RustVec<u8>,
@@ -82,6 +98,21 @@ pub extern "C" fn group_upload_image(
     FFIFuture::from(async move {
         let group: &Group = cast_ref(group);
         let data = data.into_vec();
+        let result = group.upload_image(data).await.map(Managed::from_value);
+
+        FFIResult::from(result)
+    })
+}
+
+pub extern "C" fn group_upload_image_blocking(
+    manager: *const (),
+    group: *const (),
+    data: RustVec<u8>,
+) -> FFIResult<Managed> {
+    let group: &Group = cast_ref(group);
+    let data = data.into_vec();
+
+    future_block_on(manager, async move {
         let result = group.upload_image(data).await.map(Managed::from_value);
 
         FFIResult::from(result)
@@ -101,4 +132,9 @@ pub extern "C" fn group_change_name(group: *const (), name: RustStr) -> FFIFutur
 pub extern "C" fn group_quit(group: *const ()) -> FFIFuture<bool> {
     let group: &Group = cast_ref(group);
     FFIFuture::from(group.quit())
+}
+
+pub extern "C" fn group_quit_blocking(manager: *const (), group: *const ()) -> bool {
+    let group: &Group = cast_ref(group);
+    future_block_on(manager, async move { group.quit().await })
 }

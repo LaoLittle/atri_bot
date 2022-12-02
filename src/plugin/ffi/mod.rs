@@ -24,6 +24,7 @@ use crate::plugin::ffi::group::{
 };
 use crate::plugin::ffi::listener::{listener_next_event_with_priority, new_listener};
 use atri_ffi::error::FFIResult;
+use std::future::Future;
 
 use crate::plugin::cast_ref;
 use crate::plugin::ffi::env::env_get_workspace;
@@ -138,4 +139,25 @@ extern "C" fn plugin_manager_spawn(
 extern "C" fn plugin_manager_block_on(manager: *const (), future: FFIFuture<Managed>) -> Managed {
     let manager: &PluginManager = cast_ref(manager);
     manager.async_runtime().block_on(future)
+}
+
+fn future_block_on<F>(manager: *const (), future: F) -> F::Output
+where
+    F: Future,
+    F: Send + 'static,
+    F::Output: Send + 'static,
+{
+    let manager: &PluginManager = cast_ref(manager);
+
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    manager.async_runtime().spawn(async move {
+        let val = future.await;
+        let _ = tx.send(val);
+    });
+
+    let rx = || rx.recv().expect("Cannot recv");
+    // calling this outside a runtime normally calls the provided closure.
+    // all runtime is multi-threaded
+    tokio::task::block_in_place(rx)
 }
