@@ -23,13 +23,7 @@ impl ListenerWorker {
     }
 
     pub fn new_with_runtime(runtime: tokio::runtime::Runtime) -> Self {
-        let listeners = [
-            LinkedList::new(),
-            LinkedList::new(),
-            LinkedList::new(),
-            LinkedList::new(),
-            LinkedList::new(),
-        ];
+        let listeners = std::array::from_fn(|_| LinkedList::new());
 
         let (tx, rx) = tokio::sync::mpsc::channel(10);
 
