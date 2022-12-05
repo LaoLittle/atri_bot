@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter, Write};
+use std::fmt::{Debug, Display, Formatter};
 use std::marker::{PhantomData, PhantomPinned};
 use std::ptr::null_mut;
 use std::rc::Rc;

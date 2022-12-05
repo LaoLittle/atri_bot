@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display, Formatter, Write};
+use std::fmt::{Debug, Display, Formatter};
 use std::io;
 
 pub type AtriResult<T> = Result<T, AtriError>;
