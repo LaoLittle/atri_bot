@@ -36,7 +36,7 @@ dependencies = [
 
 [[package]]
 name = "atri_bot"
-version = "0.5.3"
+version = "0.5.4"
 dependencies = [
  "async-trait",
  "atri_ffi",
