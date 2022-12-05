@@ -1,9 +1,8 @@
 use crate::error::{AtriError, AtriResult};
 use crate::message::image::Image;
-use crate::message::meta::MetaMessage;
+use crate::message::meta::{MessageReceipt, RecallMessage};
 use crate::message::MessageChain;
 use crate::Client;
-use ricq::structs::{FriendInfo, MessageReceipt};
 use std::sync::Arc;
 use tracing::error;
 
@@ -66,7 +65,7 @@ impl Friend {
             );
         }
 
-        result.map_err(AtriError::from)
+        result.map(MessageReceipt::from).map_err(AtriError::from)
     }
 
     pub async fn upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {
@@ -79,21 +78,24 @@ impl Friend {
         Ok(Image::Friend(f))
     }
 
-    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> AtriResult<()> {
-        let meta = msg.metadata();
+    async fn _recall_message(&self, receipt: MessageReceipt) -> AtriResult<()> {
         self.client()
             .request_client()
             .recall_friend_message(
                 self.id(),
-                meta.time as i64,
-                meta.seqs.clone(),
-                meta.rands.clone(),
+                receipt.time,
+                receipt.seqs.clone(),
+                receipt.rands.clone(),
             )
             .await
             .map_err(AtriError::from)
     }
 
-    pub(crate) fn from(client: Client, info: FriendInfo) -> Self {
+    pub async fn recall_message<M: RecallMessage>(&self, msg: &M) -> AtriResult<()> {
+        self._recall_message(msg.receipt()).await
+    }
+
+    pub(crate) fn from(client: Client, info: ricq::structs::FriendInfo) -> Self {
         let f = imp::Friend { client, info };
 
         Self(Arc::new(f))

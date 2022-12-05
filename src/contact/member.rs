@@ -1,12 +1,11 @@
 use crate::contact::group::Group;
 use crate::error::{AtriError, AtriResult};
 use crate::message::at::At;
-use crate::message::meta::Anonymous;
+use crate::message::meta::{Anonymous, MessageReceipt};
 use crate::message::MessageChain;
 use crate::{Client, GroupMemberInfo};
 use atri_ffi::contact::{FFIMember, MemberUnion};
 use atri_ffi::ManagedCloneable;
-use ricq::structs::MessageReceipt;
 use ricq::RQError;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
@@ -123,11 +122,11 @@ impl NamedMember {
             .map_err(AtriError::from)
     }
 
-    pub async fn change_card_name<S: ToString>(&self, new: S) -> AtriResult<()> {
+    pub async fn change_card_name<S: Into<String>>(&self, new: S) -> AtriResult<()> {
         self.group()
             .client()
             .request_client()
-            .edit_group_member_card(self.group().id(), self.id(), new.to_string())
+            .edit_group_member_card(self.group().id(), self.id(), new.into())
             .await
             .map_err(AtriError::from)
     }
@@ -140,7 +139,8 @@ impl NamedMember {
             client
                 .request_client()
                 .send_group_temp_message(self.group().id(), self.id(), chain.into())
-                .await?
+                .await
+                .map(MessageReceipt::from)?
         };
 
         Ok(receipt)

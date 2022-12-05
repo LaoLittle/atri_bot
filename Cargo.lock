@@ -36,7 +36,7 @@ dependencies = [
 
 [[package]]
 name = "atri_bot"
-version = "0.5.4"
+version = "0.6.0"
 dependencies = [
  "async-trait",
  "atri_ffi",
@@ -65,9 +65,9 @@ dependencies = [
 
 [[package]]
 name = "atri_ffi"
-version = "0.3.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc8c21b77021d3fa3f67d985d7c3019f2134c8ccd2c7c40306e8245c0195a821"
+checksum = "55c5976c568117a666aa3bcb620c88b3e6fbb8bd5256e5259f3aa4014d294b42"
 
 [[package]]
 name = "autocfg"

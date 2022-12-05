@@ -2,8 +2,23 @@ use crate::message::{MessageChain, MessageElement};
 use ricq::msg::{MessageElem, PushElem};
 use serde::{Deserialize, Serialize};
 
-pub trait MetaMessage {
-    fn metadata(&self) -> &MessageMetadata;
+#[derive(Debug, Clone, Default)]
+pub struct MessageReceipt {
+    pub seqs: Vec<i32>,
+    pub rands: Vec<i32>,
+    pub time: i64,
+}
+
+impl From<ricq::structs::MessageReceipt> for MessageReceipt {
+    fn from(
+        ricq::structs::MessageReceipt { seqs, rands, time }: ricq::structs::MessageReceipt,
+    ) -> Self {
+        Self { seqs, rands, time }
+    }
+}
+
+pub trait RecallMessage {
+    fn receipt(&self) -> MessageReceipt;
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -16,9 +31,13 @@ pub struct MessageMetadata {
     pub reply: Option<Reply>,
 }
 
-impl MetaMessage for MessageMetadata {
-    fn metadata(&self) -> &MessageMetadata {
-        self
+impl RecallMessage for MessageMetadata {
+    fn receipt(&self) -> MessageReceipt {
+        MessageReceipt {
+            seqs: self.seqs.clone(),
+            rands: self.rands.clone(),
+            time: self.time as i64,
+        }
     }
 }
 

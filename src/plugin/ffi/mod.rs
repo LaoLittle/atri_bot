@@ -18,25 +18,33 @@ use crate::plugin::ffi::event::{
     group_message_event_get_message, group_message_event_get_sender,
 };
 use crate::plugin::ffi::group::{
-    group_change_name, group_find_member, group_find_or_refresh_member, group_get_client,
-    group_get_id, group_get_members, group_get_name, group_quit, group_send_message,
-    group_upload_image,
+    group_change_name, group_change_name_blocking, group_find_member, group_find_or_refresh_member,
+    group_get_client, group_get_id, group_get_members, group_get_name, group_quit,
+    group_quit_blocking, group_send_message, group_send_message_blocking, group_upload_image,
+    group_upload_image_blocking,
 };
-use crate::plugin::ffi::listener::{listener_next_event_with_priority, new_listener};
+use crate::plugin::ffi::listener::{
+    listener_next_event_with_priority, listener_next_event_with_priority_blocking, new_listener,
+    new_listener_c_func, new_listener_closure,
+};
 use atri_ffi::error::FFIResult;
 use std::future::Future;
 
 use crate::plugin::cast_ref;
 use crate::plugin::ffi::env::env_get_workspace;
 use crate::plugin::ffi::friend::{
-    friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message, friend_upload_image,
+    friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message,
+    friend_send_message_blocking, friend_upload_image, friend_upload_image_blocking,
 };
 use crate::plugin::ffi::log::log;
 use crate::plugin::ffi::member::{
-    named_member_change_card_name, named_member_get_card_name, named_member_get_group,
-    named_member_get_id, named_member_get_nickname,
+    named_member_change_card_name, named_member_change_card_name_blocking,
+    named_member_get_card_name, named_member_get_group, named_member_get_id,
+    named_member_get_nickname,
 };
-use crate::plugin::ffi::message::{image_get_id, image_get_url};
+use crate::plugin::ffi::message::{
+    image_get_id, image_get_url, message_chain_from_json, message_chain_to_json,
+};
 use crate::PluginManager;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
@@ -64,6 +72,9 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         // listener
         100 => new_listener,
         101 => listener_next_event_with_priority,
+        150 => new_listener_c_func,
+        151 => new_listener_closure,
+        152 => listener_next_event_with_priority_blocking,
 
         // event
         200 => event_intercept,
@@ -91,6 +102,12 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         408 => group_quit,
         409 => group_change_name,
 
+        // blocking api
+        456 => group_send_message_blocking,
+        457 => group_upload_image_blocking,
+        458 => group_quit_blocking,
+        459 => group_change_name_blocking,
+
         // friend
         500 => friend_get_id,
         501 => friend_get_nickname,
@@ -98,12 +115,20 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         503 => friend_send_message,
         504 => friend_upload_image,
 
+        // blocking api
+        553 => friend_send_message_blocking,
+        554 => friend_upload_image_blocking,
+
         // named member
         600 => named_member_get_id,
         601 => named_member_get_nickname,
         602 => named_member_get_card_name,
         603 => named_member_get_group,
         604 => named_member_change_card_name,
+
+        // blocking api
+        654 => named_member_change_card_name_blocking,
+
 
         // group message event
         10000 => group_message_event_get_group,
@@ -123,6 +148,10 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
 
         // env
         30000 => env_get_workspace,
+
+        // serialize
+        30100 => message_chain_to_json,
+        30101 => message_chain_from_json,
     }
 }
 

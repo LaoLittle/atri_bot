@@ -3,13 +3,12 @@ use std::fmt::{Display, Formatter};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use ricq::structs::{GroupInfo, MessageReceipt};
 use tracing::error;
 
 use crate::contact::member::NamedMember;
 use crate::error::{AtriError, AtriResult};
 use crate::message::image::Image;
-use crate::message::meta::{MessageMetadata, MetaMessage};
+use crate::message::meta::{MessageReceipt, RecallMessage};
 use crate::message::MessageChain;
 use crate::Client;
 
@@ -17,7 +16,7 @@ use crate::Client;
 pub struct Group(Arc<imp::Group>);
 
 impl Group {
-    pub fn from(bot: Client, info: GroupInfo) -> Self {
+    pub(crate) fn from(bot: Client, info: ricq::structs::GroupInfo) -> Self {
         let imp = imp::Group {
             client: bot,
             info,
@@ -111,6 +110,7 @@ impl Group {
             .request_client()
             .send_group_message(self.id(), chain.into())
             .await
+            .map(MessageReceipt::from)
             .map_err(|err| {
                 error!(
                     "{}发送信息失败, 目标群: {}({}), {:?}",
@@ -151,16 +151,16 @@ impl Group {
         self._upload_image(image.into()).await
     }
 
-    async fn _recall_message(&self, meta: &MessageMetadata) -> AtriResult<()> {
+    async fn _recall_message(&self, receipt: MessageReceipt) -> AtriResult<()> {
         self.client()
             .request_client()
-            .recall_group_message(self.id(), meta.seqs.clone(), meta.rands.clone())
+            .recall_group_message(self.id(), receipt.seqs, receipt.rands)
             .await
             .map_err(AtriError::from)
     }
 
-    pub async fn recall_message<M: MetaMessage>(&self, msg: &M) -> AtriResult<()> {
-        self._recall_message(msg.metadata()).await
+    pub async fn recall_message<M: RecallMessage>(&self, msg: &M) -> AtriResult<()> {
+        self._recall_message(msg.receipt()).await
     }
 
     async fn _change_name(&self, name: String) -> AtriResult<()> {

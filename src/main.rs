@@ -91,7 +91,7 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
                     stdout.write_all(PROMPT).await?;
                     stdout.flush().await?;
                 }
-                "help" | "?" => {
+                "help" | "?" | "h" => {
                     static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
 
                     let mut s = String::from('\n');
@@ -102,7 +102,7 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
                     s.pop();
                     info!("{}", s);
                 }
-                "exit" | "quit" | "stop" => {
+                "exit" | "quit" | "stop" | "q" => {
                     info!("正在停止AtriBot");
                     break;
                 }

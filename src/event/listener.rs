@@ -1,6 +1,6 @@
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -9,12 +9,6 @@ use tokio::sync::Mutex;
 use crate::channel::global_receiver;
 use crate::event::FromEvent;
 use crate::{global_listener_runtime, global_listener_worker, Event};
-
-static UNIQUE_ID: AtomicUsize = AtomicUsize::new(0);
-
-fn next_unique_id() -> usize {
-    UNIQUE_ID.fetch_add(1, Ordering::Relaxed)
-}
 
 pub type ListenerHandler =
     Box<dyn Fn(Event) -> Pin<Box<dyn Future<Output = bool> + Send + 'static>> + Send + 'static>;

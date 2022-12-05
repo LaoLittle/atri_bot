@@ -1,5 +1,6 @@
 use crate::contact::member::NamedMember;
 use crate::plugin::cast_ref;
+use crate::plugin::ffi::future_block_on;
 use atri_ffi::error::FFIResult;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::{ManagedCloneable, RustStr};
@@ -32,6 +33,20 @@ pub extern "C" fn named_member_change_card_name(
     let card = card.as_ref().to_owned();
     FFIFuture::from(async move {
         let named: &NamedMember = cast_ref(named);
+        let result = named.change_card_name(card).await;
+        FFIResult::from(result)
+    })
+}
+
+pub extern "C" fn named_member_change_card_name_blocking(
+    manager: *const (),
+    named: *const (),
+    card: RustStr,
+) -> FFIResult<()> {
+    let named: &NamedMember = cast_ref(named);
+    let card = card.as_ref().to_owned();
+
+    future_block_on(manager, async move {
         let result = named.change_card_name(card).await;
         FFIResult::from(result)
     })

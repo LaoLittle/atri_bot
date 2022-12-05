@@ -171,7 +171,7 @@ impl PluginManager {
         let ptr = self as *const PluginManager as usize;
         let lib = unsafe {
             Library::new(path)
-                .map_err(|e| PluginError::LoadFail(format!("无法加载插件动态库: {}", e)))?
+                .map_err(|e| PluginError::LoadFail(format!("无法加载插件动态库: {e}")))?
         };
 
         let (atri_manager_init, on_init) = unsafe {

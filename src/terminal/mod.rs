@@ -77,7 +77,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             s.pop();
                             info!("{}", s);
                         }
-                        "exit" | "quit" | "stop" | "e" => {
+                        "exit" | "quit" | "stop" | "q" => {
                             info!("正在停止AtriBot");
                             break;
                         }

@@ -4,7 +4,7 @@ pub mod image;
 pub mod meta;
 
 use crate::message::at::At;
-use crate::message::meta::{Anonymous, MessageMetadata, MetaMessage, Reply};
+use crate::message::meta::{Anonymous, MessageMetadata, MessageReceipt, RecallMessage, Reply};
 use crate::Text;
 use core::slice;
 use image::Image;
@@ -73,9 +73,13 @@ impl MessageChain {
     }
 }
 
-impl MetaMessage for MessageChain {
-    fn metadata(&self) -> &MessageMetadata {
-        &self.meta
+impl RecallMessage for MessageChain {
+    fn receipt(&self) -> MessageReceipt {
+        MessageReceipt {
+            seqs: self.metadata().seqs.clone(),
+            rands: self.metadata().rands.clone(),
+            time: self.metadata().time as i64,
+        }
     }
 }
 
@@ -221,9 +225,7 @@ impl ToString for MessageElement {
         match self {
             Self::Text(t) => s.push_str(t),
             Self::Image(img) => s.push_str(&format!("$[Image:{}]", img.url())),
-            Self::At(At { target, display }) => {
-                s.push_str(&format!("$[At:{}({})]", display, target))
-            }
+            Self::At(At { target, display }) => s.push_str(&format!("$[At:{display}({target})]")),
             Self::AtAll => s.push_str("$[AtAll]"),
             Self::Unknown(rq) => s.push_str(&rq.to_string()),
         }

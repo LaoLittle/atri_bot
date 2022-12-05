@@ -7,9 +7,9 @@ use atri_ffi::message::meta::{
     FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
 };
 use atri_ffi::message::{
-    FFIAt, FFIMessageChain, FFIMessageValue, MessageValueFlag, MessageValueUnion,
+    FFIAt, FFIMessageChain, FFIMessageValue, MessageElementFlag, MessageElementUnion,
 };
-use atri_ffi::{Managed, RustString, RustVec};
+use atri_ffi::{ManagedCloneable, RustString, RustVec};
 use std::mem::{ManuallyDrop, MaybeUninit};
 
 impl ForFFI for MessageChain {
@@ -46,20 +46,20 @@ impl ForFFI for MessageElement {
     fn into_ffi(self) -> Self::FFIValue {
         match self {
             MessageElement::Text(s) => FFIMessageValue {
-                t: MessageValueFlag::Text.value(),
-                union: MessageValueUnion {
+                t: MessageElementFlag::Text.value(),
+                union: MessageElementUnion {
                     text: ManuallyDrop::new(RustString::from(s)),
                 },
             },
             MessageElement::Image(img) => FFIMessageValue {
-                t: MessageValueFlag::Image.value(),
-                union: MessageValueUnion {
-                    image: ManuallyDrop::new(Managed::from_value(img)),
+                t: MessageElementFlag::Image.value(),
+                union: MessageElementUnion {
+                    image: ManuallyDrop::new(ManagedCloneable::from_value(img)),
                 },
             },
             MessageElement::At(At { target, display }) => FFIMessageValue {
-                t: MessageValueFlag::At.value(),
-                union: MessageValueUnion {
+                t: MessageElementFlag::At.value(),
+                union: MessageElementUnion {
                     at: ManuallyDrop::new({
                         FFIAt {
                             target,
@@ -69,13 +69,13 @@ impl ForFFI for MessageElement {
                 },
             },
             MessageElement::AtAll => FFIMessageValue {
-                t: MessageValueFlag::AtAll.value(),
-                union: MessageValueUnion { at_all: () },
+                t: MessageElementFlag::AtAll.value(),
+                union: MessageElementUnion { at_all: () },
             },
             or => FFIMessageValue {
-                t: MessageValueFlag::Unknown.value(),
-                union: MessageValueUnion {
-                    unknown: ManuallyDrop::new(Managed::from_value(or)),
+                t: MessageElementFlag::Unknown.value(),
+                union: MessageElementUnion {
+                    unknown: ManuallyDrop::new(ManagedCloneable::from_value(or)),
                 },
             },
         }
@@ -83,24 +83,24 @@ impl ForFFI for MessageElement {
 
     fn from_ffi(value: Self::FFIValue) -> Self {
         unsafe {
-            match MessageValueFlag::try_from(value.t)
-                .unwrap_or_else(|e| panic!("Unknown message value flag: {}", e))
+            match MessageElementFlag::try_from(value.t)
+                .unwrap_or_else(|e| panic!("Unknown message value flag: {e}"))
             {
-                MessageValueFlag::Text => {
+                MessageElementFlag::Text => {
                     MessageElement::Text(ManuallyDrop::into_inner(value.union.text).into())
                 }
-                MessageValueFlag::Image => {
+                MessageElementFlag::Image => {
                     MessageElement::Image(ManuallyDrop::into_inner(value.union.image).into_value())
                 }
-                MessageValueFlag::At => {
+                MessageElementFlag::At => {
                     let inner = ManuallyDrop::into_inner(value.union.at);
                     MessageElement::At(At {
                         target: inner.target,
                         display: String::from(inner.display),
                     })
                 }
-                MessageValueFlag::AtAll => MessageElement::AtAll,
-                MessageValueFlag::Unknown => {
+                MessageElementFlag::AtAll => MessageElement::AtAll,
+                MessageElementFlag::Unknown => {
                     ManuallyDrop::into_inner(value.union.unknown).into_value()
                 }
             }
