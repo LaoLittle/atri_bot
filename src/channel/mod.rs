@@ -96,6 +96,11 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 let member: Option<NamedMember>;
                 let nick = if sender == AnonymousMember::ID {
+                    if e.inner.elements.anonymous().is_none() {
+                        error!("获取匿名信息失败, Raw event: {:?}", e.inner);
+                        return;
+                    }
+
                     "匿名"
                 } else {
                     member = group.try_refresh_member(sender).await.unwrap_or_else(|e| {

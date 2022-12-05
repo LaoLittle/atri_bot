@@ -29,16 +29,16 @@ pub struct Anonymous {
 }
 
 impl From<ricq::msg::elem::Anonymous> for Anonymous {
-    fn from(rq: ricq::msg::elem::Anonymous) -> Self {
-        let ricq::msg::elem::Anonymous {
+    fn from(
+        ricq::msg::elem::Anonymous {
             anon_id,
             nick,
             portrait_index,
             bubble_index,
             expire_time,
             color,
-        } = rq;
-
+        }: ricq::msg::elem::Anonymous,
+    ) -> Self {
         Self {
             anon_id,
             nick,
@@ -51,16 +51,16 @@ impl From<ricq::msg::elem::Anonymous> for Anonymous {
 }
 
 impl From<Anonymous> for ricq::msg::elem::Anonymous {
-    fn from(ano: Anonymous) -> Self {
-        let Anonymous {
+    fn from(
+        Anonymous {
             anon_id,
             nick,
             portrait_index,
             bubble_index,
             expire_time,
             color,
-        } = ano;
-
+        }: Anonymous,
+    ) -> Self {
         Self {
             anon_id,
             nick,
@@ -89,32 +89,32 @@ pub struct Reply {
 }
 
 impl From<ricq::msg::elem::Reply> for Reply {
-    fn from(rq: ricq::msg::elem::Reply) -> Self {
-        let ricq::msg::elem::Reply {
+    fn from(
+        ricq::msg::elem::Reply {
             reply_seq,
             sender,
             time,
             elements,
-        } = rq;
-
+        }: ricq::msg::elem::Reply,
+    ) -> Self {
         Self {
             reply_seq,
             sender,
             time,
-            elements: MessageChain::from(elements).value,
+            elements: MessageChain::from(elements).elements,
         }
     }
 }
 
 impl From<Reply> for ricq::msg::elem::Reply {
-    fn from(reply: Reply) -> Self {
-        let Reply {
+    fn from(
+        Reply {
             reply_seq,
             sender,
             time,
             elements,
-        } = reply;
-
+        }: Reply,
+    ) -> Self {
         Self {
             reply_seq,
             sender,

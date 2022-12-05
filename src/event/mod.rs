@@ -194,10 +194,12 @@ impl GroupMessageEvent {
     where
         F: Fn(&MessageChain) -> bool,
     {
-        // todo: optimize
         self.next_event(timeout, |e| filter(e.message()))
             .await
-            .map(|e| e.message().clone())
+            .map(|e: GroupMessageEvent| match e.try_into_inner() {
+                Ok(e) => e.message,
+                Err(e) => e.message().clone(),
+            })
     }
 
     pub(crate) fn from(group: Group, ori: ricq::client::event::GroupMessageEvent) -> Self {

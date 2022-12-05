@@ -18,7 +18,7 @@ impl ForFFI for MessageChain {
     fn into_ffi(self) -> Self::FFIValue {
         let meta = self.meta.into_ffi();
         let ffi: Vec<FFIMessageValue> = self
-            .value
+            .elements
             .into_iter()
             .map(MessageElement::into_ffi)
             .collect();
@@ -35,7 +35,7 @@ impl ForFFI for MessageChain {
 
         Self {
             meta,
-            value: values,
+            elements: values,
         }
     }
 }
@@ -127,14 +127,12 @@ impl ForFFI for Reply {
         }
     }
 
-    fn from_ffi(value: Self::FFIValue) -> Self {
-        let FFIReply {
-            reply_seq,
-            sender,
-            time,
-            elements,
-        } = value;
-
+    fn from_ffi(FFIReply {
+                    reply_seq,
+                    sender,
+                    time,
+                    elements,
+                }: Self::FFIValue) -> Self {
         let elems = elements.into_vec();
         let values: Vec<MessageElement> = elems.into_iter().map(MessageElement::from_ffi).collect();
 
@@ -174,16 +172,14 @@ impl ForFFI for Anonymous {
         }
     }
 
-    fn from_ffi(value: Self::FFIValue) -> Self {
-        let FFIAnonymous {
-            anon_id,
-            nick,
-            portrait_index,
-            bubble_index,
-            expire_time,
-            color,
-        } = value;
-
+    fn from_ffi(FFIAnonymous {
+                    anon_id,
+                    nick,
+                    portrait_index,
+                    bubble_index,
+                    expire_time,
+                    color,
+                }: Self::FFIValue) -> Self {
         let anon_id = anon_id.into_vec();
         let nick = String::from(nick);
         let color = String::from(color);
@@ -203,7 +199,7 @@ impl ForFFI for At {
     type FFIValue = FFIAt;
 
     fn into_ffi(self) -> Self::FFIValue {
-        let At { target, display } = self;
+        let Self { target, display } = self;
 
         FFIAt {
             target,
@@ -211,9 +207,7 @@ impl ForFFI for At {
         }
     }
 
-    fn from_ffi(value: Self::FFIValue) -> Self {
-        let FFIAt { target, display } = value;
-
+    fn from_ffi(FFIAt { target, display }: Self::FFIValue) -> Self {
         Self {
             target,
             display: String::from(display),
@@ -258,17 +252,15 @@ impl ForFFI for MessageMetadata {
         }
     }
 
-    fn from_ffi(value: Self::FFIValue) -> Self {
-        let FFIMessageMetadata {
-            seqs,
-            rands,
-            time,
-            sender,
-            flags,
-            anonymous,
-            reply,
-        } = value;
-
+    fn from_ffi(FFIMessageMetadata {
+                    seqs,
+                    rands,
+                    time,
+                    sender,
+                    flags,
+                    anonymous,
+                    reply,
+                }: Self::FFIValue) -> Self {
         unsafe {
             Self {
                 seqs: seqs.into_vec(),

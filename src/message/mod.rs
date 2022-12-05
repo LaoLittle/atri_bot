@@ -18,7 +18,7 @@ use std::vec;
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct MessageChain {
     meta: MessageMetadata,
-    value: Vec<MessageElement>,
+    elements: Vec<MessageElement>,
 }
 
 impl MessageChain {
@@ -62,7 +62,7 @@ impl IntoIterator for MessageChain {
     type IntoIter = vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.value.into_iter()
+        self.elements.into_iter()
     }
 }
 
@@ -71,7 +71,7 @@ impl<'a> IntoIterator for &'a MessageChain {
     type IntoIter = slice::Iter<'a, MessageElement>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.value.iter()
+        self.elements.iter()
     }
 }
 
@@ -108,7 +108,7 @@ impl From<FriendMessage> for MessageChain {
 impl From<Vec<MessageElement>> for MessageChain {
     fn from(elems: Vec<MessageElement>) -> Self {
         Self {
-            value: elems,
+            elements: elems,
             ..Default::default()
         }
     }
@@ -116,35 +116,27 @@ impl From<Vec<MessageElement>> for MessageChain {
 
 impl From<ricq::msg::MessageChain> for MessageChain {
     fn from(chain: ricq::msg::MessageChain) -> Self {
-        let mut iter = chain.0.into_iter();
-
         let mut meta = MessageMetadata::default();
         let mut value: Vec<MessageElement> = vec![];
 
-        for _ in 0..2 {
-            match iter.next() {
-                Some(MessageElem::AnonGroupMsg(msg)) => {
+        for val in chain.0 {
+            match val {
+                MessageElem::AnonGroupMsg(msg) => {
                     let rq = ricq::msg::elem::Anonymous::from(msg);
                     meta.anonymous = Some(Anonymous::from(rq));
                 }
-                Some(MessageElem::SrcMsg(src)) => {
+                MessageElem::SrcMsg(src) => {
                     let rq = ricq::msg::elem::Reply::from(src);
                     meta.reply = Some(Reply::from(rq));
                 }
-                Some(or) => {
+                or => {
                     let rq = ricq::msg::elem::RQElem::from(or);
                     value.push(MessageElement::from(rq));
                 }
-                None => {}
             }
         }
 
-        for val in iter {
-            let rq = ricq::msg::elem::RQElem::from(val);
-            value.push(MessageElement::from(rq));
-        }
-
-        Self { meta, value }
+        Self { meta, elements: value }
     }
 }
 
@@ -168,7 +160,7 @@ impl PushElem for MessageChain {
             vec.push(rq.into());
         }
 
-        for value in elem.value {
+        for value in elem.elements {
             MessageElement::push_to(value, vec);
         }
     }
