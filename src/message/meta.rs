@@ -2,6 +2,10 @@ use crate::message::{MessageChain, MessageElement};
 use ricq::msg::{MessageElem, PushElem};
 use serde::{Deserialize, Serialize};
 
+pub trait MetaMessage {
+    fn metadata(&self) -> &MessageMetadata;
+}
+
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct MessageMetadata {
     pub seqs: Vec<i32>,
@@ -135,8 +139,4 @@ impl PushElem for Reply {
 
         vec.insert(index, rq.into());
     }
-}
-
-pub trait MetaMessage {
-    fn metadata(&self) -> &MessageMetadata;
 }

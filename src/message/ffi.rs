@@ -127,12 +127,14 @@ impl ForFFI for Reply {
         }
     }
 
-    fn from_ffi(FFIReply {
-                    reply_seq,
-                    sender,
-                    time,
-                    elements,
-                }: Self::FFIValue) -> Self {
+    fn from_ffi(
+        FFIReply {
+            reply_seq,
+            sender,
+            time,
+            elements,
+        }: Self::FFIValue,
+    ) -> Self {
         let elems = elements.into_vec();
         let values: Vec<MessageElement> = elems.into_iter().map(MessageElement::from_ffi).collect();
 
@@ -172,14 +174,16 @@ impl ForFFI for Anonymous {
         }
     }
 
-    fn from_ffi(FFIAnonymous {
-                    anon_id,
-                    nick,
-                    portrait_index,
-                    bubble_index,
-                    expire_time,
-                    color,
-                }: Self::FFIValue) -> Self {
+    fn from_ffi(
+        FFIAnonymous {
+            anon_id,
+            nick,
+            portrait_index,
+            bubble_index,
+            expire_time,
+            color,
+        }: Self::FFIValue,
+    ) -> Self {
         let anon_id = anon_id.into_vec();
         let nick = String::from(nick);
         let color = String::from(color);
@@ -252,15 +256,17 @@ impl ForFFI for MessageMetadata {
         }
     }
 
-    fn from_ffi(FFIMessageMetadata {
-                    seqs,
-                    rands,
-                    time,
-                    sender,
-                    flags,
-                    anonymous,
-                    reply,
-                }: Self::FFIValue) -> Self {
+    fn from_ffi(
+        FFIMessageMetadata {
+            seqs,
+            rands,
+            time,
+            sender,
+            flags,
+            anonymous,
+            reply,
+        }: Self::FFIValue,
+    ) -> Self {
         unsafe {
             Self {
                 seqs: seqs.into_vec(),

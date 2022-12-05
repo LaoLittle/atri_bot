@@ -30,6 +30,40 @@ impl MessageChain {
         &self.meta
     }
 
+    pub fn metadata_mut(&mut self) -> &mut MessageMetadata {
+        &mut self.meta
+    }
+
+    pub fn referred(&self) -> Option<&Reply> {
+        self.metadata().reply.as_ref()
+    }
+
+    pub fn reply(&self) -> Reply {
+        Reply {
+            reply_seq: self.meta.seqs[0],
+            sender: self.meta.sender,
+            time: self.meta.time,
+            elements: self.elements.clone(),
+        }
+    }
+
+    pub fn into_reply(self) -> Reply {
+        Reply {
+            reply_seq: self.meta.seqs[0],
+            sender: self.meta.sender,
+            time: self.meta.time,
+            elements: self.elements,
+        }
+    }
+
+    pub fn with_reply(&mut self, reply: Reply) {
+        self.metadata_mut().reply = Some(reply)
+    }
+
+    pub fn with_anonymous(&mut self, ano: Anonymous) {
+        self.metadata_mut().anonymous = Some(ano)
+    }
+
     pub fn to_json(&self) -> String {
         serde_json::to_string(self).expect("Serializing error")
     }
@@ -136,7 +170,10 @@ impl From<ricq::msg::MessageChain> for MessageChain {
             }
         }
 
-        Self { meta, elements: value }
+        Self {
+            meta,
+            elements: value,
+        }
     }
 }
 
