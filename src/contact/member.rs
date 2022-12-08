@@ -4,10 +4,9 @@ use crate::message::at::At;
 use crate::message::meta::{Anonymous, MessageReceipt};
 use crate::message::MessageChain;
 use crate::{Client, GroupMemberInfo};
-use atri_ffi::contact::{FFIMember, MemberUnion};
+use atri_ffi::contact::FFIMember;
+use atri_ffi::ffi::ForFFI;
 use atri_ffi::ManagedCloneable;
-use ricq::RQError;
-use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -35,45 +34,39 @@ impl Member {
     pub async fn send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
         match self {
             Self::Named(named) => named.send_message(chain).await,
-            Self::Anonymous(..) => Err(AtriError::Protocol(RQError::Other(
-                "Send message to anonymous member is not supported".into(),
-            ))),
+            Self::Anonymous(..) => Err(AtriError::NotSupported),
         }
     }
+}
 
-    pub fn into_ffi(self) -> FFIMember {
-        match self {
+impl ForFFI for Member {
+    type FFIValue = FFIMember;
+
+    fn into_ffi(self) -> Self::FFIValue {
+        let (is_named, ma) = match self {
             Self::Named(named) => {
                 let ma = ManagedCloneable::from_value(named);
-                FFIMember {
-                    is_named: true,
-                    inner: MemberUnion {
-                        named: ManuallyDrop::new(ma),
-                    },
-                }
+                (true, ma)
             }
             Self::Anonymous(ano) => {
                 let ma = ManagedCloneable::from_value(ano);
-                FFIMember {
-                    is_named: false,
-                    inner: MemberUnion {
-                        anonymous: ManuallyDrop::new(ma),
-                    },
-                }
+                (false, ma)
             }
+        };
+
+        FFIMember {
+            is_named,
+            inner: ma,
         }
     }
 
-    pub fn from_ffi(ffi: FFIMember) -> Self {
-        unsafe {
-            if ffi.is_named {
-                let named: NamedMember = ManuallyDrop::into_inner(ffi.inner.named).into_value();
-                Self::Named(named)
-            } else {
-                let ano: AnonymousMember =
-                    ManuallyDrop::into_inner(ffi.inner.anonymous).into_value();
-                Self::Anonymous(ano)
-            }
+    fn from_ffi(value: Self::FFIValue) -> Self {
+        let ma = value.inner;
+
+        if value.is_named {
+            Self::Named(ma.into_value())
+        } else {
+            Self::Anonymous(ma.into_value())
         }
     }
 }

@@ -1,5 +1,6 @@
 use super::MessageChain;
 use crate::message::at::At;
+use crate::message::face::Face;
 use crate::message::meta::{Anonymous, MessageMetadata, Reply};
 use crate::message::MessageElement;
 use atri_ffi::ffi::ForFFI;
@@ -7,7 +8,7 @@ use atri_ffi::message::meta::{
     FFIAnonymous, FFIMessageMetadata, FFIReply, ANONYMOUS_FLAG, NONE_META, REPLY_FLAG,
 };
 use atri_ffi::message::{
-    FFIAt, FFIMessageChain, FFIMessageValue, MessageElementFlag, MessageElementUnion,
+    FFIAt, FFIMessageChain, FFIMessageElement, MessageElementFlag, MessageElementUnion,
 };
 use atri_ffi::{ManagedCloneable, RustString, RustVec};
 use std::mem::{ManuallyDrop, MaybeUninit};
@@ -17,7 +18,7 @@ impl ForFFI for MessageChain {
 
     fn into_ffi(self) -> Self::FFIValue {
         let meta = self.meta.into_ffi();
-        let ffi: Vec<FFIMessageValue> = self
+        let ffi: Vec<FFIMessageElement> = self
             .elements
             .into_iter()
             .map(MessageElement::into_ffi)
@@ -41,23 +42,23 @@ impl ForFFI for MessageChain {
 }
 
 impl ForFFI for MessageElement {
-    type FFIValue = FFIMessageValue;
+    type FFIValue = FFIMessageElement;
 
     fn into_ffi(self) -> Self::FFIValue {
         match self {
-            MessageElement::Text(s) => FFIMessageValue {
+            MessageElement::Text(s) => FFIMessageElement {
                 t: MessageElementFlag::Text.value(),
                 union: MessageElementUnion {
                     text: ManuallyDrop::new(RustString::from(s)),
                 },
             },
-            MessageElement::Image(img) => FFIMessageValue {
+            MessageElement::Image(img) => FFIMessageElement {
                 t: MessageElementFlag::Image.value(),
                 union: MessageElementUnion {
                     image: ManuallyDrop::new(ManagedCloneable::from_value(img)),
                 },
             },
-            MessageElement::At(At { target, display }) => FFIMessageValue {
+            MessageElement::At(At { target, display }) => FFIMessageElement {
                 t: MessageElementFlag::At.value(),
                 union: MessageElementUnion {
                     at: ManuallyDrop::new({
@@ -68,14 +69,20 @@ impl ForFFI for MessageElement {
                     }),
                 },
             },
-            MessageElement::AtAll => FFIMessageValue {
+            MessageElement::AtAll => FFIMessageElement {
                 t: MessageElementFlag::AtAll.value(),
                 union: MessageElementUnion { at_all: () },
             },
-            or => FFIMessageValue {
+            MessageElement::Face(face) => FFIMessageElement {
+                t: MessageElementFlag::Face.value(),
+                union: MessageElementUnion {
+                    face: ManuallyDrop::new(face.into_ffi()),
+                },
+            },
+            MessageElement::Unknown(rq) => FFIMessageElement {
                 t: MessageElementFlag::Unknown.value(),
                 union: MessageElementUnion {
-                    unknown: ManuallyDrop::new(ManagedCloneable::from_value(or)),
+                    unknown: ManuallyDrop::new(ManagedCloneable::from_value(rq)),
                 },
             },
         }
@@ -100,9 +107,12 @@ impl ForFFI for MessageElement {
                     })
                 }
                 MessageElementFlag::AtAll => MessageElement::AtAll,
-                MessageElementFlag::Unknown => {
-                    ManuallyDrop::into_inner(value.union.unknown).into_value()
+                MessageElementFlag::Face => {
+                    MessageElement::Face(Face::from_ffi(ManuallyDrop::into_inner(value.union.face)))
                 }
+                MessageElementFlag::Unknown => MessageElement::Unknown(
+                    ManuallyDrop::into_inner(value.union.unknown).into_value(),
+                ),
             }
         }
     }
@@ -112,7 +122,7 @@ impl ForFFI for Reply {
     type FFIValue = FFIReply;
 
     fn into_ffi(self) -> Self::FFIValue {
-        let ffi: Vec<FFIMessageValue> = self
+        let ffi: Vec<FFIMessageElement> = self
             .elements
             .into_iter()
             .map(MessageElement::into_ffi)

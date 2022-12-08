@@ -1,9 +1,13 @@
 pub mod at;
+pub mod face;
 pub mod ffi;
+pub mod forward;
 pub mod image;
+pub mod macros;
 pub mod meta;
 
 use crate::message::at::At;
+use crate::message::face::Face;
 use crate::message::meta::{Anonymous, MessageMetadata, MessageReceipt, RecallMessage, Reply};
 use crate::Text;
 use core::slice;
@@ -12,7 +16,7 @@ use ricq::msg::elem::RQElem;
 use ricq::msg::{MessageElem, PushElem};
 use ricq::structs::{FriendMessage, GroupMessage};
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Formatter, Write};
 use std::vec;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -215,6 +219,7 @@ pub enum MessageElement {
     Image(Image),
     At(At),
     AtAll,
+    Face(Face),
     #[serde(skip)]
     Unknown(RQElem),
 }
@@ -222,13 +227,22 @@ pub enum MessageElement {
 impl ToString for MessageElement {
     fn to_string(&self) -> String {
         let mut s = String::new();
+
         match self {
             Self::Text(t) => s.push_str(t),
-            Self::Image(img) => s.push_str(&format!("$[Image:{}]", img.url())),
-            Self::At(At { target, display }) => s.push_str(&format!("$[At:{display}({target})]")),
+            Self::Image(img) => {
+                let _ = write!(s, "$[Image:{}]", img.url());
+            }
+            Self::At(At { target, display }) => {
+                let _ = write!(s, "$[At:{}({})]", display, target);
+            }
             Self::AtAll => s.push_str("$[AtAll]"),
+            Self::Face(f) => {
+                let _ = write!(s, "$[Face:{}]", f.name);
+            }
             Self::Unknown(rq) => s.push_str(&rq.to_string()),
         }
+
         s
     }
 }
@@ -249,6 +263,7 @@ impl From<MessageElement> for RQElem {
             },
             MessageElement::At(at) => RQElem::At(at.into()),
             MessageElement::AtAll => RQElem::At(At::ALL.into()),
+            MessageElement::Face(face) => RQElem::Face(face.into()),
             MessageElement::Unknown(rq) => rq,
         }
     }
@@ -270,6 +285,7 @@ impl From<RQElem> for MessageElement {
                     })
                 }
             }
+            RQElem::Face(face) => MessageElement::Face(face.into()),
             or => Self::Unknown(or),
         }
     }
@@ -282,6 +298,7 @@ impl PushElem for MessageElement {
             Self::Image(img) => PushElem::push_to(img, vec),
             Self::At(at) => PushElem::push_to(at, vec),
             Self::AtAll => PushElem::push_to(At::ALL, vec),
+            Self::Face(face) => PushElem::push_to(face, vec),
             Self::Unknown(_rq) => {}
         }
     }

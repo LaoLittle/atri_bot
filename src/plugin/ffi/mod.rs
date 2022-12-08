@@ -19,15 +19,17 @@ use crate::plugin::ffi::event::{
 };
 use crate::plugin::ffi::group::{
     group_change_name, group_change_name_blocking, group_find_member, group_find_or_refresh_member,
-    group_get_client, group_get_id, group_get_members, group_get_name, group_quit,
-    group_quit_blocking, group_send_message, group_send_message_blocking, group_upload_image,
-    group_upload_image_blocking,
+    group_get_client, group_get_id, group_get_members, group_get_name, group_invite,
+    group_invite_blocking, group_quit, group_quit_blocking, group_send_forward_message,
+    group_send_forward_message_blocking, group_send_message, group_send_message_blocking,
+    group_upload_image, group_upload_image_blocking,
 };
 use crate::plugin::ffi::listener::{
     listener_next_event_with_priority, listener_next_event_with_priority_blocking, new_listener,
     new_listener_c_func, new_listener_closure,
 };
 use atri_ffi::error::FFIResult;
+use std::ffi::{c_char, CStr};
 use std::future::Future;
 
 use crate::plugin::cast_ref;
@@ -47,11 +49,15 @@ use crate::plugin::ffi::message::{
 };
 use crate::PluginManager;
 use atri_ffi::future::FFIFuture;
-use atri_ffi::Managed;
+use atri_ffi::{Managed, RustString};
+use tracing::error;
 
 pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
     extern "C" fn not_impl() {
-        panic!("No such operation");
+        let bt = std::backtrace::Backtrace::force_capture();
+        error!("插件执行了一个不存在的操作, stack backtrace: {}", bt);
+
+        std::process::abort();
     }
 
     macro_rules! match_function {
@@ -101,12 +107,16 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         407 => group_upload_image,
         408 => group_quit,
         409 => group_change_name,
+        410 => group_send_forward_message,
+        411 => group_invite,
 
         // blocking api
         456 => group_send_message_blocking,
         457 => group_upload_image_blocking,
         458 => group_quit_blocking,
         459 => group_change_name_blocking,
+        460 => group_send_forward_message_blocking,
+        461 => group_invite_blocking,
 
         // friend
         500 => friend_get_id,
@@ -152,6 +162,9 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         // serialize
         30100 => message_chain_to_json,
         30101 => message_chain_from_json,
+
+        // ffi
+        30500 => c_str_cvt,
     }
 }
 
@@ -168,6 +181,12 @@ extern "C" fn plugin_manager_spawn(
 extern "C" fn plugin_manager_block_on(manager: *const (), future: FFIFuture<Managed>) -> Managed {
     let manager: &PluginManager = cast_ref(manager);
     manager.async_runtime().block_on(future)
+}
+
+extern "C" fn c_str_cvt(ptr: *const c_char) -> RustString {
+    let cstr = unsafe { CStr::from_ptr(ptr) };
+
+    cstr.to_string_lossy().to_string().into()
 }
 
 fn future_block_on<F>(manager: *const (), future: F) -> F::Output

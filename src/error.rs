@@ -9,6 +9,7 @@ pub enum AtriError {
     IO(io::Error),
     Protocol(ricq::RQError),
     Login(LoginError),
+    NotSupported,
 }
 
 impl Display for AtriError {
@@ -21,6 +22,7 @@ impl Display for AtriError {
             }
             Self::PluginError(e) => Display::fmt(e, f),
             Self::Protocol(e) => Display::fmt(e, f),
+            Self::NotSupported => f.write_str("operation not supported"),
         }
     }
 }

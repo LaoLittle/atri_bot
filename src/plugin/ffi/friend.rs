@@ -1,11 +1,12 @@
 use crate::contact::friend::Friend;
+use crate::message::meta::MessageReceipt;
 use crate::message::MessageChain;
 use crate::plugin::cast_ref;
 use crate::plugin::ffi::future_block_on;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
-use atri_ffi::message::FFIMessageChain;
+use atri_ffi::message::{FFIMessageChain, FFIMessageReceipt};
 use atri_ffi::{ManagedCloneable, RustStr, RustVec};
 
 pub extern "C" fn friend_get_id(friend: *const ()) -> i64 {
@@ -27,14 +28,11 @@ pub extern "C" fn friend_get_bot(friend: *const ()) -> ManagedCloneable {
 pub extern "C" fn friend_send_message(
     friend: *const (),
     chain: FFIMessageChain,
-) -> FFIFuture<FFIResult<ManagedCloneable>> {
+) -> FFIFuture<FFIResult<FFIMessageReceipt>> {
     FFIFuture::from(async move {
         let f: &Friend = cast_ref(friend);
         let chain = MessageChain::from_ffi(chain);
-        let result = f
-            .send_message(chain)
-            .await
-            .map(ManagedCloneable::from_value);
+        let result = f.send_message(chain).await.map(MessageReceipt::into_ffi);
 
         FFIResult::from(result)
     })
@@ -44,7 +42,7 @@ pub extern "C" fn friend_send_message_blocking(
     manager: *const (),
     group: *const (),
     chain: FFIMessageChain,
-) -> FFIResult<ManagedCloneable> {
+) -> FFIResult<FFIMessageReceipt> {
     let group: &Friend = cast_ref(group);
     let chain = MessageChain::from_ffi(chain);
 
@@ -52,7 +50,7 @@ pub extern "C" fn friend_send_message_blocking(
         let result = group
             .send_message(chain)
             .await
-            .map(ManagedCloneable::from_value);
+            .map(MessageReceipt::into_ffi);
 
         FFIResult::from(result)
     })

@@ -8,7 +8,7 @@ use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use tracing::{error, info, warn};
 
-use crate::client::BotConfiguration;
+use crate::client::ClientConfiguration;
 use crate::config::login::{LoginConfig, DEFAULT_CONFIG};
 use crate::error::AtriResult;
 use crate::{config, global_status, Client};
@@ -73,7 +73,7 @@ pub async fn login_clients() -> Result<(), RQError> {
             match login_client(
                 account,
                 &pwd,
-                BotConfiguration {
+                ClientConfiguration {
                     work_dir: None,
                     version: client
                         .protocol
@@ -117,7 +117,7 @@ pub async fn login_clients() -> Result<(), RQError> {
 async fn login_client(
     account: i64,
     password: &Option<String>,
-    conf: BotConfiguration,
+    conf: ClientConfiguration,
 ) -> AtriResult<Client> {
     let client = Client::new(account, conf).await;
     client.start().await?;

@@ -26,7 +26,7 @@ use crate::{config, global_status};
 pub struct Client(Arc<imp::Client>);
 
 impl Client {
-    pub async fn new(id: i64, conf: BotConfiguration) -> Self {
+    pub async fn new(id: i64, conf: ClientConfiguration) -> Self {
         let b = imp::Client::new(id, conf).await;
         Self(Arc::new(b))
     }
@@ -307,7 +307,7 @@ mod imp {
 
     use crate::channel::GlobalEventBroadcastHandler;
     use crate::client::info::BotAccountInfo;
-    use crate::client::BotConfiguration;
+    use crate::client::ClientConfiguration;
     use crate::contact::friend::Friend;
     use crate::contact::group::Group;
 
@@ -322,7 +322,7 @@ mod imp {
     }
 
     impl Client {
-        pub async fn new(id: i64, conf: BotConfiguration) -> Self {
+        pub async fn new(id: i64, conf: ClientConfiguration) -> Self {
             let work_dir = conf.work_dir(id);
 
             if !work_dir.is_dir() {
@@ -406,14 +406,16 @@ mod imp {
                     .pop()
                     .ok_or_else(|| io::Error::new(ErrorKind::AddrNotAvailable, "重连失败"))?;
 
-                if let Ok(Ok(s)) =
-                    tokio::time::timeout(Duration::from_secs(2), socket.connect(addr)).await
-                {
-                    break s;
-                } else {
-                    times += 1;
-                    warn!("连接服务器{}失败, 尝试重连({}/{})", addr, times, total);
+                match tokio::time::timeout(Duration::from_secs(2), socket.connect(addr)).await {
+                    Ok(Ok(s)) => break s,
+                    Ok(Err(e)) => warn!(
+                        "连接服务器{}失败, 尝试重连({}/{}): {}",
+                        addr, times, total, e
+                    ),
+                    Err(_) => warn!("连接服务器{}超时, 尝试重连({}/{})", addr, times, total),
                 }
+
+                times += 1;
             })
         }
 
@@ -432,12 +434,12 @@ mod imp {
     }
 }
 
-pub struct BotConfiguration {
+pub struct ClientConfiguration {
     pub work_dir: Option<PathBuf>,
     pub version: ricq::version::Version,
 }
 
-impl BotConfiguration {
+impl ClientConfiguration {
     fn work_dir(&self, id: i64) -> PathBuf {
         self.work_dir
             .as_ref()

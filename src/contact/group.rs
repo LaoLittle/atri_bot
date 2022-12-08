@@ -7,6 +7,7 @@ use tracing::error;
 
 use crate::contact::member::NamedMember;
 use crate::error::{AtriError, AtriResult};
+use crate::message::forward::ForwardMessage;
 use crate::message::image::Image;
 use crate::message::meta::{MessageReceipt, RecallMessage};
 use crate::message::MessageChain;
@@ -128,6 +129,22 @@ impl Group {
         self._send_message(msg.into()).await
     }
 
+    async fn _send_forward_message(&self, forward: ForwardMessage) -> AtriResult<MessageReceipt> {
+        self.client()
+            .request_client()
+            .send_group_forward_message(self.id(), forward.into())
+            .await
+            .map(MessageReceipt::from)
+            .map_err(AtriError::from)
+    }
+
+    pub async fn send_forward_message<M: Into<ForwardMessage>>(
+        &self,
+        msg: M,
+    ) -> AtriResult<MessageReceipt> {
+        self._send_forward_message(msg.into()).await
+    }
+
     async fn _upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {
         self.client()
             .request_client()
@@ -173,6 +190,14 @@ impl Group {
 
     pub async fn change_name<S: Into<String>>(&self, name: S) -> AtriResult<()> {
         self._change_name(name.into()).await
+    }
+
+    pub async fn invite(&self, id: i64) -> AtriResult<()> {
+        self.client()
+            .request_client()
+            .group_invite(self.id(), id)
+            .await
+            .map_err(AtriError::from)
     }
 
     pub async fn kick<M: ToKickMember, S: AsRef<str>>(

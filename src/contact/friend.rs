@@ -1,4 +1,5 @@
 use crate::error::{AtriError, AtriResult};
+use crate::message::forward::ForwardMessage;
 use crate::message::image::Image;
 use crate::message::meta::{MessageReceipt, RecallMessage};
 use crate::message::MessageChain;
@@ -48,7 +49,7 @@ impl Friend {
         map.is_some()
     }
 
-    pub async fn send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
+    async fn _send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
         let result = self
             .client()
             .request_client()
@@ -66,6 +67,14 @@ impl Friend {
         }
 
         result.map(MessageReceipt::from).map_err(AtriError::from)
+    }
+
+    pub async fn send_message<M: Into<MessageChain>>(&self, msg: M) -> AtriResult<MessageReceipt> {
+        self._send_message(msg.into()).await
+    }
+
+    async fn _send_forward_message(&self, _forward: ForwardMessage) -> AtriResult<MessageReceipt> {
+        Err(AtriError::NotSupported)
     }
 
     pub async fn upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {

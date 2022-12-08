@@ -263,11 +263,11 @@ impl ContactSubject for FriendMessageEvent {
     }
 }
 
-pub type ClientLoginEvent = SharedEvent<imp::BotOnlineEvent>;
+pub type ClientLoginEvent = SharedEvent<imp::ClientLoginEvent>;
 
 impl ClientLoginEvent {
     pub fn from(bot: Client) -> Self {
-        Self::new(imp::BotOnlineEvent { bot })
+        Self::new(imp::ClientLoginEvent { bot })
     }
 }
 
@@ -294,7 +294,7 @@ mod imp {
         pub message: MessageChain,
     }
 
-    pub struct BotOnlineEvent {
+    pub struct ClientLoginEvent {
         pub bot: Client,
     }
 }

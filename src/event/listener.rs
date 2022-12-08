@@ -287,6 +287,7 @@ unsafe impl Send for Listener {}
 
 unsafe impl Sync for Listener {}
 
+#[must_use = "if unused the Listener will immediately close"]
 pub struct ListenerGuard {
     name: Arc<String>,
     closed: Arc<AtomicBool>,

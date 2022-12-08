@@ -159,3 +159,31 @@ impl PushElem for Reply {
         vec.insert(index, rq.into());
     }
 }
+
+mod ffi {
+    use crate::message::meta::MessageReceipt;
+    use atri_ffi::ffi::ForFFI;
+    use atri_ffi::message::FFIMessageReceipt;
+
+    impl ForFFI for MessageReceipt {
+        type FFIValue = FFIMessageReceipt;
+
+        fn into_ffi(self) -> Self::FFIValue {
+            let MessageReceipt { seqs, rands, time } = self;
+
+            FFIMessageReceipt {
+                seqs: seqs.into(),
+                rands: rands.into(),
+                time,
+            }
+        }
+
+        fn from_ffi(FFIMessageReceipt { seqs, rands, time }: Self::FFIValue) -> Self {
+            Self {
+                seqs: seqs.into_vec(),
+                rands: rands.into_vec(),
+                time,
+            }
+        }
+    }
+}
