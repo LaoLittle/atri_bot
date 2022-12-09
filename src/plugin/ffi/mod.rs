@@ -18,9 +18,9 @@ use crate::plugin::ffi::event::{
     group_message_event_get_message, group_message_event_get_sender,
 };
 use crate::plugin::ffi::group::{
-    group_change_name, group_change_name_blocking, group_find_member, group_find_or_refresh_member,
-    group_get_client, group_get_id, group_get_members, group_get_name, group_invite,
-    group_invite_blocking, group_quit, group_quit_blocking, group_send_forward_message,
+    group_change_name, group_change_name_blocking, group_find_member, group_get_client,
+    group_get_id, group_get_members, group_get_name, group_invite, group_invite_blocking,
+    group_quit, group_quit_blocking, group_send_forward_message,
     group_send_forward_message_blocking, group_send_message, group_send_message_blocking,
     group_upload_image, group_upload_image_blocking,
 };
@@ -102,7 +102,7 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         402 => group_get_client,
         403 => group_get_members,
         404 => group_find_member,
-        405 => group_find_or_refresh_member,
+        // 405
         406 => group_send_message,
         407 => group_upload_image,
         408 => group_quit,

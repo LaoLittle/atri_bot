@@ -160,9 +160,16 @@ impl GroupMessageEvent {
         }
 
         self.group()
-            .find_member(id)
+            .members_cache()
+            .get(&id)
+            .map(|r| r.to_owned())
+            .flatten()
             .map(Member::Named)
-            .expect("Cannot find member")
+            .unwrap_or_else(|| {
+                // when a named member send a message, the event channel handler will first
+                // check if the member exist in this group
+                unreachable!()
+            })
     }
 
     pub fn message(&self) -> &MessageChain {

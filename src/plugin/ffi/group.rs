@@ -43,22 +43,11 @@ pub extern "C" fn group_get_members(group: *const ()) -> FFIFuture<RustVec<Manag
     })
 }
 
-pub extern "C" fn group_find_member(group: *const (), id: i64) -> ManagedCloneable {
+pub extern "C" fn group_find_member(group: *const (), id: i64) -> FFIFuture<ManagedCloneable> {
     let group: &Group = cast_ref(group);
-    group
-        .find_member(id)
-        .map(ManagedCloneable::from_value)
-        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
-}
-
-pub extern "C" fn group_find_or_refresh_member(
-    group: *const (),
-    id: i64,
-) -> FFIFuture<ManagedCloneable> {
     FFIFuture::from(async move {
-        let group: &Group = cast_ref(group);
         group
-            .find_or_refresh_member(id)
+            .find_member(id)
             .await
             .map(ManagedCloneable::from_value)
             .unwrap_or_else(|| unsafe { ManagedCloneable::null() })

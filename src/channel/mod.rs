@@ -94,25 +94,31 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 let sender = e.inner.from_uin;
 
-                let member: Option<NamedMember>;
+                let member: NamedMember;
                 let nick = if sender == AnonymousMember::ID {
                     if e.inner.elements.anonymous().is_none() {
-                        error!("获取匿名信息失败, Raw event: {:?}", e.inner);
+                        error!("获取匿名信息失败, 本事件跳过. Raw event: {:?}", e.inner);
                         return;
                     }
 
                     "匿名"
                 } else {
-                    member = group.try_refresh_member(sender).await.unwrap_or_else(|e| {
-                        warn!("获取群成员({})发生错误: {}", sender, e);
-                        None
-                    });
-
-                    if let Some(m) = &member {
-                        m.nickname()
-                    } else {
-                        warn!("群成员({})信息获取失败", sender);
-                        return;
+                    match group.try_refresh_member(sender).await {
+                        Ok(Some(m)) => {
+                            member = m;
+                            member.nickname()
+                        }
+                        Ok(None) => {
+                            warn!("群成员({})信息获取失败, 或许成员已不在本群, 本事件跳过. RawEvent: {:?}", sender, e.inner);
+                            return;
+                        }
+                        Err(err) => {
+                            error!(
+                                "获取群成员({})发生错误: {}, 本事件跳过. RawEvent: {:?}",
+                                sender, err, e.inner
+                            );
+                            return;
+                        }
                     }
                 };
 
@@ -148,6 +154,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 Event::FriendMessage(base)
             }
+            QEvent::NewFriend(e) => {}
             QEvent::DeleteFriend(e) => {
                 client = get_client!(e.client);
 
@@ -162,7 +169,11 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let op_id = e.inner.operator_uin;
 
                 if let Some(g) = client.find_group(group_id) {
-                    let member = g.find_member(e.inner.operator_uin);
+                    let member = g
+                        .members_cache()
+                        .get(&op_id)
+                        .map(|r| r.to_owned())
+                        .flatten();
 
                     let name = member
                         .map(|n| n.card_name().to_owned())
@@ -181,7 +192,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let group_id = e.inner.group_code;
                 let member_id = e.inner.member_uin;
 
-                let Some(group) = client.find_or_refresh_group(group_id).await else {
+                let Some(group) = client.find_group(group_id) else {
                     cannot_find_group(group_id);
                     error_more_info(&e);
 
@@ -190,7 +201,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 if member_id == client.id() {
                 } else {
-                    let _member = group.refresh_member(member_id).await;
+                    let _member = group.try_refresh_member(member_id).await;
                 }
 
                 Event::Unknown(QEvent::NewMember(e).into())

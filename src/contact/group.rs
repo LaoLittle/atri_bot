@@ -1,3 +1,4 @@
+use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use std::fmt::{Display, Formatter};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -28,21 +29,33 @@ impl Group {
         Self(Arc::new(imp))
     }
 
+    #[inline]
+    pub(crate) fn members_cache(&self) -> &DashMap<i64, Option<NamedMember>> {
+        &self.0.members
+    }
+
+    #[inline]
     pub fn id(&self) -> i64 {
         self.0.info.code
     }
 
+    #[inline]
     pub fn client(&self) -> &Client {
         &self.0.client
     }
 
+    #[inline]
     pub fn name(&self) -> &str {
         &self.0.info.name
     }
 
     pub async fn members(&self) -> Vec<NamedMember> {
         if self.0.member_list_refreshed.load(Ordering::Relaxed) {
-            self.0.members.iter().map(|named| named.clone()).collect()
+            self.members_cache()
+                .iter()
+                .map(|named| named.to_owned())
+                .flatten()
+                .collect()
         } else {
             let owner = self.0.info.owner_uin;
             self.client()
@@ -60,22 +73,25 @@ impl Group {
                 .into_iter()
                 .map(|info| {
                     let named = NamedMember::from(self.clone(), info);
-                    self.0.members.insert(named.id(), named.clone());
+                    self.cache_member(named.clone());
                     named
                 })
                 .collect()
         }
     }
 
-    pub fn find_member(&self, id: i64) -> Option<NamedMember> {
-        if let Some(member) = self.0.members.get(&id) {
-            return Some(member.clone());
+    pub async fn find_member(&self, id: i64) -> Option<NamedMember> {
+        match self.members_cache().entry(id) {
+            Entry::Occupied(entry) => entry.get().clone(),
+            Entry::Vacant(entry) => {
+                let refresh = self.refresh_member(id).await;
+                entry.insert(refresh.clone());
+                refresh
+            }
         }
-
-        None
     }
 
-    pub async fn try_refresh_member(&self, id: i64) -> AtriResult<Option<NamedMember>> {
+    pub(crate) async fn try_refresh_member(&self, id: i64) -> AtriResult<Option<NamedMember>> {
         let named = self
             .client()
             .request_client()
@@ -94,16 +110,14 @@ impl Group {
         Ok(named)
     }
 
-    pub async fn refresh_member(&self, id: i64) -> Option<NamedMember> {
-        self.try_refresh_member(id).await.unwrap_or(None)
-    }
-
-    pub async fn find_or_refresh_member(&self, id: i64) -> Option<NamedMember> {
-        if let Some(named) = self.find_member(id) {
-            return Some(named);
-        }
-
-        self.refresh_member(id).await
+    pub(crate) async fn refresh_member(&self, id: i64) -> Option<NamedMember> {
+        self.try_refresh_member(id)
+            .await
+            .map_err(|e| {
+                error!("刷新成员时出现错误: {}", e);
+                e
+            })
+            .unwrap_or(None)
     }
 
     async fn _send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
@@ -228,8 +242,9 @@ impl Group {
         map.is_some()
     }
 
+    #[inline]
     pub(crate) fn cache_member(&self, member: NamedMember) {
-        self.0.members.insert(member.id(), member);
+        self.members_cache().insert(member.id(), Some(member));
     }
 }
 
@@ -251,7 +266,7 @@ mod imp {
         pub client: Client,
         pub info: GroupInfo,
         pub member_list_refreshed: AtomicBool,
-        pub members: DashMap<i64, NamedMember>,
+        pub members: DashMap<i64, Option<NamedMember>>,
     }
 }
 

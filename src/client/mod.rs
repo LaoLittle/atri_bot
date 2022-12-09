@@ -1,6 +1,7 @@
 pub mod info;
 pub mod token;
 
+use dashmap::DashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -156,8 +157,7 @@ impl Client {
         let list = self.request_client().get_friend_list().await?;
 
         for info in list.friends {
-            self.0
-                .friend_list
+            self.friend_caches()
                 .insert(info.uin, Friend::from(self.clone(), info));
         }
 
@@ -166,15 +166,12 @@ impl Client {
 
     pub async fn refresh_group_list(&self) -> AtriResult<()> {
         let infos = self.request_client().get_group_list().await?;
-        self.0.group_list.clear();
 
         for info in infos {
             let code = info.code;
             let group = Group::from(self.clone(), info);
 
-            if self.0.group_list.get(&code).is_none() {
-                self.0.group_list.insert(code, group);
-            }
+            self.group_caches().insert(code, group);
         }
 
         Ok(())
@@ -184,21 +181,33 @@ impl Client {
         let info = self.request_client().get_group_info(group_id).await?;
         if let Some(info) = info {
             let g = Group::from(self.clone(), info);
-            self.0.group_list.insert(group_id, g.clone());
+            self.group_caches().insert(group_id, g.clone());
             return Ok(Some(g));
         } else {
-            self.0.group_list.remove(&group_id);
+            self.group_caches().remove(&group_id);
         }
 
         Ok(None)
     }
 
+    pub(crate) fn friend_caches(&self) -> &DashMap<i64, Friend> {
+        &self.0.friends
+    }
+
+    pub(crate) fn group_caches(&self) -> &DashMap<i64, Group> {
+        &self.0.groups
+    }
+
+    pub(crate) fn cache_friend(&self, friend: Friend) {
+        self.friend_caches().insert(friend.id(), friend);
+    }
+
     pub(crate) fn remove_friend_cache(&self, friend_id: i64) -> Option<Friend> {
-        self.0.friend_list.remove(&friend_id).map(|(_, f)| f)
+        self.0.friends.remove(&friend_id).map(|(_, f)| f)
     }
 
     pub(crate) fn remove_group_cache(&self, group_id: i64) -> Option<Group> {
-        self.0.group_list.remove(&group_id).map(|(_, g)| g)
+        self.0.groups.remove(&group_id).map(|(_, g)| g)
     }
 
     #[inline]
@@ -207,7 +216,7 @@ impl Client {
     }
 
     pub fn find_group(&self, id: i64) -> Option<Group> {
-        if let Some(g) = self.0.group_list.get(&id) {
+        if let Some(g) = self.0.groups.get(&id) {
             return Some(g.clone());
         }
 
@@ -230,7 +239,7 @@ impl Client {
     }
 
     pub fn find_friend(&self, id: i64) -> Option<Friend> {
-        if let Some(f) = self.0.friend_list.get(&id) {
+        if let Some(f) = self.0.friends.get(&id) {
             return Some(f.clone());
         }
 
@@ -250,11 +259,11 @@ impl Client {
     }
 
     pub fn groups(&self) -> Vec<Group> {
-        self.0.group_list.iter().map(|g| g.clone()).collect()
+        self.0.groups.iter().map(|g| g.clone()).collect()
     }
 
     pub fn friends(&self) -> Vec<Friend> {
-        self.0.friend_list.iter().map(|f| f.clone()).collect()
+        self.0.friends.iter().map(|f| f.clone()).collect()
     }
 
     #[inline]
@@ -316,8 +325,8 @@ mod imp {
         pub info: OnceLock<BotAccountInfo>,
         pub enable: AtomicBool,
         pub client: Arc<RQClient>,
-        pub friend_list: DashMap<i64, Friend>,
-        pub group_list: DashMap<i64, Group>,
+        pub friends: DashMap<i64, Friend>,
+        pub groups: DashMap<i64, Group>,
         pub work_dir: PathBuf,
     }
 
@@ -388,8 +397,8 @@ mod imp {
                 id,
                 info: OnceLock::new(),
                 enable: AtomicBool::new(false),
-                friend_list: DashMap::new(),
-                group_list: DashMap::new(),
+                friends: DashMap::new(),
+                groups: DashMap::new(),
                 client,
                 work_dir,
             }
