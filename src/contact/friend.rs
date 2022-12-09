@@ -4,6 +4,7 @@ use crate::message::image::Image;
 use crate::message::meta::{MessageReceipt, RecallMessage};
 use crate::message::MessageChain;
 use crate::Client;
+use std::fmt;
 use std::sync::Arc;
 use tracing::error;
 
@@ -111,6 +112,18 @@ impl Friend {
         let f = imp::Friend { client, info };
 
         Self(Arc::new(f))
+    }
+}
+
+impl fmt::Debug for Friend {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Friend").field(&self.id()).finish()
+    }
+}
+
+impl fmt::Display for Friend {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "好友[{}({})]", self.nickname(), self.id())
     }
 }
 

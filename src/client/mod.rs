@@ -17,7 +17,7 @@ use ricq::ext::common::after_login;
 use ricq::ext::reconnect::{auto_reconnect, Credential};
 use ricq::{Client as RQClient, LoginResponse};
 use tokio::io;
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::contact::group::Group;
 use crate::error::{AtriError, AtriResult, LoginError};
@@ -87,7 +87,40 @@ impl Client {
 
     #[inline]
     pub async fn start(&self) -> io::Result<()> {
-        self.0.start().await
+        let client = self.clone();
+
+        let stream = self.0.connect().await?;
+
+        tokio::spawn(async move {
+            client.0.start(stream).await;
+
+            if client.network_status() == 4 {
+                let id = client.id();
+                global_status().remove_client(id);
+                error!("{}因网络原因掉线, 尝试重连", client);
+
+                client
+                    .request_client()
+                    .stop(ricq::client::NetworkStatus::NetworkOffline);
+
+                let Ok(stream) = client.0.connect().await else {
+                    return;
+                };
+
+                client.0.start(stream).await;
+
+                if let Err(e) = client.try_login().await {
+                    error!("重连登录失败: {}", e);
+                    return;
+                }
+
+                global_status().add_client(client);
+            } else {
+                warn!("{}下线", client);
+            }
+        });
+
+        Ok(())
     }
 
     pub fn find(id: i64) -> Option<Self> {
@@ -439,17 +472,15 @@ mod imp {
             })
         }
 
-        pub async fn start(&self) -> io::Result<()> {
+        pub async fn start(&self, stream: TcpStream) {
             let client = self.client.clone();
 
-            let stream = self.connect().await?;
-
-            tokio::spawn(async move {
+            let handle = tokio::spawn(async move {
                 client.start(stream).await;
             });
             yield_now().await;
 
-            Ok(())
+            let _ = handle.await;
         }
     }
 }

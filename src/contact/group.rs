@@ -1,6 +1,6 @@
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -75,35 +75,6 @@ impl Group {
         }
     }
 
-    pub(crate) async fn try_refresh_member(&self, id: i64) -> AtriResult<Option<NamedMember>> {
-        let named = self
-            .client()
-            .request_client()
-            .get_group_member_info(self.id(), id)
-            .await
-            .map(|info| {
-                if info.join_time == 0 {
-                    return None;
-                }
-
-                let named = NamedMember::from(self.clone(), info);
-                self.cache_member(named.clone());
-                Some(named)
-            })?;
-
-        Ok(named)
-    }
-
-    pub(crate) async fn refresh_member(&self, id: i64) -> Option<NamedMember> {
-        self.try_refresh_member(id)
-            .await
-            .map_err(|e| {
-                error!("刷新成员时出现错误: {}", e);
-                e
-            })
-            .unwrap_or(None)
-    }
-
     async fn _send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
         self.client()
             .request_client()
@@ -123,6 +94,7 @@ impl Group {
             })
     }
 
+    #[inline]
     pub async fn send_message<M: Into<MessageChain>>(&self, msg: M) -> AtriResult<MessageReceipt> {
         self._send_message(msg.into()).await
     }
@@ -136,6 +108,7 @@ impl Group {
             .map_err(AtriError::from)
     }
 
+    #[inline]
     pub async fn send_forward_message<M: Into<ForwardMessage>>(
         &self,
         msg: M,
@@ -162,6 +135,7 @@ impl Group {
             })
     }
 
+    #[inline]
     pub async fn upload_image<I: Into<Vec<u8>>>(&self, image: I) -> AtriResult<Image> {
         self._upload_image(image.into()).await
     }
@@ -174,6 +148,7 @@ impl Group {
             .map_err(AtriError::from)
     }
 
+    #[inline]
     pub async fn recall_message<M: RecallMessage>(&self, msg: &M) -> AtriResult<()> {
         self._recall_message(msg.receipt()).await
     }
@@ -186,6 +161,7 @@ impl Group {
             .map_err(AtriError::from)
     }
 
+    #[inline]
     pub async fn change_name<S: Into<String>>(&self, name: S) -> AtriResult<()> {
         self._change_name(name.into()).await
     }
@@ -229,6 +205,7 @@ impl Group {
 
 // internal impls
 impl Group {
+    #[inline]
     pub(crate) fn from(bot: Client, info: ricq::structs::GroupInfo) -> Self {
         let imp = imp::Group {
             client: bot,
@@ -256,11 +233,46 @@ impl Group {
             .map(|m| m.1)
             .flatten()
     }
+
+    pub(crate) async fn try_refresh_member(&self, id: i64) -> AtriResult<Option<NamedMember>> {
+        let named = self
+            .client()
+            .request_client()
+            .get_group_member_info(self.id(), id)
+            .await
+            .map(|info| {
+                if info.join_time == 0 {
+                    return None;
+                }
+
+                let named = NamedMember::from(self.clone(), info);
+                self.cache_member(named.clone());
+                Some(named)
+            })?;
+
+        Ok(named)
+    }
+
+    pub(crate) async fn refresh_member(&self, id: i64) -> Option<NamedMember> {
+        self.try_refresh_member(id)
+            .await
+            .map_err(|e| {
+                error!("刷新成员时出现错误: {}", e);
+                e
+            })
+            .unwrap_or(None)
+    }
+}
+
+impl Debug for Group {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Group").field(&self.id()).finish()
+    }
 }
 
 impl Display for Group {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Group({})", self.id(),)
+        write!(f, "群[{}({})]", self.name(), self.id())
     }
 }
 

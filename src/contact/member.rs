@@ -7,6 +7,7 @@ use crate::{Client, GroupMemberInfo};
 use atri_ffi::contact::FFIMember;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::ManagedCloneable;
+use core::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -154,6 +155,18 @@ impl NamedMember {
         let inner = imp::NamedMember { group, info };
 
         Self(inner.into())
+    }
+}
+
+impl fmt::Debug for NamedMember {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("NamedMember").field(&self.id()).finish()
+    }
+}
+
+impl fmt::Display for NamedMember {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "群员[{}({})]", self.card_name(), self.id())
     }
 }
 

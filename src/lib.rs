@@ -1,21 +1,13 @@
 #![feature(once_cell)]
 
-extern crate core;
-
-use std::sync::OnceLock;
-use std::time::Duration;
-
 use dashmap::DashMap;
-use ricq::client::NetworkStatus;
 use ricq::msg::elem::Text;
 use ricq::structs::GroupMemberInfo;
-
-use tokio::runtime;
-use tokio::runtime::Runtime;
-use tokio::task::JoinHandle;
-use tracing::error;
+use std::sync::OnceLock;
 
 use crate::client::Client;
+use tokio::runtime;
+use tokio::runtime::Runtime;
 
 use crate::event::listener::Listener;
 use crate::event::Event;
@@ -39,7 +31,6 @@ pub struct Atri {
     pub runtime: Runtime,
     //listener_runtime: Runtime,
     //listener_worker: ListenerWorker,
-    pub disconnect_provider: JoinHandle<()>,
     pub plugin_manager: PluginManager,
 }
 
@@ -51,38 +42,10 @@ impl Atri {
             .build()
             .unwrap();
 
-        let provider = runtime.spawn(async {
-            loop {
-                tokio::time::sleep(Duration::from_secs(60 * 2)).await;
-
-                for client in Client::list() {
-                    if client.network_status() == 4 {
-                        global_status().remove_client(client.id());
-                        error!("{}因网络原因掉线, 尝试重连", client);
-
-                        client.request_client().stop(NetworkStatus::NetworkOffline);
-
-                        if let Err(e) = client.start().await {
-                            error!("重连失败: {}", e);
-                            continue;
-                        }
-
-                        if let Err(e) = client.try_login().await {
-                            error!("登录失败: {}", e);
-                            continue;
-                        }
-
-                        global_status().add_client(client);
-                    }
-                }
-            }
-        });
-
         Self {
             runtime,
             //listener_runtime,
             //listener_worker,
-            disconnect_provider: provider,
             plugin_manager: PluginManager::new(),
         }
     }
