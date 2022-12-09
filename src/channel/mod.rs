@@ -7,8 +7,11 @@ use ricq::handler::QEvent;
 use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tracing::{error, info, warn};
 
+use crate::contact::friend::Friend;
 use crate::contact::member::{AnonymousMember, NamedMember};
-use crate::event::{ClientLoginEvent, Event, FriendMessageEvent, GroupMessageEvent};
+use crate::event::{
+    ClientLoginEvent, Event, FriendMessageEvent, GroupMessageEvent, NewFriendEvent,
+};
 use crate::global_listener_worker;
 use crate::{global_listener_runtime, global_status, Client};
 
@@ -140,6 +143,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let friend_id = e.inner.from_uin;
 
                 let Some(friend) = client.find_or_refresh_friend_list(friend_id).await else {
+                    error!("无法找到好友: {}({})", e.inner.from_nick, friend_id);
                     return;
                 };
 
@@ -154,7 +158,14 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 Event::FriendMessage(base)
             }
-            QEvent::NewFriend(e) => {}
+            QEvent::NewFriend(e) => {
+                client = get_client!(e.client);
+
+                let f = Friend::from(client.clone(), e.inner);
+                client.cache_friend(f.clone());
+
+                Event::NewFriend(NewFriendEvent::from(f))
+            }
             QEvent::DeleteFriend(e) => {
                 client = get_client!(e.client);
 
@@ -168,7 +179,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let group_id = e.inner.group_code;
                 let op_id = e.inner.operator_uin;
 
-                if let Some(g) = client.find_group(group_id) {
+                if let Some(g) = client.find_or_refresh_group(group_id).await {
                     let member = g
                         .members_cache()
                         .get(&op_id)
@@ -192,15 +203,14 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let group_id = e.inner.group_code;
                 let member_id = e.inner.member_uin;
 
-                let Some(group) = client.find_group(group_id) else {
+                let Some(group) = client.find_or_refresh_group(group_id).await else {
                     cannot_find_group(group_id);
                     error_more_info(&e);
 
                     return;
                 };
 
-                if member_id == client.id() {
-                } else {
+                if member_id != client.id() {
                     let _member = group.try_refresh_member(member_id).await;
                 }
 
@@ -213,6 +223,11 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 if member == client.id() {
                     client.remove_group_cache(group_id);
                 } else {
+                    let Some(group) = client.find_or_refresh_group(group_id).await else {
+                        return;
+                    };
+
+                    group.remove_member_cache(member);
                 }
 
                 Event::Unknown(QEvent::GroupLeave(e).into())

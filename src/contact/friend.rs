@@ -44,9 +44,9 @@ impl Friend {
             return false;
         }
 
-        let map = self.client().remove_friend_cache(self.id());
+        let deleted = self.client().remove_friend_cache(self.id());
 
-        map.is_some()
+        deleted.is_some()
     }
 
     async fn _send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
@@ -103,7 +103,10 @@ impl Friend {
     pub async fn recall_message<M: RecallMessage>(&self, msg: &M) -> AtriResult<()> {
         self._recall_message(msg.receipt()).await
     }
+}
 
+// internal impls
+impl Friend {
     pub(crate) fn from(client: Client, info: ricq::structs::FriendInfo) -> Self {
         let f = imp::Friend { client, info };
 

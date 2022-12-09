@@ -75,7 +75,7 @@ impl Client {
                 }
             });
 
-            self.0.enable.swap(true, Ordering::Relaxed);
+            self.0.enable.store(true, Ordering::Relaxed);
         } else {
             error!("{}登陆失败: {:?}", self, resp);
 
@@ -168,10 +168,9 @@ impl Client {
         let infos = self.request_client().get_group_list().await?;
 
         for info in infos {
-            let code = info.code;
             let group = Group::from(self.clone(), info);
 
-            self.group_caches().insert(code, group);
+            self.cache_group(group);
         }
 
         Ok(())
@@ -181,7 +180,7 @@ impl Client {
         let info = self.request_client().get_group_info(group_id).await?;
         if let Some(info) = info {
             let g = Group::from(self.clone(), info);
-            self.group_caches().insert(group_id, g.clone());
+            self.cache_group(g.clone());
             return Ok(Some(g));
         } else {
             self.group_caches().remove(&group_id);
@@ -190,40 +189,28 @@ impl Client {
         Ok(None)
     }
 
-    pub(crate) fn friend_caches(&self) -> &DashMap<i64, Friend> {
-        &self.0.friends
-    }
-
-    pub(crate) fn group_caches(&self) -> &DashMap<i64, Group> {
-        &self.0.groups
-    }
-
-    pub(crate) fn cache_friend(&self, friend: Friend) {
-        self.friend_caches().insert(friend.id(), friend);
-    }
-
-    pub(crate) fn remove_friend_cache(&self, friend_id: i64) -> Option<Friend> {
-        self.0.friends.remove(&friend_id).map(|(_, f)| f)
-    }
-
-    pub(crate) fn remove_group_cache(&self, group_id: i64) -> Option<Group> {
-        self.0.groups.remove(&group_id).map(|(_, g)| g)
-    }
-
     #[inline]
     pub fn work_dir(&self) -> &Path {
         &self.0.work_dir
     }
 
     pub fn find_group(&self, id: i64) -> Option<Group> {
-        if let Some(g) = self.0.groups.get(&id) {
+        if let Some(g) = self.group_caches().get(&id) {
             return Some(g.clone());
         }
 
         None
     }
 
-    pub async fn find_or_refresh_group(&self, id: i64) -> Option<Group> {
+    pub fn find_friend(&self, id: i64) -> Option<Friend> {
+        if let Some(f) = self.0.friends.get(&id) {
+            return Some(f.clone());
+        }
+
+        None
+    }
+
+    pub(crate) async fn find_or_refresh_group(&self, id: i64) -> Option<Group> {
         if let Some(g) = self.find_group(id) {
             return Some(g);
         }
@@ -236,14 +223,6 @@ impl Client {
                 e
             })
             .unwrap_or(None)
-    }
-
-    pub fn find_friend(&self, id: i64) -> Option<Friend> {
-        if let Some(f) = self.0.friends.get(&id) {
-            return Some(f.clone());
-        }
-
-        None
     }
 
     pub async fn find_or_refresh_friend_list(&self, id: i64) -> Option<Friend> {
@@ -259,21 +238,53 @@ impl Client {
     }
 
     pub fn groups(&self) -> Vec<Group> {
-        self.0.groups.iter().map(|g| g.clone()).collect()
+        self.group_caches().iter().map(|g| g.clone()).collect()
     }
 
     pub fn friends(&self) -> Vec<Friend> {
         self.0.friends.iter().map(|f| f.clone()).collect()
     }
 
+    /*pub async fn guild_client(&self) -> GuildClient {
+        GuildClient::new(&self.0.client).await
+    }*/
+}
+
+impl Client {
+    #[inline]
+    pub(crate) fn friend_caches(&self) -> &DashMap<i64, Friend> {
+        &self.0.friends
+    }
+
+    #[inline]
+    pub(crate) fn group_caches(&self) -> &DashMap<i64, Group> {
+        &self.0.groups
+    }
+
+    #[inline]
+    pub(crate) fn cache_friend(&self, friend: Friend) {
+        self.friend_caches().insert(friend.id(), friend);
+    }
+
+    #[inline]
+    pub(crate) fn cache_group(&self, group: Group) {
+        self.group_caches().insert(group.id(), group);
+    }
+
+    #[inline]
+    pub(crate) fn remove_friend_cache(&self, friend_id: i64) -> Option<Friend> {
+        self.friend_caches().remove(&friend_id).map(|(_, f)| f)
+    }
+
+    #[inline]
+    pub(crate) fn remove_group_cache(&self, group_id: i64) -> Option<Group> {
+        self.group_caches().remove(&group_id).map(|(_, g)| g)
+    }
+
     #[inline]
     pub(crate) fn request_client(&self) -> &RQClient {
         &self.0.client
     }
-
-    /*pub async fn guild_client(&self) -> GuildClient {
-        GuildClient::new(&self.0.client).await
-    }*/
 }
 
 impl PartialEq for Client {

@@ -18,22 +18,6 @@ use crate::Client;
 pub struct Group(Arc<imp::Group>);
 
 impl Group {
-    pub(crate) fn from(bot: Client, info: ricq::structs::GroupInfo) -> Self {
-        let imp = imp::Group {
-            client: bot,
-            info,
-            member_list_refreshed: AtomicBool::new(false),
-            members: DashMap::new(),
-        };
-
-        Self(Arc::new(imp))
-    }
-
-    #[inline]
-    pub(crate) fn members_cache(&self) -> &DashMap<i64, Option<NamedMember>> {
-        &self.0.members
-    }
-
     #[inline]
     pub fn id(&self) -> i64 {
         self.0.info.code
@@ -63,11 +47,11 @@ impl Group {
                 .get_group_member_list(self.id(), owner)
                 .await
                 .map(|r| {
-                    self.0.member_list_refreshed.swap(true, Ordering::Release);
+                    self.0.member_list_refreshed.store(true, Ordering::Release);
                     r
                 })
                 .unwrap_or_else(|e| {
-                    error!("刷新群聊成员信息时出现错误: {:?}", e);
+                    error!("刷新群聊成员信息时出现错误: {}", e);
                     vec![]
                 })
                 .into_iter()
@@ -237,14 +221,40 @@ impl Group {
             return false;
         }
 
-        let map = self.client().remove_group_cache(self.id());
+        let deleted = self.client().remove_group_cache(self.id());
 
-        map.is_some()
+        deleted.is_some()
+    }
+}
+
+// internal impls
+impl Group {
+    pub(crate) fn from(bot: Client, info: ricq::structs::GroupInfo) -> Self {
+        let imp = imp::Group {
+            client: bot,
+            info,
+            member_list_refreshed: AtomicBool::new(false),
+            members: DashMap::new(),
+        };
+
+        Self(Arc::new(imp))
+    }
+
+    #[inline]
+    pub(crate) fn members_cache(&self) -> &DashMap<i64, Option<NamedMember>> {
+        &self.0.members
     }
 
     #[inline]
     pub(crate) fn cache_member(&self, member: NamedMember) {
         self.members_cache().insert(member.id(), Some(member));
+    }
+
+    pub(crate) fn remove_member_cache(&self, member_id: i64) -> Option<NamedMember> {
+        self.members_cache()
+            .remove(&member_id)
+            .map(|m| m.1)
+            .flatten()
     }
 }
 

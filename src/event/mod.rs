@@ -24,6 +24,7 @@ pub enum Event {
     ClientLogin(ClientLoginEvent),
     GroupMessage(GroupMessageEvent),
     FriendMessage(FriendMessageEvent),
+    NewFriend(NewFriendEvent),
     Unknown(SharedEvent<QEvent>),
 }
 
@@ -43,6 +44,7 @@ impl Event {
             ClientLogin => 0;
             GroupMessage => 1;
             FriendMessage => 2;
+            NewFriend => 3;
             Unknown => 255;
         };
 
@@ -71,6 +73,7 @@ macro_rules! event_fun_impl {
             ClientLogin,
             GroupMessage,
             FriendMessage,
+            NewFriend,
             Unknown;
             $name: $ret as $func
         }
@@ -273,8 +276,16 @@ impl ContactSubject for FriendMessageEvent {
 pub type ClientLoginEvent = SharedEvent<imp::ClientLoginEvent>;
 
 impl ClientLoginEvent {
-    pub fn from(bot: Client) -> Self {
+    pub(crate) fn from(bot: Client) -> Self {
         Self::new(imp::ClientLoginEvent { bot })
+    }
+}
+
+pub type NewFriendEvent = SharedEvent<imp::NewFriendEvent>;
+
+impl NewFriendEvent {
+    pub(crate) fn from(friend: Friend) -> Self {
+        Self::new(imp::NewFriendEvent { friend })
     }
 }
 
@@ -291,6 +302,10 @@ mod imp {
     use crate::message::MessageChain;
     use crate::Client;
 
+    pub struct ClientLoginEvent {
+        pub bot: Client,
+    }
+
     pub struct GroupMessageEvent {
         pub group: Group,
         pub message: MessageChain,
@@ -301,8 +316,8 @@ mod imp {
         pub message: MessageChain,
     }
 
-    pub struct ClientLoginEvent {
-        pub bot: Client,
+    pub struct NewFriendEvent {
+        pub friend: Friend,
     }
 }
 

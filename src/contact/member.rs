@@ -31,9 +31,9 @@ impl Member {
         }
     }
 
-    pub async fn send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
+    pub async fn send_message<M: Into<MessageChain>>(&self, msg: M) -> AtriResult<MessageReceipt> {
         match self {
-            Self::Named(named) => named.send_message(chain).await,
+            Self::Named(named) => named.send_message(msg).await,
             Self::Anonymous(..) => Err(AtriError::NotSupported),
         }
     }
@@ -124,7 +124,7 @@ impl NamedMember {
             .map_err(AtriError::from)
     }
 
-    pub async fn send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
+    async fn _send_message(&self, chain: MessageChain) -> AtriResult<MessageReceipt> {
         let client = self.group().client();
         let receipt = if let Some(f) = client.find_friend(self.id()) {
             f.send_message(chain).await?
@@ -137,6 +137,10 @@ impl NamedMember {
         };
 
         Ok(receipt)
+    }
+
+    pub async fn send_message<M: Into<MessageChain>>(&self, msg: M) -> AtriResult<MessageReceipt> {
+        self._send_message(msg.into()).await
     }
 
     pub fn at(&self) -> At {

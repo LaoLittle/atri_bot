@@ -130,7 +130,7 @@ impl ListenerWorker {
     }
 
     pub fn close(&self) {
-        self.closed.swap(true, Ordering::Relaxed);
+        self.closed.store(true, Ordering::Release);
     }
 }
 

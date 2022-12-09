@@ -308,6 +308,6 @@ impl ListenerGuard {
 impl Drop for ListenerGuard {
     #[inline]
     fn drop(&mut self) {
-        self.closed.swap(true, Ordering::Relaxed);
+        self.closed.store(true, Ordering::Relaxed);
     }
 }
