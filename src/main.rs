@@ -9,7 +9,7 @@ use atri_bot::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND}
 use atri_bot::service::log::init_logger;
 use atri_bot::service::login::login_clients;
 use atri_bot::service::plugin::PluginManager;
-use atri_bot::terminal::{handle_standard_output, start_read_input, PROMPT};
+use atri_bot::terminal::{handle_standard_output, start_read_input, stop_info, PROMPT};
 use atri_bot::{global_listener_runtime, Atri};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::{io, signal};
@@ -103,7 +103,7 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
                     info!("{}", s);
                 }
                 "exit" | "quit" | "stop" | "q" => {
-                    info!("正在停止AtriBot");
+                    stop_info();
                     break;
                 }
                 plugin if plugin.starts_with(PLUGIN_COMMAND) => {

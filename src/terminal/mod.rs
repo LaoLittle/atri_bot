@@ -5,8 +5,10 @@ use std::sync::RwLock;
 
 use crate::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
 use crate::PluginManager;
-use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, KeyCode};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use crossterm::event::{
+    DisableBracketedPaste, EnableBracketedPaste, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
+};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType};
 use crossterm::{event, execute};
 use event::Event;
 use tracing::{error, info};
@@ -27,6 +29,10 @@ pub static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
 
 pub const PROMPT: &[u8] = b">> ";
 
+pub fn stop_info() {
+    info!("正在停止AtriBot");
+}
+
 pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
 
@@ -34,6 +40,15 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
 
     while let Ok(e) = event::read() {
         match e {
+            Event::Key(KeyEvent {
+                code: KeyCode::Char('c'),
+                modifiers: KeyModifiers::CONTROL,
+                kind: KeyEventKind::Press,
+                state: _,
+            }) => {
+                stop_info();
+                break;
+            }
             Event::Key(k) => match k.code {
                 KeyCode::Char(c) => {
                     INPUT_BUFFER.write()?.push(c);
@@ -78,7 +93,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             info!("{}", s);
                         }
                         "exit" | "quit" | "stop" | "q" => {
-                            info!("正在停止AtriBot");
+                            stop_info();
                             break;
                         }
                         plugin if plugin.starts_with(PLUGIN_COMMAND) => {
@@ -103,7 +118,11 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
         }
     }
 
-    let _ = execute!(stdout(), DisableBracketedPaste);
+    let _ = execute!(
+        stdout(),
+        DisableBracketedPaste,
+        Clear(ClearType::CurrentLine)
+    );
 
     disable_raw_mode()?;
     Ok(())
