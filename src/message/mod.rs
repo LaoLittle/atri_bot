@@ -10,10 +10,9 @@ use crate::message::at::At;
 use crate::message::face::Face;
 use crate::message::meta::{Anonymous, MessageMetadata, MessageReceipt, RecallMessage, Reply};
 use crate::Text;
-use core::slice;
 use image::Image;
 use ricq::msg::elem::RQElem;
-use ricq::msg::{MessageElem, PushElem};
+use ricq::msg::{MessageChain as RQMessageChain, MessageElem, PushElem};
 use ricq::structs::{FriendMessage, GroupMessage};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter, Write};
@@ -26,7 +25,7 @@ pub struct MessageChain {
 }
 
 impl MessageChain {
-    pub fn iter(&self) -> slice::Iter<'_, MessageElement> {
+    pub fn iter(&self) -> std::slice::Iter<'_, MessageElement> {
         self.into_iter()
     }
 
@@ -110,7 +109,7 @@ impl IntoIterator for MessageChain {
 
 impl<'a> IntoIterator for &'a MessageChain {
     type Item = &'a MessageElement;
-    type IntoIter = slice::Iter<'a, MessageElement>;
+    type IntoIter = std::slice::Iter<'a, MessageElement>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.elements.iter()
@@ -185,9 +184,9 @@ impl From<ricq::msg::MessageChain> for MessageChain {
     }
 }
 
-impl From<MessageChain> for ricq::msg::MessageChain {
+impl From<MessageChain> for RQMessageChain {
     fn from(chain: MessageChain) -> Self {
-        let mut rq = ricq::msg::MessageChain::default();
+        let mut rq = RQMessageChain::default();
         MessageChain::push_to(chain, &mut rq.0);
         rq
     }
