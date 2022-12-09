@@ -1,7 +1,7 @@
+use crate::terminal::{INPUT_BUFFER, PROMPT, TERMINAL_CLOSED};
 use std::io;
 use std::io::Write;
-
-use crate::terminal::{INPUT_BUFFER, PROMPT};
+use std::sync::atomic::Ordering;
 use tracing::{warn, Level};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::fmt::time::OffsetTime;
@@ -74,11 +74,22 @@ impl Write for LogStdoutWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         let mut stdout = io::stdout().lock();
 
+        if TERMINAL_CLOSED.load(Ordering::Relaxed) {
+            return Ok(buf.len());
+        }
+
         stdout.write_all(&[13])?;
         let size = stdout.write(buf)?;
 
         stdout.write_all(PROMPT)?;
-        stdout.write_all(INPUT_BUFFER.read().unwrap().as_bytes())?;
+
+        match INPUT_BUFFER.try_read() {
+            Ok(rw) => {
+                stdout.write_all(rw.as_bytes())?;
+            }
+            Err(_) => {}
+        }
+
         stdout.flush()?;
 
         Ok(size)

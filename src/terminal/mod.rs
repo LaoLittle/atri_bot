@@ -1,10 +1,12 @@
 use cfg_if::cfg_if;
 use std::error::Error;
 use std::io::{stdout, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::RwLock;
 
 use crate::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
 use crate::PluginManager;
+use crossterm::cursor::MoveToColumn;
 use crossterm::event::{
     DisableBracketedPaste, EnableBracketedPaste, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
 };
@@ -25,7 +27,9 @@ cfg_if! {
     }
 }
 
+pub static TERMINAL_CLOSED: AtomicBool = AtomicBool::new(false);
 pub static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
+pub const BUFFER_SIZE: usize = 512;
 
 pub const PROMPT: &[u8] = b">> ";
 
@@ -35,6 +39,8 @@ pub fn stop_info() {
 
 pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error>> {
     enable_raw_mode()?;
+
+    INPUT_BUFFER.write()?.reserve(BUFFER_SIZE);
 
     let _ = execute!(stdout(), EnableBracketedPaste);
 
@@ -49,7 +55,12 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                 stop_info();
                 break;
             }
-            Event::Key(k) => match k.code {
+            Event::Key(KeyEvent {
+                code,
+                modifiers: KeyModifiers::NONE,
+                kind: KeyEventKind::Press,
+                state: _,
+            }) => match code {
                 KeyCode::Char(c) => {
                     INPUT_BUFFER.write()?.push(c);
                     let mut stdout = stdout().lock();
@@ -64,18 +75,13 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                     };
                 }
                 KeyCode::Enter => {
-                    let input = {
-                        let mut wl = INPUT_BUFFER.write()?;
-                        let s = wl.clone();
-                        wl.clear();
-                        s
-                    };
+                    let mut wl = INPUT_BUFFER.write()?;
 
                     let mut stdout = stdout().lock();
                     stdout.write_all(b"\n")?;
                     stdout.flush()?;
 
-                    let cmd = input.trim_end();
+                    let cmd = wl.trim_end();
                     match cmd {
                         "" => {
                             stdout.write_all(PROMPT)?;
@@ -93,7 +99,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             info!("{}", s);
                         }
                         "exit" | "quit" | "stop" | "q" => {
-                            stop_info();
+                            TERMINAL_CLOSED.store(true, Ordering::Relaxed);
                             break;
                         }
                         plugin if plugin.starts_with(PLUGIN_COMMAND) => {
@@ -105,6 +111,8 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             info!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
                         }
                     }
+
+                    wl.clear();
                 }
                 _ => {}
             },
@@ -121,7 +129,8 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
     let _ = execute!(
         stdout(),
         DisableBracketedPaste,
-        Clear(ClearType::CurrentLine)
+        Clear(ClearType::CurrentLine),
+        MoveToColumn(0)
     );
 
     disable_raw_mode()?;
