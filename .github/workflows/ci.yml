@@ -32,6 +32,7 @@ jobs:
 
       - name: Install rust toolchain
         run: |
+          rustup self update
           rustup default nightly
           rustup target add ${{ matrix.target.tool }}
 
@@ -106,6 +107,7 @@ jobs:
 
       - name: Install rust toolchain
         run: |
+          rustup self update
           rustup default nightly
           rustup target add ${{ matrix.target.tool }}
 
