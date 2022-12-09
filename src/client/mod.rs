@@ -17,7 +17,7 @@ use ricq::ext::common::after_login;
 use ricq::ext::reconnect::{auto_reconnect, Credential};
 use ricq::{Client as RQClient, LoginResponse};
 use tokio::io;
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
 use crate::contact::group::Group;
 use crate::error::{AtriError, AtriResult, LoginError};
@@ -103,8 +103,12 @@ impl Client {
                     .request_client()
                     .stop(ricq::client::NetworkStatus::NetworkOffline);
 
-                let Ok(stream) = client.0.connect().await else {
-                    return;
+                let stream = match client.0.connect().await {
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!("重连失败: {}", e);
+                        return;
+                    }
                 };
 
                 client.0.start(stream).await;
@@ -114,6 +118,7 @@ impl Client {
                     return;
                 }
 
+                info!("{}重连成功", client);
                 global_status().add_client(client);
             } else {
                 warn!("{}下线", client);
@@ -452,7 +457,7 @@ mod imp {
             let mut servers = self.client.get_address_list().await;
 
             let total = servers.len();
-            let mut times = 0;
+            let mut times = 1;
             Ok(loop {
                 let socket = TcpSocket::new_v4()?;
                 let addr = servers

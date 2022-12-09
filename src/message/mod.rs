@@ -68,7 +68,19 @@ impl MessageChain {
     }
 
     pub fn to_json(&self) -> String {
-        serde_json::to_string(self).expect("Serializing error")
+        let known: Vec<MessageElement> = self
+            .into_iter()
+            .filter_map(|e| match e {
+                MessageElement::Unknown(_) => None,
+                or => Some(or.clone()),
+            })
+            .collect();
+
+        serde_json::to_string(&MessageChain {
+            meta: self.metadata().clone(),
+            elements: known,
+        })
+        .expect("Serializing error")
     }
 
     pub fn from_json(s: &str) -> serde_json::Result<Self> {
@@ -211,7 +223,7 @@ impl PushElem for MessageChain {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "type")]
+#[serde(tag = "type", content = "content")]
 #[serde(rename_all = "snake_case")]
 pub enum MessageElement {
     Text(String),
@@ -300,5 +312,19 @@ impl PushElem for MessageElement {
             Self::Face(face) => PushElem::push_to(face, vec),
             Self::Unknown(_rq) => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::message::{MessageChain, MessageElement};
+
+    #[test]
+    fn serde() {
+        let mut chain = MessageChain::default();
+        chain.elements.push(MessageElement::Text("114514".into()));
+        chain.elements.push(MessageElement::Text("514".into()));
+
+        println!("{}", chain.to_json());
     }
 }
