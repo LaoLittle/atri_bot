@@ -80,7 +80,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 if client.id() == e.inner.from_uin {
                     info!(
-                        "{client} >> 群 {}({}): {}",
+                        "{client} >> 群#{}({}): {}",
                         group_name(),
                         group_id,
                         message(),
@@ -126,7 +126,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 };
 
                 info!(
-                    "{}({}) >> 群 {}({}) >> {client}: {}",
+                    "{}({}) >> 群#{}({}) >> {client}: {}",
                     nick,
                     sender,
                     group_name(),
@@ -148,7 +148,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 };
 
                 info!(
-                    "好友 {}({}) >> {client}: {}",
+                    "好友#{}({}) >> {client}: {}",
                     friend.nickname(),
                     friend.id(),
                     e.inner.elements,
@@ -185,7 +185,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     let name = member
                         .map(|n| n.card_name().to_owned())
                         .unwrap_or_else(|| op_id.to_string());
-                    info!("群 {}({})解散, 操作人: {}", g.name(), g.id(), name);
+                    info!("群#{}({})解散, 操作人: {}", g.name(), g.id(), name);
                 } else {
                     info!("群({})解散, 操作人: {}", group_id, op_id);
                 }
