@@ -83,11 +83,8 @@ impl Write for LogStdoutWriter {
 
         stdout.write_all(PROMPT)?;
 
-        match INPUT_BUFFER.try_read() {
-            Ok(rw) => {
-                stdout.write_all(rw.as_bytes())?;
-            }
-            Err(_) => {}
+        if let Ok(rw) = INPUT_BUFFER.try_read() {
+            stdout.write_all(rw.as_bytes())?;
         }
 
         stdout.flush()?;

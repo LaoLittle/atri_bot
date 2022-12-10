@@ -165,8 +165,7 @@ impl GroupMessageEvent {
         self.group()
             .members_cache()
             .get(&id)
-            .map(|r| r.to_owned())
-            .flatten()
+            .and_then(|r| r.to_owned())
             .map(Member::Named)
             .unwrap_or_else(|| {
                 // when a named member send a message, the event channel handler will first

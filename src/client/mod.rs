@@ -87,6 +87,9 @@ impl Client {
 
     #[inline]
     pub async fn start(&self) -> io::Result<()> {
+        const OFFLINE_STATUS: ricq::client::NetworkStatus =
+            ricq::client::NetworkStatus::NetworkOffline;
+
         let client = self.clone();
 
         let stream = self.0.connect().await?;
@@ -94,34 +97,39 @@ impl Client {
         tokio::spawn(async move {
             client.0.start(stream).await;
 
-            if client.network_status() == 4 {
-                let id = client.id();
-                global_status().remove_client(id);
-                error!("{}因网络原因掉线, 尝试重连", client);
+            let id = client.id();
+            loop {
+                if client.network_status() == OFFLINE_STATUS as u8 {
+                    error!("{}因网络原因掉线, 尝试重连", client);
 
-                client
-                    .request_client()
-                    .stop(ricq::client::NetworkStatus::NetworkOffline);
+                    client.request_client().stop(OFFLINE_STATUS);
 
-                let stream = match client.0.connect().await {
-                    Ok(s) => s,
-                    Err(e) => {
-                        error!("重连失败: {}", e);
-                        return;
+                    let stream = match client.0.connect().await {
+                        Ok(s) => s,
+                        Err(e) => {
+                            error!("重连失败: {}", e);
+                            break;
+                        }
+                    };
+
+                    let handle = client.0.start(stream);
+
+                    if let Err(e) = client.try_login().await {
+                        error!("重连登录失败: {}", e);
+                        break;
                     }
-                };
 
-                client.0.start(stream).await;
+                    info!("{}重连成功", client);
 
-                if let Err(e) = client.try_login().await {
-                    error!("重连登录失败: {}", e);
-                    return;
+                    global_status().add_client(client.clone());
+
+                    handle.await;
+                } else {
+                    warn!("{}下线", client);
+                    break;
                 }
 
-                info!("{}重连成功", client);
-                global_status().add_client(client);
-            } else {
-                warn!("{}下线", client);
+                global_status().remove_client(id);
             }
         });
 
@@ -348,6 +356,7 @@ impl Display for Client {
 }
 
 mod imp {
+    use std::future::Future;
     use std::io::ErrorKind;
     use std::path::{Path, PathBuf};
     use std::sync::atomic::AtomicBool;
@@ -477,15 +486,18 @@ mod imp {
             })
         }
 
-        pub async fn start(&self, stream: TcpStream) {
+        pub fn start(&self, stream: TcpStream) -> impl Future {
             let client = self.client.clone();
 
             let handle = tokio::spawn(async move {
                 client.start(stream).await;
             });
-            yield_now().await;
 
-            let _ = handle.await;
+            async move {
+                yield_now().await;
+
+                let _ = handle.await;
+            }
         }
     }
 }

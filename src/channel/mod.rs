@@ -180,11 +180,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let op_id = e.inner.operator_uin;
 
                 if let Some(g) = client.find_or_refresh_group(group_id).await {
-                    let member = g
-                        .members_cache()
-                        .get(&op_id)
-                        .map(|r| r.to_owned())
-                        .flatten();
+                    let member = g.members_cache().get(&op_id).and_then(|r| r.to_owned());
 
                     let name = member
                         .map(|n| n.card_name().to_owned())

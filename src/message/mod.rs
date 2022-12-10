@@ -245,7 +245,7 @@ impl ToString for MessageElement {
                 let _ = write!(s, "$[Image:{}]", img.url());
             }
             Self::At(At { target, display }) => {
-                let _ = write!(s, "$[At:{}({})]", display, target);
+                let _ = write!(s, "$[At:{display}({target})]");
             }
             Self::AtAll => s.push_str("$[AtAll]"),
             Self::Face(f) => {

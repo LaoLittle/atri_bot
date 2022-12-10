@@ -37,8 +37,7 @@ impl Group {
         if self.0.member_list_refreshed.load(Ordering::Relaxed) {
             self.members_cache()
                 .iter()
-                .map(|named| named.to_owned())
-                .flatten()
+                .filter_map(|named| named.to_owned())
                 .collect()
         } else {
             let owner = self.0.info.owner_uin;
@@ -228,10 +227,7 @@ impl Group {
     }
 
     pub(crate) fn remove_member_cache(&self, member_id: i64) -> Option<NamedMember> {
-        self.members_cache()
-            .remove(&member_id)
-            .map(|m| m.1)
-            .flatten()
+        self.members_cache().remove(&member_id).and_then(|m| m.1)
     }
 
     pub(crate) async fn try_refresh_member(&self, id: i64) -> AtriResult<Option<NamedMember>> {

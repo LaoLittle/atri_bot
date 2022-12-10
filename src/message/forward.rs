@@ -9,6 +9,10 @@ impl ForwardMessage {
         self.0.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn iter(&self) -> std::slice::Iter<ForwardNode> {
         self.0.iter()
     }
