@@ -90,6 +90,8 @@ impl Client {
         const OFFLINE_STATUS: ricq::client::NetworkStatus =
             ricq::client::NetworkStatus::NetworkOffline;
 
+        const RECONNECT_DURATION: Duration = Duration::from_millis(2);
+
         let client = self.clone();
 
         let stream = self.0.connect().await?;
@@ -98,9 +100,18 @@ impl Client {
             client.0.start(stream).await;
 
             let id = client.id();
+            let mut reconnected = false;
             loop {
                 if client.network_status() == OFFLINE_STATUS as u8 {
-                    error!("{}因网络原因掉线, 尝试重连", client);
+                    if reconnected {
+                        error!(
+                            "{}因网络原因掉线, 将于{:.2}秒后尝试重连",
+                            client,
+                            RECONNECT_DURATION.as_secs_f32()
+                        );
+                    } else {
+                        error!("{}因网络原因掉线, 尝试重连", client);
+                    }
 
                     client.request_client().stop(OFFLINE_STATUS);
 
@@ -130,6 +141,8 @@ impl Client {
                 }
 
                 global_status().remove_client(id);
+                reconnected = true;
+                tokio::time::sleep(RECONNECT_DURATION).await;
             }
         });
 
