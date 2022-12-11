@@ -4,13 +4,11 @@ use std::error::Error;
 
 use std::time::Duration;
 
-use atri_bot::global_listener_worker;
 use atri_bot::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
 use atri_bot::service::log::init_logger;
 use atri_bot::service::login::login_clients;
 use atri_bot::service::plugin::PluginManager;
-use atri_bot::terminal::{handle_standard_output, start_read_input, stop_info, PROMPT};
-use atri_bot::{global_listener_runtime, Atri};
+use atri_bot::{global_listener_runtime, global_listener_worker, terminal, Atri};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::{io, signal};
 use tracing::{error, info};
@@ -65,7 +63,7 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
     info!("已启动AtriBot");
 
     let _out = tokio::task::spawn_blocking(|| {
-        if let Err(e) = handle_standard_output() {
+        if let Err(e) = terminal::handle_standard_output() {
             error!("接管Stdout失败: {}", e);
             return false;
         }
@@ -73,14 +71,14 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
         true
     });
 
-    if let Err(e) = start_read_input(manager) {
+    if let Err(e) = terminal::start_read_input(manager) {
         error!("初始化命令行服务异常: {}, 命令行可能不会正常工作", e);
 
         let stdin = io::stdin();
         let mut stdin = BufReader::new(stdin);
         let mut stdout = io::stdout();
 
-        let mut buf = String::new();
+        let mut buf = String::with_capacity(terminal::BUFFER_SIZE);
         loop {
             buf.clear();
             stdin.read_line(&mut buf).await?;
@@ -88,7 +86,7 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
 
             match cmd {
                 "" => {
-                    stdout.write_all(PROMPT).await?;
+                    stdout.write_all(terminal::PROMPT).await?;
                     stdout.flush().await?;
                 }
                 "help" | "?" | "h" => {
@@ -103,7 +101,7 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
                     info!("{}", s);
                 }
                 "exit" | "quit" | "stop" | "q" => {
-                    stop_info();
+                    terminal::stop_info();
                     break;
                 }
                 plugin if plugin.starts_with(PLUGIN_COMMAND) => {
