@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub mod login;
 
@@ -14,4 +14,38 @@ pub fn clients_dir_path() -> &'static Path {
     Path::new(CLIENTS_PATH)
 }
 
-const _DEFAULT_CONFIG_PATH: &str = "config";
+pub struct Config {
+    file: PathBuf,
+}
+
+pub struct ConfigBuilder<'a> {
+    root: PathBuf,
+    file: Option<&'a str>,
+}
+
+impl<'a> ConfigBuilder<'a> {
+    pub fn new() -> Self {
+        Self {
+            root: PathBuf::new(),
+            file: None,
+        }
+    }
+
+    pub fn with_root<P: Into<PathBuf>>(mut self, root: P) -> Self {
+        self.root = root.into();
+        self
+    }
+
+    pub fn with_file(mut self, name: &'a str) -> Self {
+        self.file = Some(name);
+        self
+    }
+
+    pub fn build(self) -> Option<Config> {
+        let mut path = self.root;
+
+        path.push(self.file?);
+
+        Some(Config { file: path })
+    }
+}
