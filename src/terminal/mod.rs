@@ -1,4 +1,9 @@
-use cfg_if::cfg_if;
+mod sys;
+//mod table;
+mod tabs;
+
+pub use sys::handle_standard_output;
+
 use std::error::Error;
 use std::io::{stdout, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -15,17 +20,7 @@ use crossterm::{event, execute};
 use event::Event;
 use tracing::{error, info};
 
-cfg_if! {
-    if #[cfg(unix)] {
-        mod unix;
-        pub use unix::*;
-    } else if #[cfg(windows)] {
-        mod windows;
-        pub use windows::*;
-    } else {
-        // not supported
-    }
-}
+use crate::terminal::tabs::enter_tabs;
 
 pub(crate) static TERMINAL_CLOSED: AtomicBool = AtomicBool::new(false);
 pub(crate) static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
@@ -54,10 +49,22 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
 
     INPUT_BUFFER.write()?.reserve(BUFFER_SIZE);
 
-    let _ = execute!(stdout(), EnableBracketedPaste);
+    execute!(stdout(), EnableBracketedPaste)?;
 
-    while let Ok(e) = event::read() {
+    loop {
+        let e = event::read()?;
+
         match e {
+            Event::Key(KeyEvent {
+                code: KeyCode::Char('q'),
+                modifiers: KeyModifiers::ALT,
+                kind: KeyEventKind::Press,
+                state: _,
+            }) => {
+                if let Err(e) = enter_tabs() {
+                    error!("{}", e);
+                }
+            }
             Event::Key(KeyEvent {
                 code: KeyCode::Char('c'),
                 modifiers: KeyModifiers::CONTROL,
@@ -123,7 +130,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
             }
             Event::Key(KeyEvent {
                 code,
-                modifiers: KeyModifiers::NONE,
+                modifiers: _,
                 kind: KeyEventKind::Press,
                 state: _,
             }) => match code {
@@ -156,7 +163,8 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             continue;
                         }
                         "help" | "?" | "h" => {
-                            static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
+                            static INFOS: &[&str] =
+                                &["help: 显示本帮助", "exit: 退出程序", "Alt+Q: 进入Tui Test"];
 
                             let mut s = String::from('\n');
                             for &info in INFOS {
@@ -175,8 +183,8 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                                 error!("{}", e);
                             }
                         }
-                        _ => {
-                            info!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
+                        or => {
+                            info!("未知的命令 '{}', 使用 'help' 显示帮助信息", or);
                         }
                     }
 
@@ -201,12 +209,12 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
         }
     }
 
-    let _ = execute!(
+    execute!(
         stdout(),
         DisableBracketedPaste,
         Clear(ClearType::CurrentLine),
         MoveToColumn(0)
-    );
+    )?;
 
     disable_raw_mode()?;
     Ok(())
