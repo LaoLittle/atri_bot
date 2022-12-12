@@ -1,7 +1,6 @@
 extern crate core;
 
 use std::error::Error;
-
 use std::time::Duration;
 
 use atri_bot::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
@@ -16,6 +15,8 @@ use tracing::{error, info};
 type MainResult = Result<(), Box<dyn Error>>;
 
 fn main() -> MainResult {
+    print_welcome_info();
+
     let _guards = init_logger();
     let mut atri = Atri::new();
 
@@ -72,6 +73,7 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
     });
 
     if let Err(e) = terminal::start_read_input(manager) {
+        let _ = crossterm::terminal::disable_raw_mode();
         error!("初始化命令行服务异常: {}, 命令行可能不会正常工作", e);
 
         let stdin = io::stdin();
@@ -117,4 +119,11 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
     }
 
     Ok(())
+}
+
+fn print_welcome_info() {
+    println!(
+        "{}",
+        include_str!(concat!(env!("OUT_DIR"), "/welcome_info"))
+    );
 }
