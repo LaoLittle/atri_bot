@@ -115,6 +115,39 @@ impl Group {
         self._send_forward_message(msg.into()).await
     }
 
+    /*
+    async fn _upload_forward_message(&self, forward: ForwardMessage) -> AtriResult<MessageChain> {
+        let t_sum = msgs.len();
+        let preview = gen_forward_preview(&msgs);
+        let res_id = self.client().request_client().upload_msgs(group_code, msgs, false).await?;
+        // TODO friend template?
+        let template = format!(
+            r##"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><msg serviceID="35" templateID="1" action="viewMultiMsg" brief="[聊天记录]" m_resid="{}" m_fileName="{}" tSum="{}" sourceMsgId="0" url="" flag="3" adverSign="0" multiMsgFlag="0"><item layout="1" advertiser_id="0" aid="0"><title size="34" maxLines="2" lineSpace="12">群聊的聊天记录</title>{}<hr hidden="false" style="0" /><summary size="26" color="#777777">查看{}条转发消息</summary></item><source name="聊天记录" icon="" action="" appid="-1" /></msg>"##,
+            res_id,
+            std::time::UNIX_EPOCH.elapsed().unwrap_or_else(|| {
+                unreachable!()
+            }).as_millis(),
+            t_sum,
+            preview,
+            t_sum
+        );
+        let mut chain = MessageChain::default();
+        chain.push(ricq::msg::elem::RichMsg {
+            service_id: 35,
+            template1: template,
+        });
+        chain
+            .0
+            .push(pb::msg::elem::Elem::GeneralFlags(pb::msg::GeneralFlags {
+                pendant_id: Some(0),
+                pb_reserve: Some(vec![0x78, 0x00, 0xF8, 0x01, 0x00, 0xC8, 0x02, 0x00]),
+                ..Default::default()
+            }));
+        self._send_group_message(group_code, chain.into(), None)
+            .await
+    }
+    */
+
     async fn _upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {
         self.client()
             .request_client()
