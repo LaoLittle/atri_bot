@@ -11,7 +11,7 @@ use atri_ffi::ManagedCloneable;
 
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
-use crate::contact::member::{AnonymousMember, Member};
+use crate::contact::member::{AnonymousMember, Member, NamedMember};
 use crate::contact::{Contact, ContactSubject};
 use crate::message::MessageChain;
 use crate::{Client, Listener};
@@ -25,6 +25,9 @@ pub enum Event {
     GroupMessage(GroupMessageEvent),
     FriendMessage(FriendMessageEvent),
     NewFriend(NewFriendEvent),
+    DeleteFriend(DeleteFriendEvent),
+    FriendPoke(FriendPokeEvent),
+    GroupPoke(GroupPokeEvent),
     Unknown(SharedEvent<QEvent>),
 }
 
@@ -45,6 +48,9 @@ impl Event {
             GroupMessage => 1;
             FriendMessage => 2;
             NewFriend => 3;
+            DeleteFriend => 4;
+            FriendPoke => 5;
+            GroupPoke => 6;
             Unknown => 255;
         };
 
@@ -74,6 +80,9 @@ macro_rules! event_fun_impl {
             GroupMessage,
             FriendMessage,
             NewFriend,
+            DeleteFriend,
+            FriendPoke,
+            GroupPoke,
             Unknown;
             $name: $ret as $func
         }
@@ -95,6 +104,12 @@ impl FromEvent for Event {
 #[derive(Debug)]
 pub struct SharedEvent<T> {
     event: Arc<EventWithFlag<T>>,
+}
+
+impl<T> SharedEvent<T> {
+    pub fn inner(&self) -> &T {
+        &self.event.inner
+    }
 }
 
 impl<T> Clone for SharedEvent<T> {
@@ -144,10 +159,10 @@ pub type GroupMessageEvent = SharedEvent<imp::GroupMessageEvent>;
 
 impl GroupMessageEvent {
     pub fn group(&self) -> &Group {
-        &self.event.inner.group
+        &self.inner().group
     }
 
-    pub fn bot(&self) -> &Client {
+    pub fn client(&self) -> &Client {
         self.group().client()
     }
 
@@ -175,7 +190,7 @@ impl GroupMessageEvent {
     }
 
     pub fn message(&self) -> &MessageChain {
-        &self.event.inner.message
+        &self.inner().message
     }
 
     pub async fn next_event<F>(&self, timeout: Duration, filter: F) -> Option<GroupMessageEvent>
@@ -239,11 +254,15 @@ pub type FriendMessageEvent = SharedEvent<imp::FriendMessageEvent>;
 
 impl FriendMessageEvent {
     pub fn friend(&self) -> &Friend {
-        &self.event.inner.friend
+        &self.inner().friend
+    }
+
+    pub fn client(&self) -> &Client {
+        self.friend().client()
     }
 
     pub fn message(&self) -> &MessageChain {
-        &self.event.inner.message
+        &self.inner().message
     }
 
     pub(crate) fn from(friend: Friend, ori: ricq::client::event::FriendMessageEvent) -> Self {
@@ -275,16 +294,98 @@ impl ContactSubject for FriendMessageEvent {
 pub type ClientLoginEvent = SharedEvent<imp::ClientLoginEvent>;
 
 impl ClientLoginEvent {
+    pub fn client(&self) -> &Client {
+        &self.inner().client
+    }
+}
+
+impl ClientLoginEvent {
     pub(crate) fn from(bot: Client) -> Self {
-        Self::new(imp::ClientLoginEvent { bot })
+        Self::new(imp::ClientLoginEvent { client: bot })
     }
 }
 
 pub type NewFriendEvent = SharedEvent<imp::NewFriendEvent>;
 
 impl NewFriendEvent {
+    pub fn friend(&self) -> &Friend {
+        &self.inner().friend
+    }
+
+    pub fn client(&self) -> &Client {
+        self.friend().client()
+    }
+}
+
+impl NewFriendEvent {
     pub(crate) fn from(friend: Friend) -> Self {
         Self::new(imp::NewFriendEvent { friend })
+    }
+}
+
+pub type DeleteFriendEvent = SharedEvent<imp::DeleteFriendEvent>;
+
+impl DeleteFriendEvent {
+    pub fn friend(&self) -> &Friend {
+        &self.inner().friend
+    }
+
+    pub fn client(&self) -> &Client {
+        self.friend().client()
+    }
+}
+
+impl DeleteFriendEvent {
+    pub(crate) fn from(friend: Friend) -> Self {
+        Self::new(imp::DeleteFriendEvent { friend })
+    }
+}
+
+pub type FriendPokeEvent = SharedEvent<imp::FriendPokeEvent>;
+
+impl FriendPokeEvent {
+    pub fn friend(&self) -> &Friend {
+        &self.inner().friend
+    }
+
+    pub fn client(&self) -> &Client {
+        self.friend().client()
+    }
+}
+
+impl FriendPokeEvent {
+    pub(crate) fn from(friend: Friend) -> Self {
+        Self::new(imp::FriendPokeEvent { friend })
+    }
+}
+
+pub type GroupPokeEvent = SharedEvent<imp::GroupPokeEvent>;
+
+impl GroupPokeEvent {
+    pub fn group(&self) -> &Group {
+        &self.inner().group
+    }
+
+    pub fn client(&self) -> &Client {
+        self.group().client()
+    }
+
+    pub fn sender(&self) -> &NamedMember {
+        &self.inner().sender
+    }
+
+    pub fn target(&self) -> &NamedMember {
+        &self.inner().target
+    }
+}
+
+impl GroupPokeEvent {
+    pub(crate) fn from(group: Group, sender: NamedMember, target: NamedMember) -> Self {
+        Self::new(imp::GroupPokeEvent {
+            group,
+            sender,
+            target,
+        })
     }
 }
 
@@ -298,11 +399,12 @@ mod imp {
 
     use crate::contact::friend::Friend;
     use crate::contact::group::Group;
+    use crate::contact::member::NamedMember;
     use crate::message::MessageChain;
     use crate::Client;
 
     pub struct ClientLoginEvent {
-        pub bot: Client,
+        pub client: Client,
     }
 
     pub struct GroupMessageEvent {
@@ -317,6 +419,20 @@ mod imp {
 
     pub struct NewFriendEvent {
         pub friend: Friend,
+    }
+
+    pub struct DeleteFriendEvent {
+        pub friend: Friend, // for information purpose
+    }
+
+    pub struct FriendPokeEvent {
+        pub friend: Friend,
+    }
+
+    pub struct GroupPokeEvent {
+        pub group: Group,
+        pub sender: NamedMember,
+        pub target: NamedMember,
     }
 }
 

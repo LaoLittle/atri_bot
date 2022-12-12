@@ -10,7 +10,8 @@ use tracing::{error, info, warn};
 use crate::contact::friend::Friend;
 use crate::contact::member::{AnonymousMember, NamedMember};
 use crate::event::{
-    ClientLoginEvent, Event, FriendMessageEvent, GroupMessageEvent, NewFriendEvent,
+    ClientLoginEvent, DeleteFriendEvent, Event, FriendMessageEvent, FriendPokeEvent,
+    GroupMessageEvent, GroupPokeEvent, NewFriendEvent,
 };
 use crate::global_listener_worker;
 use crate::{global_listener_runtime, global_status, Client};
@@ -80,7 +81,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 if client.id() == e.inner.from_uin {
                     info!(
-                        "{client} >> 群#{}({}): {}",
+                        "{client} >> 群[{}({})]: {}",
                         group_name(),
                         group_id,
                         message(),
@@ -126,7 +127,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 };
 
                 info!(
-                    "{}({}) >> 群#{}({}) >> {client}: {}",
+                    "{}({}) >> 群[{}({})] >> {client}: {}",
                     nick,
                     sender,
                     group_name(),
@@ -147,12 +148,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     return;
                 };
 
-                info!(
-                    "好友#{}({}) >> {client}: {}",
-                    friend.nickname(),
-                    friend.id(),
-                    e.inner.elements,
-                );
+                info!("{friend} >> {client}: {}", e.inner.elements,);
 
                 let base = FriendMessageEvent::from(friend, e);
 
@@ -164,14 +160,54 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let f = Friend::from(client.clone(), e.inner);
                 client.cache_friend(f.clone());
 
+                info!("{f}添加");
+
                 Event::NewFriend(NewFriendEvent::from(f))
             }
             QEvent::DeleteFriend(e) => {
                 client = get_client!(e.client);
 
-                client.remove_friend_cache(e.inner.uin);
+                let id = e.inner.uin;
+                let Some(f) = client.remove_friend_cache(id) else {
+                    return;
+                };
 
-                Event::Unknown(QEvent::DeleteFriend(e).into())
+                Event::DeleteFriend(DeleteFriendEvent::from(f))
+            }
+            QEvent::FriendPoke(e) => {
+                client = get_client!(e.client);
+                let friend_id = e.inner.sender;
+
+                let Some(f) = client.find_friend(friend_id) else {
+                    error!("寻找好友{friend_id}失败");
+                    return;
+                };
+
+                Event::FriendPoke(FriendPokeEvent::from(f))
+            }
+            QEvent::GroupPoke(e) => {
+                client = get_client!(e.client);
+                let group_id = e.inner.group_code;
+                let Some(group) = client.find_or_refresh_group(group_id).await else {
+                    cannot_find_group(group_id);
+                    error_more_info(&e);
+
+                    return;
+                };
+
+                let sender = e.inner.sender;
+                let Some(sender) = group.find_member(sender).await else {
+                    error!("无法找到群成员{sender}, Raw event: {:?}", e);
+                    return;
+                };
+
+                let target = e.inner.sender;
+                let Some(target) = group.find_member(target).await else {
+                    error!("无法找到群成员{target}, Raw event: {:?}", e);
+                    return;
+                };
+
+                Event::GroupPoke(GroupPokeEvent::from(group, sender, target))
             }
             QEvent::GroupDisband(e) => {
                 client = get_client!(e.client);
@@ -219,8 +255,8 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 if member == client.id() {
                     client.remove_group_cache(group_id);
                 } else {
-                    let Some(group) = client.find_or_refresh_group(group_id).await else {
-                        return;
+                    let Some(group) = client.find_group(group_id) else {
+                        return; // already removed?
                     };
 
                     group.remove_member_cache(member);

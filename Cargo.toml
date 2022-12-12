@@ -1,6 +1,6 @@
 [package]
 name = "atri_bot"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
 authors = ["LaoLittle"]
 description = "A simple bot"
@@ -52,6 +52,7 @@ features = [
 ]
 
 [dependencies.ricq]
+git = "https://github.com/AtriKawaii/ricq.git"
 version = "0.1.19"
 
 #[dependencies.ricq-guild]

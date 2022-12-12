@@ -269,33 +269,6 @@ impl Client {
         None
     }
 
-    pub(crate) async fn find_or_refresh_group(&self, id: i64) -> Option<Group> {
-        if let Some(g) = self.find_group(id) {
-            return Some(g);
-        }
-
-        self.refresh_group(id)
-            .await
-            .map_err(|e| {
-                error!("获取群成员({})时发生错误: {}", id, e);
-
-                e
-            })
-            .unwrap_or(None)
-    }
-
-    pub async fn find_or_refresh_friend_list(&self, id: i64) -> Option<Friend> {
-        if let Some(f) = self.find_friend(id) {
-            return Some(f);
-        }
-
-        if let Err(e) = self.refresh_friend_list().await {
-            error!("获取好友({})失败: {}", id, e);
-        }
-
-        self.find_friend(id)
-    }
-
     pub fn groups(&self) -> Vec<Group> {
         self.group_caches().iter().map(|g| g.clone()).collect()
     }
@@ -338,6 +311,33 @@ impl Client {
     #[inline]
     pub(crate) fn remove_group_cache(&self, group_id: i64) -> Option<Group> {
         self.group_caches().remove(&group_id).map(|(_, g)| g)
+    }
+
+    pub(crate) async fn find_or_refresh_group(&self, id: i64) -> Option<Group> {
+        if let Some(g) = self.find_group(id) {
+            return Some(g);
+        }
+
+        self.refresh_group(id)
+            .await
+            .map_err(|e| {
+                error!("获取群成员({})时发生错误: {}", id, e);
+
+                e
+            })
+            .unwrap_or(None)
+    }
+
+    pub(crate) async fn find_or_refresh_friend_list(&self, id: i64) -> Option<Friend> {
+        if let Some(f) = self.find_friend(id) {
+            return Some(f);
+        }
+
+        if let Err(e) = self.refresh_friend_list().await {
+            error!("获取好友({})失败: {}", id, e);
+        }
+
+        self.find_friend(id)
     }
 
     #[inline]

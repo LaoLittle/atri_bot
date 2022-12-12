@@ -36,7 +36,7 @@ dependencies = [
 
 [[package]]
 name = "atri_bot"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "async-trait",
  "atri_ffi",
@@ -805,8 +805,7 @@ dependencies = [
 [[package]]
 name = "ricq"
 version = "0.1.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd44588852775d7416accd9044e1ff3837ca93403064f646b2067d2f77fc48f0"
+source = "git+https://github.com/AtriKawaii/ricq.git#cbe8014564bfeed5fb3dc5738aa1c75c65e26fbb"
 dependencies = [
  "async-trait",
  "bytes",
@@ -828,8 +827,7 @@ dependencies = [
 [[package]]
 name = "ricq-core"
 version = "0.1.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9921e29625c65fab984c532382e8954b5de34f83139dfd371aeb59ccb9f3a310"
+source = "git+https://github.com/AtriKawaii/ricq.git#cbe8014564bfeed5fb3dc5738aa1c75c65e26fbb"
 dependencies = [
  "byteorder",
  "bytes",
