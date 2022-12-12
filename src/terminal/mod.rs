@@ -1,40 +1,24 @@
+pub(crate) mod buffer;
 mod sys;
-//mod table;
-mod tabs;
 
 pub use sys::handle_standard_output;
 
-use std::error::Error;
-use std::io::{stdout, Write};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Mutex, RwLock};
-
 use crate::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
+use crate::terminal::buffer::{INPUT_BUFFER, INPUT_CACHE, TERMINAL_CLOSED};
 use crate::PluginManager;
 use crossterm::cursor::MoveToColumn;
 use crossterm::event::{
     DisableBracketedPaste, EnableBracketedPaste, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
 };
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType};
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen,
+};
 use crossterm::{event, execute};
 use event::Event;
+use std::error::Error;
+use std::io::{stdout, Write};
+use std::sync::atomic::Ordering;
 use tracing::{error, info};
-
-use crate::terminal::tabs::enter_tabs;
-
-pub(crate) static TERMINAL_CLOSED: AtomicBool = AtomicBool::new(false);
-pub(crate) static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
-
-pub(crate) struct InputCache {
-    pub caches: Vec<String>,
-    pub index: usize,
-    pub last_input: String,
-}
-pub(crate) static INPUT_CACHE: Mutex<InputCache> = Mutex::new(InputCache {
-    caches: vec![],
-    index: 0,
-    last_input: String::new(),
-});
 
 pub const BUFFER_SIZE: usize = 512;
 
@@ -56,16 +40,6 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
 
         match e {
             Event::Key(KeyEvent {
-                code: KeyCode::Char('q'),
-                modifiers: KeyModifiers::ALT,
-                kind: KeyEventKind::Press,
-                state: _,
-            }) => {
-                if let Err(e) = enter_tabs() {
-                    error!("{}", e);
-                }
-            }
-            Event::Key(KeyEvent {
                 code: KeyCode::Char('c'),
                 modifiers: KeyModifiers::CONTROL,
                 kind: KeyEventKind::Press,
@@ -73,6 +47,28 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
             }) => {
                 stop_info();
                 break;
+            }
+            Event::Key(KeyEvent {
+                code: KeyCode::Char('q'),
+                modifiers: KeyModifiers::CONTROL,
+                kind: KeyEventKind::Press,
+                state: _,
+            }) => {
+                execute!(stdout(), EnterAlternateScreen)?;
+                loop {
+                    match event::read()? {
+                        Event::Key(KeyEvent {
+                            code: KeyCode::Char('q'),
+                            modifiers: KeyModifiers::CONTROL,
+                            kind: KeyEventKind::Press,
+                            state: _,
+                        }) => {
+                            break;
+                        }
+                        _ => {}
+                    }
+                }
+                execute!(stdout(), LeaveAlternateScreen)?;
             }
             Event::Key(KeyEvent {
                 code: k @ (KeyCode::Up | KeyCode::Down),
@@ -163,8 +159,7 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             continue;
                         }
                         "help" | "?" | "h" => {
-                            static INFOS: &[&str] =
-                                &["help: 显示本帮助", "exit: 退出程序", "Alt+Q: 进入Tui Test"];
+                            static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
 
                             let mut s = String::from('\n');
                             for &info in INFOS {

@@ -18,6 +18,7 @@ pub struct Config {
     file: PathBuf,
 }
 
+#[derive(Default)]
 pub struct ConfigBuilder<'a> {
     root: PathBuf,
     file: Option<&'a str>,
@@ -25,10 +26,7 @@ pub struct ConfigBuilder<'a> {
 
 impl<'a> ConfigBuilder<'a> {
     pub fn new() -> Self {
-        Self {
-            root: PathBuf::new(),
-            file: None,
-        }
+        Self::default()
     }
 
     pub fn with_root<P: Into<PathBuf>>(mut self, root: P) -> Self {

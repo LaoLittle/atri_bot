@@ -1,4 +1,5 @@
-use crate::terminal::{INPUT_BUFFER, PROMPT, TERMINAL_CLOSED};
+use crate::terminal::buffer::{INPUT_BUFFER, TERMINAL_CLOSED};
+use crate::terminal::PROMPT;
 use std::io;
 use std::io::Write;
 use std::sync::atomic::Ordering;
