@@ -246,7 +246,11 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 Event::Unknown(QEvent::MSFOffline(e).into())
             }
-            or => Event::Unknown(or.into()),
+            or => {
+                info!("Other event: {:?}", or);
+
+                Event::Unknown(or.into())
+            }
         };
 
         global_listener_runtime().spawn(async move {
