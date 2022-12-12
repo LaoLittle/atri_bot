@@ -2,7 +2,7 @@ use cfg_if::cfg_if;
 use std::error::Error;
 use std::io::{stdout, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::RwLock;
+use std::sync::{Mutex, RwLock};
 
 use crate::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
 use crate::PluginManager;
@@ -27,8 +27,20 @@ cfg_if! {
     }
 }
 
-pub static TERMINAL_CLOSED: AtomicBool = AtomicBool::new(false);
-pub static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
+pub(crate) static TERMINAL_CLOSED: AtomicBool = AtomicBool::new(false);
+pub(crate) static INPUT_BUFFER: RwLock<String> = RwLock::new(String::new());
+
+pub(crate) struct InputCache {
+    pub caches: Vec<String>,
+    pub index: usize,
+    pub last_input: String,
+}
+pub(crate) static INPUT_CACHE: Mutex<InputCache> = Mutex::new(InputCache {
+    caches: vec![],
+    index: 0,
+    last_input: String::new(),
+});
+
 pub const BUFFER_SIZE: usize = 512;
 
 pub const PROMPT: &[u8] = b">> ";
@@ -54,6 +66,60 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
             }) => {
                 stop_info();
                 break;
+            }
+            Event::Key(KeyEvent {
+                code: k @ (KeyCode::Up | KeyCode::Down),
+                modifiers: KeyModifiers::NONE,
+                kind: KeyEventKind::Press,
+                state: _,
+            }) => {
+                fn output(buffer: &mut String, output: &str) -> std::io::Result<()> {
+                    let mut stdout = stdout().lock();
+                    execute!(stdout, Clear(ClearType::CurrentLine), MoveToColumn(0))?;
+                    stdout.write_all(PROMPT)?;
+                    stdout.write_all(output.as_bytes())?;
+                    stdout.flush()?;
+
+                    buffer.clear();
+                    buffer.push_str(output);
+
+                    Ok(())
+                }
+
+                let mut cache = INPUT_CACHE.lock()?;
+                let mut buffer = INPUT_BUFFER.write()?;
+                match k {
+                    KeyCode::Up => {
+                        let index = cache.index;
+                        let len = cache.caches.len();
+                        if index == 0 {
+                            if let Some(str) = cache.caches.get(0) {
+                                output(&mut buffer, str)?;
+                            }
+                        } else if index <= len {
+                            cache.index -= 1;
+
+                            if index == len {
+                                cache.last_input.clear();
+                                cache.last_input.push_str(&buffer);
+                            }
+
+                            output(&mut buffer, &cache.caches[cache.index])?;
+                        }
+                    }
+                    KeyCode::Down => {
+                        cache.index += 1;
+                        let index = cache.index;
+                        let len = cache.caches.len();
+                        if index < len {
+                            output(&mut buffer, &cache.caches[cache.index])?;
+                        } else if index >= len {
+                            cache.index = len;
+                            output(&mut buffer, &cache.last_input)?;
+                        }
+                    }
+                    _ => unreachable!(),
+                }
             }
             Event::Key(KeyEvent {
                 code,
@@ -86,6 +152,8 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                         "" => {
                             stdout.write_all(PROMPT)?;
                             stdout.flush()?;
+                            wl.clear();
+                            continue;
                         }
                         "help" | "?" | "h" => {
                             static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
@@ -110,6 +178,13 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                         _ => {
                             info!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
                         }
+                    }
+
+                    {
+                        let mut cache = INPUT_CACHE.lock()?;
+                        cache.caches.push(String::from(&*wl));
+                        cache.index = cache.caches.len();
+                        cache.last_input.clear();
                     }
 
                     wl.clear();
