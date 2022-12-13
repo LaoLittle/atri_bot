@@ -160,7 +160,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                 let f = Friend::from(client.clone(), e.inner);
                 client.cache_friend(f.clone());
 
-                info!("{f}添加");
+                info!("{f}已添加");
 
                 Event::NewFriend(NewFriendEvent::from(f))
             }
@@ -172,6 +172,8 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     return;
                 };
 
+                info!("{f}已删除");
+
                 Event::DeleteFriend(DeleteFriendEvent::from(f))
             }
             QEvent::FriendPoke(e) => {
@@ -182,6 +184,8 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     error!("寻找好友{friend_id}失败");
                     return;
                 };
+
+                info!("{f}戳了戳{client}");
 
                 Event::FriendPoke(FriendPokeEvent::from(f))
             }
@@ -206,6 +210,8 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     error!("无法找到群成员{target}, Raw event: {:?}", e);
                     return;
                 };
+
+                info!("{sender}戳了戳{target} >> {group} >> {client}");
 
                 Event::GroupPoke(GroupPokeEvent::from(group, sender, target))
             }

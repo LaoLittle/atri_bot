@@ -36,7 +36,14 @@ impl Client {
         let binp = self.work_dir().join("token.bin");
 
         let token: Token = if let Ok(bytes) = tokio::fs::read(&binp).await {
-            prost::Message::decode(&*bytes).expect("Cannot decode token")
+            let Ok(token) =
+            prost::Message::decode(&*bytes) else {
+                error!("{}登录失败: Token不合法", self);
+
+                return Err(AtriError::Login(LoginError::WrongToken));
+            };
+
+            token
         } else if let Ok(f) = tokio::fs::File::open(self.work_dir().join("token.json")).await {
             let std_file = f.into_std().await;
             tokio::task::block_in_place(|| {
@@ -90,7 +97,7 @@ impl Client {
         const OFFLINE_STATUS: ricq::client::NetworkStatus =
             ricq::client::NetworkStatus::NetworkOffline;
 
-        const RECONNECT_DURATION: Duration = Duration::from_millis(2);
+        const RECONNECT_DURATION: Duration = Duration::from_secs(2);
 
         let client = self.clone();
 
@@ -145,6 +152,8 @@ impl Client {
                 tokio::time::sleep(RECONNECT_DURATION).await;
             }
         });
+
+        tokio::task::yield_now().await;
 
         Ok(())
     }
