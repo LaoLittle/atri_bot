@@ -171,8 +171,7 @@ impl PluginManager {
 
         let lib_name = path
             .file_name()
-            .map(OsStr::to_str)
-            .flatten()
+            .and_then(OsStr::to_str)
             .unwrap_or("unknown file")
             .to_string();
 
