@@ -208,7 +208,10 @@ impl PluginManager {
         let expected = atri_ffi::plugin::abi_version();
 
         if expected != current {
-            return Err(PluginError::LoadFail(format!("插件ABI版本为{current}, 期望值为{expected}")).into());
+            return Err(PluginError::LoadFail(format!(
+                "插件ABI版本为{current}, 期望值为{expected}"
+            ))
+            .into());
         }
 
         let ptr = (plugin_instance.vtb.new)();
@@ -355,7 +358,11 @@ impl Plugin {
 
 impl Debug for Plugin {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Plugin[{:p}({})]", self.handle as *const (), self.lib_name)
+        write!(
+            f,
+            "Plugin[{:p}({})]",
+            self.handle as *const (), self.lib_name
+        )
     }
 }
 
