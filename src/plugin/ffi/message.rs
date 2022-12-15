@@ -23,7 +23,9 @@ pub extern "C" fn image_get_id(img: *const ()) -> RustStr {
 }
 
 pub extern "C" fn _image_to_flash(img: Managed) {
-    let img: Image = img.into_value();
+    let img: Image = unsafe {
+        img.into_value()
+    };
     img.flash();
 }
 

@@ -64,10 +64,12 @@ impl ForFFI for Member {
     fn from_ffi(value: Self::FFIValue) -> Self {
         let ma = value.inner;
 
-        if value.is_named {
-            Self::Named(ma.into_value())
-        } else {
-            Self::Anonymous(ma.into_value())
+        unsafe {
+            if value.is_named {
+                Self::Named(ma.into_value())
+            } else {
+                Self::Anonymous(ma.into_value())
+            }
         }
     }
 }

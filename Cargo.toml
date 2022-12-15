@@ -1,6 +1,6 @@
 [package]
 name = "atri_bot"
-version = "0.7.2"
+version = "0.8.0"
 edition = "2021"
 authors = ["LaoLittle"]
 description = "A simple bot"
@@ -59,7 +59,7 @@ version = "0.1.19"
 #version = "0.1.0"
 
 [dependencies.atri_ffi]
-version = "0.6.1"
+version = "0.8.0"
 
 [profile.release]
 lto = true

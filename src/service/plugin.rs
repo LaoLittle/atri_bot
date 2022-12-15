@@ -8,7 +8,7 @@ use std::marker::{PhantomData, PhantomPinned};
 use std::ptr::null_mut;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
-use std::{fs, io, mem};
+use std::{fs, io};
 
 use libloading::Library;
 
@@ -166,7 +166,15 @@ impl PluginManager {
     }
 
     pub fn load_plugin<P: AsRef<OsStr>>(&self, path: P) -> Result<Plugin, AtriError> {
-        trace!("正在加载插件动态库");
+        let path = Path::new(path.as_ref());
+        trace!("正在加载插件动态库, Path={:?}", path);
+
+        let lib_name = path
+            .file_name()
+            .map(OsStr::to_str)
+            .flatten()
+            .unwrap_or("unknown file")
+            .to_string();
 
         let ptr = self as *const PluginManager as usize;
         let lib = unsafe {
@@ -197,26 +205,23 @@ impl PluginManager {
 
         let plugin_instance = on_init();
 
-        if plugin_instance.instance.pointer.is_null() {
-            return Err(PluginError::InitializeFail("无效的插件实例").into());
+        let current = plugin_instance.abi_ver;
+        let expected = atri_ffi::plugin::abi_version();
+
+        if expected != current {
+            return Err(PluginError::LoadFail(format!("插件ABI版本为{current}, 期望值为{expected}")).into());
         }
 
-        let should_drop = plugin_instance.should_drop;
-
-        let managed = plugin_instance.instance;
-        let ptr = managed.pointer;
-        let drop_fn = managed.drop;
-
-        mem::forget(managed);
+        let ptr = (plugin_instance.vtb.new)();
 
         let plugin = Plugin {
             enabled: AtomicBool::new(false),
             instance: AtomicPtr::new(ptr),
             vtb: plugin_instance.vtb,
             name: Rc::new(plugin_instance.name.to_string()),
-            should_drop,
+            lib_name,
+            should_drop: plugin_instance.should_drop,
             handle,
-            drop_fn,
             _lib: lib,
         };
 
@@ -270,8 +275,8 @@ pub struct Plugin {
     instance: AtomicPtr<()>,
     vtb: PluginVTable,
     name: Rc<String>,
+    lib_name: String,
     should_drop: bool,
-    drop_fn: extern "C" fn(*mut ()),
     handle: usize,
     _lib: Library,
 }
@@ -305,7 +310,7 @@ impl Plugin {
                     (self.vtb.enable)(new_instance);
                 }
                 Err(_) => {
-                    (self.drop_fn)(new_instance);
+                    (self.vtb.drop)(new_instance);
                     return false;
                 }
             }
@@ -328,7 +333,7 @@ impl Plugin {
         if self.should_drop {
             let ptr = self.instance.swap(null_mut(), Ordering::Acquire);
             (self.vtb.disable)(ptr);
-            (self.drop_fn)(ptr);
+            (self.vtb.drop)(ptr);
         } else {
             (self.vtb.disable)(self.instance.load(Ordering::Relaxed));
         }
@@ -351,7 +356,7 @@ impl Plugin {
 
 impl Debug for Plugin {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Plugin({:p})", self.handle as *const ())
+        write!(f, "Plugin[{:p}({})]", self.handle as *const (), self.lib_name)
     }
 }
 
@@ -366,7 +371,7 @@ impl Drop for Plugin {
     fn drop(&mut self) {
         self.disable();
         if !self.should_drop {
-            (self.drop_fn)(self.instance.load(Ordering::Relaxed))
+            (self.vtb.drop)(self.instance.load(Ordering::Relaxed))
         }
     }
 }
