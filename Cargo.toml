@@ -29,9 +29,12 @@ async-trait = "0"
 time = { version = "0", features = ["macros", "local-offset", "formatting"] }
 regex = "1"
 dashmap = "5"
-libloading = "0"
 rand = "0"
 futures = "0"
+
+# plugin
+libloading = "0"
+backtrace = "0"
 
 # terminal
 tui = "0"
@@ -62,9 +65,9 @@ version = "0.1.19"
 version = "0.8.0"
 
 [profile.release]
+codegen-units = 1
 lto = true
 strip = true
-codegen-units = 1
 
 [build-dependencies]
 serde = { version = "1.0.150", features = ["derive"] }

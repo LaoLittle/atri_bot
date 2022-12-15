@@ -6,14 +6,12 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::{PhantomData, PhantomPinned};
 use std::ptr::null_mut;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::{fs, io};
 
 use libloading::Library;
 
 use tokio::runtime;
-use tokio::runtime::Runtime;
 use tracing::{error, info, trace, warn};
 
 use crate::error::{AtriError, PluginError};
@@ -33,7 +31,7 @@ pub struct PluginManager {
     pub(crate) plugins: HashMap<usize, Plugin>,
     dependencies: Vec<Library>,
     plugins_path: PathBuf,
-    async_runtime: Runtime,
+    async_runtime: runtime::Runtime,
     _mark: PhantomPinned, // move in memory is unsafe because plugin have a pointer to it
     _send: PhantomData<*const ()>, // !send because plugin may not sendable
 }
@@ -62,7 +60,7 @@ impl PluginManager {
         }
     }
 
-    pub fn async_runtime(&self) -> &Runtime {
+    pub fn async_runtime(&self) -> &runtime::Runtime {
         &self.async_runtime
     }
 
@@ -220,7 +218,7 @@ impl PluginManager {
             enabled: AtomicBool::new(false),
             instance: AtomicPtr::new(ptr),
             vtb: plugin_instance.vtb,
-            name: Rc::new(plugin_instance.name.to_string()),
+            name: plugin_instance.name.to_string(),
             lib_name,
             should_drop: plugin_instance.should_drop,
             handle,
@@ -276,7 +274,7 @@ pub struct Plugin {
     enabled: AtomicBool,
     instance: AtomicPtr<()>,
     vtb: PluginVTable,
-    name: Rc<String>,
+    name: String,
     lib_name: String,
     should_drop: bool,
     handle: usize,

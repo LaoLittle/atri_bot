@@ -1,5 +1,3 @@
-extern crate core;
-
 use std::error::Error;
 use std::time::Duration;
 
@@ -15,6 +13,8 @@ use tracing::{error, info};
 type MainResult = Result<(), Box<dyn Error>>;
 
 fn main() -> MainResult {
+    atri_bot::signal::init_signal_hook();
+
     print_welcome_info();
 
     let _guards = init_logger();

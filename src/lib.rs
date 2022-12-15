@@ -25,6 +25,7 @@ pub mod macros;
 pub mod message;
 pub mod plugin;
 pub mod service;
+pub mod signal;
 pub mod terminal;
 
 pub struct Atri {

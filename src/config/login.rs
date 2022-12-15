@@ -47,6 +47,6 @@ impl Protocol {
     }
 }
 
-fn true_bool() -> bool {
+const fn true_bool() -> bool {
     true
 }
