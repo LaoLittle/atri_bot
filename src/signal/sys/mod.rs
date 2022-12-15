@@ -1,14 +1,20 @@
 use cfg_if::cfg_if;
 
 cfg_if! {
-    if #[cfg(target_os = "macos")] {
+    if #[cfg(any(
+        target_os = "macos",
+        target_os = "ios",
+    ))] {
         mod macos;
         pub use macos::*;
-    } else if #[cfg(unix)] {
-        mod unix;
-        pub use unix::*;
+    } else if #[cfg(target_os = "linux")] {
+        mod linux;
+        pub use linux::*;
     } else if #[cfg(windows)] {
         mod windows;
         pub use windows::*;
+    } else {
+        mod unknown;
+        pub use unknown::*;
     }
 }

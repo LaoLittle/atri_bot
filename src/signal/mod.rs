@@ -24,18 +24,19 @@ impl fmt::Display for DlBacktrace {
             frame_back.insert(fname);
 
             for symbol in frame.symbols() {
-                print!(
+                write!(
+                    f,
                     "    {}\n at {}",
                     symbol.name().unwrap_or(backtrace::SymbolName::new(&[])),
                     symbol.filename().and_then(Path::to_str).unwrap_or(""),
-                );
+                )?;
 
                 match (symbol.lineno(), symbol.colno()) {
-                    (Some(line), Some(column)) => print!(":{line}:{column}"),
+                    (Some(line), Some(column)) => write!(f, ":{line}:{column}")?,
                     _ => {}
                 }
 
-                println!();
+                writeln!(f)?;
             }
 
             frame_cnt += 1;
@@ -46,7 +47,7 @@ impl fmt::Display for DlBacktrace {
             f.write_str(&frame)?;
             f.write_char('\n')?;
         }
-        f.write_str("----------------------")?;
+        f.write_str("----------------------\n")?;
 
         Ok(())
     }

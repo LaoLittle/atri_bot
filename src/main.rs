@@ -13,11 +13,12 @@ use tracing::{error, info};
 type MainResult = Result<(), Box<dyn Error>>;
 
 fn main() -> MainResult {
+    // pre-load
+    print_welcome_info();
+    let _guards = init_logger();
     atri_bot::signal::init_signal_hook();
 
-    print_welcome_info();
-
-    let _guards = init_logger();
+    // start
     let mut atri = Atri::new();
 
     global_listener_runtime().spawn(global_listener_worker().start());
