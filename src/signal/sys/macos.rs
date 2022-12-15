@@ -39,7 +39,7 @@ unsafe extern "C" fn handle(
     _info: *mut Siginfo,
     _addr: *mut std::os::raw::c_void,
 ) {
-    fn dl_get_name(addr: *const std::ffi::c_void) -> *const std::ffi::c_char {
+    fn dl_get_name(addr: *const std::ffi::c_void) -> String {
         extern "C" {
             fn dladdr(arg1: *const std::os::raw::c_void, arg2: *mut DlInfo) -> std::os::raw::c_int;
         }
@@ -50,7 +50,11 @@ unsafe extern "C" fn handle(
             di.assume_init()
         };
 
-        di.dli_fname
+        unsafe {
+            std::ffi::CStr::from_ptr(di.dli_fname)
+                .to_string_lossy()
+                .into_owned()
+        }
     }
 
     let bt = backtrace::Backtrace::new();
