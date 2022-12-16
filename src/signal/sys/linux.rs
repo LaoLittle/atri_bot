@@ -32,7 +32,7 @@ pub fn init_signal_hook() {
 }
 
 const SIGABRT: std::ffi::c_int = 6;
-const SIGBUS: std::ffi::c_int = 10;
+const SIGBUS: std::ffi::c_int = 7;
 const SIGSEGV: std::ffi::c_int = 11;
 
 unsafe extern "C" fn handle(
