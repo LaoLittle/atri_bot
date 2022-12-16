@@ -4,7 +4,7 @@ use std::fmt::{Formatter, Write};
 use std::path::Path;
 
 mod sys;
-pub use sys::init_signal_hook;
+pub use sys::init_crash_handler;
 
 struct DlBacktrace {
     pub inner: backtrace::Backtrace,

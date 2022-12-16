@@ -16,7 +16,7 @@ fn main() -> MainResult {
     // pre-load
     print_welcome_info();
     let _guards = init_logger();
-    atri_bot::signal::init_signal_hook();
+    atri_bot::signal::init_crash_handler();
 
     // start
     let mut atri = Atri::new();

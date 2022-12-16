@@ -2,7 +2,7 @@ use crate::signal::DlBacktrace;
 use std::mem::MaybeUninit;
 use std::ptr::null_mut;
 
-pub fn init_signal_hook() {
+pub fn init_crash_handler() {
     let mut act = Sigaction {
         __sigaction_u: SigactionU {
             __sa_sigaction: Some(handle),

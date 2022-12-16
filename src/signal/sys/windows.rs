@@ -1,6 +1,6 @@
 use crate::signal::DlBacktrace;
 
-pub fn init_signal_hook() {
+pub fn init_crash_handler() {
     extern "C" {
         fn SetUnhandledExceptionFilter(
             filter: LpTopLevelExceptionFilter,
