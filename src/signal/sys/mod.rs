@@ -7,7 +7,10 @@ cfg_if! {
     ))] {
         mod macos;
         pub use macos::*;
-    } else if #[cfg(target_os = "linux")] {
+    } else if #[cfg(any(
+        target_os = "linux",
+        target_os = "android"
+    ))] {
         mod linux;
         pub use linux::*;
     } else if #[cfg(windows)] {
