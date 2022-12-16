@@ -19,7 +19,7 @@ impl fmt::Display for DlBacktrace {
         for frame in self.inner.frames() {
             let fname = (self.fun)(frame.symbol_address());
 
-            write!(f, "{frame_cnt} File: {}: \n", fname)?;
+            write!(f, "{frame_cnt} File {}: \n", fname)?;
 
             frame_back.insert(fname);
 

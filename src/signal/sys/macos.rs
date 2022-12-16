@@ -46,7 +46,10 @@ unsafe extern "C" fn handle(
 
         let mut di = MaybeUninit::<DlInfo>::uninit();
         let di = unsafe {
-            dladdr(addr, di.as_mut_ptr());
+            if dladdr(addr, di.as_mut_ptr()) == 0 {
+                return String::from("unknown");
+            }
+
             di.assume_init()
         };
 
