@@ -74,7 +74,7 @@ unsafe extern "C" fn handle(
         }
     );
 
-    eprintln!("Something went wrong, signal: {}", sig);
+    eprintln!("Something went wrong, signal: {sig}");
 
     std::process::exit(sig as i32);
 }

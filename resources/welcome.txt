@@ -5,5 +5,5 @@
 
 https://github.com/LaoLittle/atri_bot
 
-当前版本: ${{version}}
+当前版本: $version
 =======================================

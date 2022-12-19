@@ -13,13 +13,11 @@ struct DlBacktrace {
 
 impl fmt::Display for DlBacktrace {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut frame_cnt = 0;
-
         let mut frame_back = HashSet::new();
-        for frame in self.inner.frames() {
+        for (frame_cnt, frame) in self.inner.frames().iter().enumerate() {
             let fname = (self.fun)(frame.symbol_address());
 
-            write!(f, "{frame_cnt} File {}: \n", fname)?;
+            writeln!(f, "{frame_cnt} File {fname}: ")?;
 
             frame_back.insert(fname);
 
@@ -42,8 +40,6 @@ impl fmt::Display for DlBacktrace {
 
                 writeln!(f)?;
             }
-
-            frame_cnt += 1;
         }
 
         f.write_str("\n--------Frames--------\n")?;

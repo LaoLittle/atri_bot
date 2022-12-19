@@ -30,7 +30,7 @@ fn _main() -> Result<(), Box<dyn Error>> {
 
     write(
         path,
-        welcome_info.replace("${{version}}", config.package.version),
+        welcome_info.replace("$version", config.package.version),
     )?;
 
     Ok(())
