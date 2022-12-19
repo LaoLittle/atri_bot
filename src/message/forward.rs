@@ -48,12 +48,10 @@ impl IntoIterator for ForwardMessage {
 #[serde(rename_all = "snake_case")]
 pub enum ForwardNode {
     NormalMessage {
-        #[serde(flatten)]
         info: ForwardNodeInfo,
         chain: MessageChain,
     },
     ForwardMessage {
-        #[serde(flatten)]
         info: ForwardNodeInfo,
         forward: ForwardMessage,
     },
@@ -78,21 +76,31 @@ impl From<Vec<ricq::structs::ForwardMessage>> for ForwardMessage {
 
         for msg in value {
             nodes.push(match msg {
-                ricq::structs::ForwardMessage::Message(node) => ForwardNode::NormalMessage {
+                ricq::structs::ForwardMessage::Message(ricq::structs::MessageNode {
+                    sender_id,
+                    time,
+                    sender_name,
+                    elements,
+                }) => ForwardNode::NormalMessage {
                     info: ForwardNodeInfo {
-                        sender_id: node.sender_id,
-                        sender_name: node.sender_name,
-                        time: node.time,
+                        sender_id,
+                        sender_name,
+                        time,
                     },
-                    chain: node.elements.into(),
+                    chain: elements.into(),
                 },
-                ricq::structs::ForwardMessage::Forward(node) => ForwardNode::ForwardMessage {
+                ricq::structs::ForwardMessage::Forward(ricq::structs::ForwardNode {
+                    sender_id,
+                    time,
+                    sender_name,
+                    nodes,
+                }) => ForwardNode::ForwardMessage {
                     info: ForwardNodeInfo {
-                        sender_id: node.sender_id,
-                        sender_name: node.sender_name,
-                        time: node.time,
+                        sender_id,
+                        sender_name,
+                        time,
                     },
-                    forward: node.nodes.into(),
+                    forward: nodes.into(),
                 },
             });
         }
@@ -107,22 +115,34 @@ impl From<ForwardMessage> for Vec<ricq::structs::ForwardMessage> {
 
         for node in value.0 {
             nodes.push(match node {
-                ForwardNode::NormalMessage { info, chain } => {
-                    ricq::structs::ForwardMessage::Message(ricq::structs::MessageNode {
-                        sender_id: info.sender_id,
-                        time: info.time,
-                        sender_name: info.sender_name,
-                        elements: chain.into(),
-                    })
-                }
-                ForwardNode::ForwardMessage { info, forward: msg } => {
-                    ricq::structs::ForwardMessage::Forward(ricq::structs::ForwardNode {
-                        sender_id: info.sender_id,
-                        time: info.time,
-                        sender_name: info.sender_name,
-                        nodes: msg.into(),
-                    })
-                }
+                ForwardNode::NormalMessage {
+                    info:
+                        ForwardNodeInfo {
+                            sender_id,
+                            sender_name,
+                            time,
+                        },
+                    chain,
+                } => ricq::structs::ForwardMessage::Message(ricq::structs::MessageNode {
+                    sender_id,
+                    time,
+                    sender_name,
+                    elements: chain.into(),
+                }),
+                ForwardNode::ForwardMessage {
+                    info:
+                        ForwardNodeInfo {
+                            sender_id,
+                            sender_name,
+                            time,
+                        },
+                    forward: msg,
+                } => ricq::structs::ForwardMessage::Forward(ricq::structs::ForwardNode {
+                    sender_id,
+                    time,
+                    sender_name,
+                    nodes: msg.into(),
+                }),
             });
         }
 
