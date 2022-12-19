@@ -12,7 +12,7 @@ pub fn init_crash_handler() {
     }
 }
 
-unsafe extern "C" fn handle(_: *const std::os::raw::c_void) -> DWORD {
+unsafe extern "stdcall" fn handle(_: *const ExceptionPointers) -> DWORD {
     fn dl_get_name(addr: *const std::ffi::c_void) -> String {
         const MAX_PATH: usize = 260;
 
@@ -53,6 +53,8 @@ unsafe extern "C" fn handle(_: *const std::os::raw::c_void) -> DWORD {
         String::from_utf16_lossy(slice)
     }
 
+    crate::signal::fatal_error_print();
+
     let bt = backtrace::Backtrace::new();
     eprintln!(
         "stack backtrace:\n{}",
@@ -67,7 +69,9 @@ unsafe extern "C" fn handle(_: *const std::os::raw::c_void) -> DWORD {
     1
 }
 
-type LpTopLevelExceptionFilter = unsafe extern "C" fn(*const std::os::raw::c_void) -> DWORD;
+type ExceptionPointers = std::os::raw::c_void; // FIXME
+
+type LpTopLevelExceptionFilter = unsafe extern "stdcall" fn(*const ExceptionPointers) -> DWORD;
 
 type DWORD = std::os::raw::c_ulong;
 

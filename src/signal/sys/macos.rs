@@ -60,6 +60,8 @@ unsafe extern "C" fn handle(
         }
     }
 
+    crate::signal::fatal_error_print();
+
     let bt = backtrace::Backtrace::new();
 
     eprintln!("addr: {:p}", (*_info).si_addr);

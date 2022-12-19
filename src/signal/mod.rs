@@ -28,11 +28,15 @@ impl fmt::Display for DlBacktrace {
                     f,
                     "    {}\n at {}",
                     symbol.name().unwrap_or(backtrace::SymbolName::new(&[])),
-                    symbol.filename().and_then(Path::to_str).unwrap_or(""),
+                    symbol
+                        .filename()
+                        .and_then(Path::to_str)
+                        .unwrap_or("unknown"),
                 )?;
 
                 match (symbol.lineno(), symbol.colno()) {
                     (Some(line), Some(column)) => write!(f, ":{line}:{column}")?,
+                    (Some(line), None) => write!(f, ":{line}")?,
                     _ => {}
                 }
 
@@ -51,4 +55,8 @@ impl fmt::Display for DlBacktrace {
 
         Ok(())
     }
+}
+
+fn fatal_error_print() {
+    eprintln!("An fatal error has been detected");
 }
