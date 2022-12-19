@@ -14,7 +14,7 @@ pub fn handle_plugin_command(
         .filter(|s| !s.is_empty())
         .collect();
 
-    match *args.first().ok_or(CommandError::MissingField(
+    match *args.first().ok_or(CommandError::MissingArgument(
         "load unload enable disable list",
     ))? {
         "list" => {
@@ -28,11 +28,11 @@ pub fn handle_plugin_command(
         "load" => {
             let &name = args
                 .get(1)
-                .ok_or(CommandError::MissingField("Plugin name"))?;
+                .ok_or(CommandError::MissingArgument("Plugin name"))?;
             let path = manager.plugins_path().join(name);
             let plugin = manager
                 .load_plugin(path)
-                .map_err(|e| CommandError::ExecuteError(e.to_string()))?;
+                .map_err(|e| CommandError::ExecuteError(e.to_string().into()))?;
             match manager.plugins.entry(plugin.handle()) {
                 Entry::Vacant(vac) => {
                     vac.insert(plugin).enable();
@@ -43,9 +43,8 @@ pub fn handle_plugin_command(
         "unload" => {
             let &id = args
                 .get(1)
-                .ok_or(CommandError::MissingField("Plugin name"))?;
-            let id =
-                usize::from_str(id).map_err(|e| CommandError::UnknownArgument(e.to_string()))?;
+                .ok_or(CommandError::MissingArgument("Plugin name"))?;
+            let id = usize::from_str(id)?;
             manager
                 .plugins
                 .remove(&id)
@@ -56,7 +55,7 @@ pub fn handle_plugin_command(
             drop(mem::take(&mut manager.plugins));
             manager
                 .load_plugins()
-                .map_err(|e| CommandError::ExecuteError(e.to_string()))?;
+                .map_err(|e| CommandError::ExecuteError(e.to_string().into()))?;
         }
         _ => {}
     }

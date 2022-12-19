@@ -3,6 +3,7 @@
 use dashmap::DashMap;
 use ricq::msg::elem::Text;
 use ricq::structs::GroupMemberInfo;
+use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use crate::client::Client;
@@ -11,6 +12,7 @@ use tokio::runtime::Runtime;
 
 use crate::event::listener::Listener;
 use crate::event::Event;
+use crate::service::command::CommandAction;
 use crate::service::listener::ListenerWorker;
 use crate::service::plugin::PluginManager;
 
@@ -61,6 +63,7 @@ impl Default for Atri {
 pub struct AtriGlobalStatus {
     clients: DashMap<i64, Client>,
     listener_worker: ListenerWorker,
+    commands: std::sync::RwLock<HashMap<String, CommandAction>>,
 }
 
 static ATRI_GLOBAL_STATUS: OnceLock<AtriGlobalStatus> = OnceLock::new();
@@ -89,6 +92,7 @@ impl AtriGlobalStatus {
         Self {
             clients: DashMap::new(),
             listener_worker: ListenerWorker::new_with_runtime(listener_runtime),
+            commands: std::sync::RwLock::new(HashMap::new()),
         }
     }
 
