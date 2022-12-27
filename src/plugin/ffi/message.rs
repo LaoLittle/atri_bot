@@ -1,6 +1,6 @@
+use super::cast_ref;
 use crate::message::image::Image;
 use crate::message::MessageChain;
-use crate::plugin::cast_ref;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::message::FFIMessageChain;

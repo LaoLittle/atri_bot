@@ -1,5 +1,5 @@
+use super::rt::future_block_on;
 use crate::event::listener::{ListenerBuilder, Priority};
-use crate::plugin::ffi::future_block_on;
 use crate::{Event, Listener};
 use atri_ffi::closure::FFIFn;
 use atri_ffi::ffi::FFIEvent;

@@ -1,8 +1,8 @@
+use super::cast_ref;
+use super::rt::future_block_on;
 use crate::contact::friend::Friend;
 use crate::message::meta::MessageReceipt;
 use crate::message::MessageChain;
-use crate::plugin::cast_ref;
-use crate::plugin::ffi::future_block_on;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;

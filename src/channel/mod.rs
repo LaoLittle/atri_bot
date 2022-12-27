@@ -8,7 +8,7 @@ use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tracing::{error, info, warn};
 
 use crate::contact::friend::Friend;
-use crate::contact::member::{AnonymousMember, NamedMember};
+use crate::contact::member::{AnonymousMember, Member, NamedMember};
 use crate::event::{
     ClientLoginEvent, DeleteFriendEvent, Event, FriendMessageEvent, FriendPokeEvent,
     GroupMessageEvent, GroupPokeEvent, NewFriendEvent,
@@ -98,27 +98,33 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
 
                 let sender = e.inner.from_uin;
 
-                let member: NamedMember;
+                let member: Member;
+                let holder: NamedMember;
                 let nick = if sender == AnonymousMember::ID {
-                    if e.inner.elements.anonymous().is_none() {
-                        error!("获取匿名信息失败, 本事件跳过. Raw event: {:?}", e.inner);
+                    let Some(info) = e.inner.elements.anonymous() else {
+                        error!("获取匿名信息失败. Raw event: {:?}", e.inner);
                         return;
-                    }
+                    };
 
+                    member = Member::Anonymous(AnonymousMember::from(group.clone(), info.into()));
                     "匿名"
                 } else {
                     match group.try_refresh_member(sender).await {
                         Ok(Some(m)) => {
-                            member = m;
-                            member.nickname()
+                            holder = m.clone();
+                            member = Member::Named(m);
+                            holder.nickname()
                         }
                         Ok(None) => {
-                            warn!("群成员({})信息获取失败, 或许成员已不在本群, 本事件跳过. RawEvent: {:?}", sender, e.inner);
+                            warn!(
+                                "群成员({})信息获取失败, 或许成员已不在本群. RawEvent: {:?}",
+                                sender, e.inner
+                            );
                             return;
                         }
                         Err(err) => {
                             error!(
-                                "获取群成员({})发生错误: {}, 本事件跳过. RawEvent: {:?}",
+                                "获取群成员({})发生错误: {}. RawEvent: {:?}",
                                 sender, err, e.inner
                             );
                             return;
@@ -135,7 +141,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                     message(),
                 );
 
-                let base = GroupMessageEvent::from(group, e);
+                let base = GroupMessageEvent::from(group, member, e);
                 Event::GroupMessage(base)
             }
             QEvent::FriendMessage(e) => {

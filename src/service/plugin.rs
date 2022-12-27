@@ -18,14 +18,9 @@ use crate::error::{AtriError, PluginError};
 use atri_ffi::ffi::AtriManager;
 use atri_ffi::plugin::{PluginInstance, PluginVTable};
 
-use crate::plugin::ffi::plugin_get_function;
+use crate::plugin::plugin_get_function;
 
-#[cfg(target_os = "macos")]
-const EXTENSION: &str = "dylib";
-#[cfg(windows)]
-const EXTENSION: &str = "dll";
-#[cfg(all(unix, not(target_os = "macos")))]
-const EXTENSION: &str = "so";
+const EXTENSION: &str = std::env::consts::DLL_EXTENSION;
 
 pub struct PluginManager {
     pub(crate) plugins: HashMap<usize, Plugin>,
@@ -74,10 +69,6 @@ impl PluginManager {
 
     pub fn find_plugin(&self, handle: usize) -> Option<&Plugin> {
         self.plugins.get(&handle)
-    }
-
-    pub fn unload_plugin(&self, _name: &str) {
-        todo!()
     }
 
     pub fn load_plugins(&mut self) -> io::Result<()> {

@@ -9,7 +9,7 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::client::info::BotAccountInfo;
+use crate::client::info::AccountInfo;
 use crate::client::token::Token;
 use crate::contact::friend::Friend;
 use ricq::client::DefaultConnector;
@@ -23,6 +23,7 @@ use crate::contact::group::Group;
 use crate::error::{AtriError, AtriResult, LoginError};
 use crate::{config, global_status};
 
+/// 一个`客户端`
 #[derive(Clone)]
 pub struct Client(Arc<imp::Client>);
 
@@ -67,7 +68,7 @@ impl Client {
             after_login(&self.0.client).await;
 
             let info = self.0.client.account_info.read().await;
-            self.0.info.get_or_init(|| BotAccountInfo {
+            self.0.info.get_or_init(|| AccountInfo {
                 nickname: info.nickname.clone().into(),
                 age: info.age.into(),
                 gender: info.gender.into(),
@@ -162,42 +163,51 @@ impl Client {
         global_status().clients.get(&id).map(|b| b.clone())
     }
 
+    /// 客户端的id
     #[inline]
     pub fn id(&self) -> i64 {
         self.0.id
     }
 
+    /// 客户端的昵称
     pub fn nickname(&self) -> String {
         self.account_info().nickname.read().unwrap().clone()
     }
 
+    /// 客户端个人信息中的年龄
     pub fn age(&self) -> u8 {
         self.account_info().age.load(Ordering::Relaxed)
     }
 
+    /// 客户端个人信息中的性别
     pub fn gender(&self) -> u8 {
         self.account_info().gender.load(Ordering::Relaxed)
     }
 
-    pub fn account_info(&self) -> &BotAccountInfo {
+    /// 客户端个人信息
+    pub fn account_info(&self) -> &AccountInfo {
         self.0.info.get().unwrap()
     }
 
+    /// 客户端是否在线
     pub fn is_online(&self) -> bool {
         self.request_client().online.load(Ordering::Relaxed)
     }
 
+    /// 客户端心跳是否启用
     pub fn is_heartbeat_enabled(&self) -> bool {
         self.request_client()
             .heartbeat_enabled
             .load(Ordering::Relaxed)
     }
 
+    /// 客户端网络状况, 详见[ricq::client::NetworkStatus]
     #[inline]
     pub fn network_status(&self) -> u8 {
         self.0.client.get_status()
     }
 
+    /// 重连此客户端, 断线时使用
     pub async fn reconnect(&self) {
         auto_reconnect(
             self.0.client.clone(),
@@ -209,10 +219,12 @@ impl Client {
         .await;
     }
 
+    /// 生成登录凭证
     pub async fn gen_token(&self) -> Token {
         self.request_client().gen_token().await.into()
     }
 
+    /// 已登录的客户端列表
     pub fn list() -> Vec<Client> {
         global_status()
             .clients
@@ -221,6 +233,7 @@ impl Client {
             .collect()
     }
 
+    /// 刷新好友列表
     pub async fn refresh_friend_list(&self) -> AtriResult<()> {
         let list = self.request_client().get_friend_list().await?;
 
@@ -232,6 +245,7 @@ impl Client {
         Ok(())
     }
 
+    /// 刷新群列表
     pub async fn refresh_group_list(&self) -> AtriResult<()> {
         let infos = self.request_client().get_group_list().await?;
 
@@ -244,6 +258,7 @@ impl Client {
         Ok(())
     }
 
+    /// 刷新单个群的信息
     pub async fn refresh_group(&self, group_id: i64) -> AtriResult<Option<Group>> {
         let info = self.request_client().get_group_info(group_id).await?;
         if let Some(info) = info {
@@ -257,11 +272,13 @@ impl Client {
         Ok(None)
     }
 
+    /// 客户端工作目录
     #[inline]
     pub fn work_dir(&self) -> &Path {
         &self.0.work_dir
     }
 
+    /// 寻找一个已加入的群
     pub fn find_group(&self, id: i64) -> Option<Group> {
         if let Some(g) = self.group_caches().get(&id) {
             return Some(g.clone());
@@ -270,6 +287,7 @@ impl Client {
         None
     }
 
+    /// 寻找一个已添加的好友
     pub fn find_friend(&self, id: i64) -> Option<Friend> {
         if let Some(f) = self.0.friends.get(&id) {
             return Some(f.clone());
@@ -278,10 +296,12 @@ impl Client {
         None
     }
 
+    /// 此客户端加入的群的列表
     pub fn groups(&self) -> Vec<Group> {
         self.group_caches().iter().map(|g| g.clone()).collect()
     }
 
+    /// 此客户端添加的好友的列表
     pub fn friends(&self) -> Vec<Friend> {
         self.0.friends.iter().map(|f| f.clone()).collect()
     }
@@ -292,36 +312,43 @@ impl Client {
 }
 
 impl Client {
+    /// 好友信息缓存, 内部使用
     #[inline]
     pub(crate) fn friend_caches(&self) -> &DashMap<i64, Friend> {
         &self.0.friends
     }
 
+    /// 群信息缓存, 内部使用
     #[inline]
     pub(crate) fn group_caches(&self) -> &DashMap<i64, Group> {
         &self.0.groups
     }
 
+    /// 缓存一个好友, 将其直接添加(或替换)到好友信息缓存中
     #[inline]
     pub(crate) fn cache_friend(&self, friend: Friend) {
         self.friend_caches().insert(friend.id(), friend);
     }
 
+    /// 缓存一个群, 将其直接添加(或替换)到群信息缓存中
     #[inline]
     pub(crate) fn cache_group(&self, group: Group) {
         self.group_caches().insert(group.id(), group);
     }
 
+    /// 从缓存移除一个好友, 用于删除(被删除)场景
     #[inline]
     pub(crate) fn remove_friend_cache(&self, friend_id: i64) -> Option<Friend> {
         self.friend_caches().remove(&friend_id).map(|(_, f)| f)
     }
 
+    /// 从缓存移除一个群, 用于退出(被踢出)场景
     #[inline]
     pub(crate) fn remove_group_cache(&self, group_id: i64) -> Option<Group> {
         self.group_caches().remove(&group_id).map(|(_, g)| g)
     }
 
+    /// 从缓存寻找一个群, 若缓存不存在则向服务器拉取信息
     pub(crate) async fn find_or_refresh_group(&self, id: i64) -> Option<Group> {
         if let Some(g) = self.find_group(id) {
             return Some(g);
@@ -337,6 +364,7 @@ impl Client {
             .unwrap_or(None)
     }
 
+    /// 从缓存寻找一个好友, 若缓存不存在则向服务器拉取信息
     pub(crate) async fn find_or_refresh_friend_list(&self, id: i64) -> Option<Friend> {
         if let Some(f) = self.find_friend(id) {
             return Some(f);
@@ -349,6 +377,7 @@ impl Client {
         self.find_friend(id)
     }
 
+    /// 内部使用的客户端, 详见[`ricq::Client`]
     #[inline]
     pub(crate) fn request_client(&self) -> &RQClient {
         &self.0.client
@@ -395,14 +424,14 @@ mod imp {
     use tracing::{error, warn};
 
     use crate::channel::GlobalEventBroadcastHandler;
-    use crate::client::info::BotAccountInfo;
+    use crate::client::info::AccountInfo;
     use crate::client::ClientConfiguration;
     use crate::contact::friend::Friend;
     use crate::contact::group::Group;
 
     pub struct Client {
         pub id: i64,
-        pub info: OnceLock<BotAccountInfo>,
+        pub info: OnceLock<AccountInfo>,
         pub enable: AtomicBool,
         pub client: Arc<RQClient>,
         pub friends: DashMap<i64, Friend>,

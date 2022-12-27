@@ -1,6 +1,6 @@
+use super::cast_ref;
+use super::rt::future_block_on;
 use crate::contact::member::NamedMember;
-use crate::plugin::cast_ref;
-use crate::plugin::ffi::future_block_on;
 use atri_ffi::error::FFIResult;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::{ManagedCloneable, RustStr};

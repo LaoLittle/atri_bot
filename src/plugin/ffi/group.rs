@@ -1,9 +1,9 @@
+use super::cast_ref;
+use super::rt::future_block_on;
 use crate::contact::group::Group;
 use crate::message;
 use crate::message::forward::ForwardMessage;
 use crate::message::meta::MessageReceipt;
-use crate::plugin::cast_ref;
-use crate::plugin::ffi::future_block_on;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
@@ -25,7 +25,7 @@ pub extern "C" fn group_get_name(group: *const ()) -> RustStr {
 
 pub extern "C" fn group_get_client(group: *const ()) -> ManagedCloneable {
     let group: &Group = cast_ref(group);
-    ManagedCloneable::from_value(group.client().clone())
+    ManagedCloneable::from_value(group.client().to_owned())
 }
 
 pub extern "C" fn group_get_members(group: *const ()) -> FFIFuture<RustVec<ManagedCloneable>> {

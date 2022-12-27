@@ -1,4 +1,4 @@
-use crate::plugin::cast_ref;
+use super::cast_ref;
 use crate::PluginManager;
 use atri_ffi::RustStr;
 

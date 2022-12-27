@@ -1,5 +1,5 @@
+use super::cast_ref;
 use crate::event::{FriendMessageEvent, GroupMessageEvent};
-use crate::plugin::cast_ref;
 use atri_ffi::contact::FFIMember;
 use atri_ffi::ffi::ForFFI;
 
