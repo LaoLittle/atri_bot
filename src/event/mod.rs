@@ -2,16 +2,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use ricq::handler::QEvent;
-
-use tracing::error;
-
 use atri_ffi::ffi::FFIEvent;
 use atri_ffi::ManagedCloneable;
+use ricq::handler::QEvent;
 
 use crate::contact::friend::Friend;
 use crate::contact::group::Group;
-use crate::contact::member::{AnonymousMember, Member, NamedMember};
+use crate::contact::member::{Member, NamedMember};
 use crate::contact::{Contact, ContactSubject};
 use crate::message::MessageChain;
 use crate::{Client, Listener};
@@ -167,26 +164,7 @@ impl GroupMessageEvent {
     }
 
     pub fn sender(&self) -> Member {
-        let id = self.message().metadata().sender;
-        if id == AnonymousMember::ID {
-            if let Some(ano) = self.message().metadata().anonymous.clone() {
-                let anom = AnonymousMember::from(self.group().clone(), ano);
-                return Member::Anonymous(anom);
-            } else {
-                error!("无法找到匿名信息");
-            }
-        }
-
-        self.group()
-            .members_cache()
-            .get(&id)
-            .and_then(|r| r.to_owned())
-            .map(Member::Named)
-            .unwrap_or_else(|| {
-                // when a named member send a message, the event channel handler will first
-                // check if the member exist in this group
-                unreachable!()
-            })
+        self.inner().sender.clone()
     }
 
     pub fn message(&self) -> &MessageChain {
@@ -226,9 +204,14 @@ impl GroupMessageEvent {
             })
     }
 
-    pub(crate) fn from(group: Group, ori: ricq::client::event::GroupMessageEvent) -> Self {
+    pub(crate) fn from(
+        group: Group,
+        sender: Member,
+        ori: ricq::client::event::GroupMessageEvent,
+    ) -> Self {
         Self::new(imp::GroupMessageEvent {
             group,
+            sender,
             message: ori.inner.into(),
         })
     }
@@ -399,7 +382,7 @@ mod imp {
 
     use crate::contact::friend::Friend;
     use crate::contact::group::Group;
-    use crate::contact::member::NamedMember;
+    use crate::contact::member::{Member, NamedMember};
     use crate::message::MessageChain;
     use crate::Client;
 
@@ -409,6 +392,7 @@ mod imp {
 
     pub struct GroupMessageEvent {
         pub group: Group,
+        pub sender: Member,
         pub message: MessageChain,
     }
 
