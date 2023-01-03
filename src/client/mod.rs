@@ -110,6 +110,10 @@ impl Client {
             let id = client.id();
             let mut reconnected = false;
             loop {
+                if !crate::service::login::auto_reconnect() {
+                    return;
+                }
+
                 if client.network_status() == OFFLINE_STATUS as u8 {
                     if reconnected {
                         error!(

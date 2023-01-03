@@ -8,6 +8,7 @@ pub mod log;
 pub mod member;
 pub mod message;
 pub mod rt;
+pub mod string;
 
 fn cast_ref<'a, T>(ptr: *const ()) -> &'a T {
     unsafe { &*(ptr as *const T) }

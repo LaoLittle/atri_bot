@@ -1,5 +1,6 @@
 use std::io;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use rand::{thread_rng, Rng};
@@ -49,6 +50,10 @@ pub async fn login_clients() -> Result<(), RQError> {
             default_config_write(login_conf_dir).await?
         }
     };
+
+    if login_conf.auto_reconnect {
+        set_auto_reconnect(true);
+    }
 
     let clients_path = config::clients_dir_path();
     if !clients_path.is_dir() {
@@ -168,4 +173,14 @@ async fn login_client(
             }
         }
     }
+}
+
+static AUTO_RECONNECT: AtomicBool = AtomicBool::new(false);
+
+pub fn auto_reconnect() -> bool {
+    AUTO_RECONNECT.load(Ordering::Relaxed)
+}
+
+pub fn set_auto_reconnect(s: bool) {
+    AUTO_RECONNECT.store(s, Ordering::Relaxed);
 }

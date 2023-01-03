@@ -1,6 +1,7 @@
 mod ffi;
 
-use crate::plugin::ffi::rt::{c_str_cvt, plugin_manager_block_on, plugin_manager_spawn};
+use crate::plugin::ffi::rt::{plugin_manager_block_on, plugin_manager_spawn};
+use crate::plugin::ffi::string::{c_str_cvt, rust_str_cvt, rust_string_drop};
 use ffi::client::{
     client_find_friend, client_find_group, client_get_friends, client_get_groups, client_get_id,
     client_get_list, client_get_nickname, find_client,
@@ -148,6 +149,8 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         30101 => message_chain_from_json,
 
         // ffi
-        30500 => c_str_cvt,
+        30500 => rust_str_cvt,
+        30501 => c_str_cvt,
+        30502 => rust_string_drop,
     }
 }

@@ -24,12 +24,6 @@ pub extern "C" fn plugin_manager_block_on(
     manager.async_runtime().block_on(future)
 }
 
-pub extern "C" fn c_str_cvt(ptr: *const c_char) -> RustString {
-    let cstr = unsafe { CStr::from_ptr(ptr) };
-
-    cstr.to_string_lossy().to_string().into()
-}
-
 pub fn future_block_on<F>(manager: *const (), future: F) -> F::Output
 where
     F: Future,

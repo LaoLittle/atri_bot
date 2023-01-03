@@ -2,20 +2,28 @@ use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_CONFIG: &[u8] = include_bytes!("../../default_config/default_login_conf.toml");
 
+/// 登录配置
 #[derive(Deserialize, Serialize, Debug, Default)]
 pub struct LoginConfig {
+    /// 默认登录协议
     pub default_protocol: Protocol,
+    /// 是否自动重连
     #[serde(default = "true_bool")]
     pub auto_reconnect: bool,
+    /// 所有配置进行登录的客户端
     #[serde(rename = "client")]
     pub clients: Vec<ClientConfig>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ClientConfig {
+    /// 账号
     pub account: i64,
+    /// 密码
     pub password: Option<String>,
+    /// 登录协议
     pub protocol: Option<Protocol>,
+    /// 是否进行登录
     #[serde(default = "true_bool")]
     pub auto_login: bool,
 }

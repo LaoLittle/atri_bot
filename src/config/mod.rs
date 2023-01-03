@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 pub mod login;
+pub mod plugin;
 
 const SERVICE_CONFIG_PATH: &str = "service";
 
