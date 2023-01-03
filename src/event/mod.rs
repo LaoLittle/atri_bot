@@ -163,8 +163,8 @@ impl GroupMessageEvent {
         self.group().client()
     }
 
-    pub fn sender(&self) -> Member {
-        self.inner().sender.clone()
+    pub fn sender(&self) -> &Member {
+        &self.inner().sender
     }
 
     pub fn message(&self) -> &MessageChain {
@@ -178,12 +178,16 @@ impl GroupMessageEvent {
         let group_id = self.group().id();
         let sender_id = self.sender().id();
 
+        if sender_id == crate::contact::member::AnonymousMember::ID {
+            return None;
+        }
+
         Listener::next_event(timeout, |e: &GroupMessageEvent| {
             if e.group().id() != group_id {
                 return false;
             }
 
-            if e.message().metadata().sender != sender_id {
+            if e.sender().id() != sender_id {
                 return false;
             }
 

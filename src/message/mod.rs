@@ -6,6 +6,7 @@ pub mod image;
 pub mod macros;
 pub mod meta;
 
+use crate::event::{Event, FromEvent};
 use crate::message::at::At;
 use crate::message::face::Face;
 use crate::message::meta::{Anonymous, MessageMetadata, MessageReceipt, RecallMessage, Reply};
@@ -94,6 +95,16 @@ impl RecallMessage for MessageChain {
             seqs: self.metadata().seqs.clone(),
             rands: self.metadata().rands.clone(),
             time: self.metadata().time as i64,
+        }
+    }
+}
+
+impl FromEvent for MessageChain {
+    fn from_event(e: Event) -> Option<Self> {
+        match e {
+            Event::GroupMessage(e) => Some(e.message().to_owned()),
+            Event::FriendMessage(e) => Some(e.message().to_owned()),
+            _ => None,
         }
     }
 }
