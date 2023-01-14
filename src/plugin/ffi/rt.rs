@@ -2,8 +2,7 @@ use super::cast_ref;
 use crate::service::plugin::PluginManager;
 use atri_ffi::error::FFIResult;
 use atri_ffi::future::FFIFuture;
-use atri_ffi::{Managed, RustString};
-use std::ffi::{c_char, CStr};
+use atri_ffi::Managed;
 use std::future::Future;
 
 pub extern "C" fn plugin_manager_spawn(
