@@ -30,7 +30,7 @@ jobs:
           - { name: Linux-s390x, os: ubuntu-latest, tool: s390x-unknown-linux-gnu }
           - { name: Linux-sparc64, os: ubuntu-latest, tool: sparc64-unknown-linux-gnu }
           - { name: iOS-aarch64, os: macos-latest, tool: aarch64-apple-ios }
-          - { name: FreeBSD-x64, os: ubuntu-latest, tool: x86_64-unknown-freebsd }
+          #- { name: FreeBSD-x64, os: ubuntu-latest, tool: x86_64-unknown-freebsd }
           - { name: NetBSD-x64, os: ubuntu-latest, tool: x86_64-unknown-netbsd }
           - { name: Illumos-x64, os: ubuntu-latest, tool: x86_64-unknown-illumos }
 

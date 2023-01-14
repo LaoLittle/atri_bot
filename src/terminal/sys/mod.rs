@@ -8,6 +8,7 @@ cfg_if! {
         mod windows;
         pub use windows::*;
     } else {
-        // not supported
+        mod unknown;
+        pub use unknown::*;
     }
 }

@@ -44,11 +44,11 @@ unsafe extern "stdcall" fn handle(_: *const ExceptionPointers) -> DWORD {
             size = GetModuleFileNameW(module, buffer.as_mut_ptr(), MAX_PATH as DWORD);
         }
 
-        let slice = if buffer.starts_with(&[92, 92, 63, 92]) {
-            &buffer[4..size as usize]
-        } else {
-            &buffer[..size as usize]
-        };
+        let mut slice = &buffer[..size as usize];
+
+        if buffer.starts_with(&[92, 92, 63, 92]) {
+            slice = &slice[4..];
+        }
 
         String::from_utf16_lossy(slice)
     }
