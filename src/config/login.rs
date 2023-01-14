@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub const DEFAULT_CONFIG: &[u8] = include_bytes!("../../default_config/default_login_conf.toml");
+pub const DEFAULT_CONFIG: &[u8] = include_bytes!("../../default_config/login.toml");
 
 /// 登录配置
 #[derive(Deserialize, Serialize, Debug, Default)]
