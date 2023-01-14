@@ -1,0 +1,6 @@
+# 日志输出最大等级
+# 等级由低至高分别为: Error, Warn, Info, Debug, Tracing
+max_level = 'Info'
+# 日志时间的输出格式
+# 详见'https://time-rs.github.io/book/api/format-description.html'
+time_format = '[year]-[month]-[day] [hour]:[minute]:[second]'
