@@ -1,4 +1,8 @@
 pub(crate) mod buffer;
+pub use buffer::{
+    enter_alternate_screen, exit_alternate_screen, is_alternate_screen_enabled, is_terminal_closed,
+};
+
 mod sys;
 
 pub use sys::handle_standard_output;

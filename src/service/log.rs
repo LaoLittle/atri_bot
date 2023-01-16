@@ -85,24 +85,25 @@ impl Default for LogStdoutWriter {
 
 impl Write for LogStdoutWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let mut stdout = io::stdout().lock();
+        fn write_content<W: Write>(mut out: W, buf: &[u8]) -> io::Result<usize> {
+            if TERMINAL_CLOSED.load(Ordering::Relaxed) {
+                return Ok(buf.len());
+            }
 
-        if TERMINAL_CLOSED.load(Ordering::Relaxed) {
-            return Ok(buf.len());
+            out.write_all(&[13])?;
+            let size = out.write(buf)?;
+            out.write_all(PROMPT)?;
+
+            if let Ok(rw) = INPUT_BUFFER.try_read() {
+                out.write_all(rw.as_bytes())?;
+            }
+
+            out.flush()?;
+
+            Ok(size)
         }
 
-        stdout.write_all(&[13])?;
-        let size = stdout.write(buf)?;
-
-        stdout.write_all(PROMPT)?;
-
-        if let Ok(rw) = INPUT_BUFFER.try_read() {
-            stdout.write_all(rw.as_bytes())?;
-        }
-
-        stdout.flush()?;
-
-        Ok(size)
+        write_content(io::stdout().lock(), buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
