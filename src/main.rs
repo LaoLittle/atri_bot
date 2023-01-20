@@ -17,6 +17,7 @@ fn main() -> MainResult {
     print_welcome_info();
     let _guards = init_logger();
     atri_bot::signal::init_crash_handler();
+    pre_create_dirs();
 
     // start
     let mut atri = Atri::new();
@@ -127,4 +128,10 @@ fn print_welcome_info() {
         "{}",
         include_str!(concat!(env!("OUT_DIR"), "/welcome_info"))
     );
+}
+
+fn pre_create_dirs() {
+    for name in ["workspaces"] {
+        let _ = std::fs::create_dir(name);
+    }
 }

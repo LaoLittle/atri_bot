@@ -35,6 +35,7 @@ impl fmt::Display for DlBacktrace {
                 match (symbol.lineno(), symbol.colno()) {
                     (Some(line), Some(column)) => write!(f, ":{line}:{column}")?,
                     (Some(line), None) => write!(f, ":{line}")?,
+                    (None, Some(column)) => write!(f, ":?:{column}")?,
                     _ => {}
                 }
 
