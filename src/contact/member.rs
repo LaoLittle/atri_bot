@@ -198,7 +198,7 @@ impl AnonymousMember {
         &self.0.group
     }
 
-    pub fn bot(&self) -> &Client {
+    pub fn client(&self) -> &Client {
         self.group().client()
     }
 }

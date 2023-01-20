@@ -68,8 +68,8 @@ pub async fn login_clients() -> Result<(), RQError> {
         let account = client.account;
         let pwd = client.password;
 
-        let bot_path = clients_path.join(account.to_string()).join("device.json");
-        if !bot_path.is_file() {
+        let client_device = clients_path.join(account.to_string()).join("device.json");
+        if !client_device.is_file() {
             warn!("未找到Client({})的登陆信息，跳过登陆", account);
             continue;
         }

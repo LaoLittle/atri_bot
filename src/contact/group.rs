@@ -238,9 +238,9 @@ impl Group {
 // internal impls
 impl Group {
     #[inline]
-    pub(crate) fn from(bot: Client, info: ricq::structs::GroupInfo) -> Self {
+    pub(crate) fn from(client: Client, info: ricq::structs::GroupInfo) -> Self {
         let imp = imp::Group {
-            client: bot,
+            client,
             info,
             member_list_refreshed: AtomicBool::new(false),
             members: DashMap::new(),

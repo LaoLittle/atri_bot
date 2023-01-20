@@ -95,26 +95,26 @@ impl AtriGlobalStatus {
         }
     }
 
-    pub fn bots(&self) -> Vec<Client> {
-        let mut bots = vec![];
-        for bot in self.clients.iter() {
-            let c = bot.clone();
-            bots.push(c);
+    pub fn clients(&self) -> Vec<Client> {
+        let mut clients = vec![];
+        for client in self.clients.iter() {
+            let c = client.clone();
+            clients.push(c);
         }
 
-        bots
+        clients
     }
 
     pub fn listener_worker(&self) -> &ListenerWorker {
         &self.listener_worker
     }
 
-    pub(crate) fn add_client(&self, bot: Client) -> Option<Client> {
-        self.clients.insert(bot.id(), bot)
+    pub(crate) fn add_client(&self, client: Client) -> Option<Client> {
+        self.clients.insert(client.id(), client)
     }
 
-    pub(crate) fn remove_client(&self, bot: i64) -> Option<Client> {
-        self.clients.remove(&bot).map(|(_, bot)| bot)
+    pub(crate) fn remove_client(&self, client_id: i64) -> Option<Client> {
+        self.clients.remove(&client_id).map(|(_, client)| client)
     }
 }
 

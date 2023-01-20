@@ -287,8 +287,8 @@ impl ClientLoginEvent {
 }
 
 impl ClientLoginEvent {
-    pub(crate) fn from(bot: Client) -> Self {
-        Self::new(imp::ClientLoginEvent { client: bot })
+    pub(crate) fn from(client: Client) -> Self {
+        Self::new(imp::ClientLoginEvent { client })
     }
 }
 

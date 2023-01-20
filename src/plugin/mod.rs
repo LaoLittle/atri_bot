@@ -13,7 +13,7 @@ use ffi::event::{
     group_message_event_get_message, group_message_event_get_sender,
 };
 use ffi::friend::{
-    friend_get_bot, friend_get_id, friend_get_nickname, friend_send_message,
+    friend_get_client, friend_get_id, friend_get_nickname, friend_send_message,
     friend_send_message_blocking, friend_upload_image, friend_upload_image_blocking,
 };
 use ffi::group::{
@@ -106,7 +106,7 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         // friend
         500 => friend_get_id,
         501 => friend_get_nickname,
-        502 => friend_get_bot,
+        502 => friend_get_client,
         503 => friend_send_message,
         504 => friend_upload_image,
 
