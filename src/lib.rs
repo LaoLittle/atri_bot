@@ -1,5 +1,6 @@
 #![feature(once_cell)]
 #![feature(string_leak)]
+#![feature(new_uninit)]
 
 use dashmap::DashMap;
 use ricq::msg::elem::Text;

@@ -5,7 +5,6 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::{PhantomData, PhantomPinned};
-use std::mem::MaybeUninit;
 use std::ptr::null_mut;
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::{fs, io};
@@ -183,10 +182,10 @@ impl PluginManager {
             )
         };
 
-        let plugin = Box::new(MaybeUninit::<Plugin>::uninit());
-        let plugin_ref = Box::into_raw(plugin);
+        let mut plugin = Box::<Plugin>::new_uninit();
+        let plugin_ptr = plugin.as_ptr();
 
-        let handle = plugin_ref as usize;
+        let handle = plugin_ptr as usize;
         trace!("正在初始化插件");
 
         let manager_ptr = self as *const PluginManager;
@@ -210,21 +209,19 @@ impl PluginManager {
 
         let ptr = (plugin_instance.vtb.new)();
 
-        unsafe {
-            (*plugin_ref).write(Plugin {
-                enabled: AtomicBool::new(false),
-                instance: AtomicPtr::new(ptr),
-                vtb: plugin_instance.vtb,
-                name: plugin_instance.name.to_string(),
-                lib_name,
-                should_drop: plugin_instance.should_drop,
-                handle,
-                manager: manager_ptr,
-                _lib: lib,
-            });
+        plugin.write(Plugin {
+            enabled: AtomicBool::new(false),
+            instance: AtomicPtr::new(ptr),
+            vtb: plugin_instance.vtb,
+            name: plugin_instance.name.to_string(),
+            lib_name,
+            should_drop: plugin_instance.should_drop,
+            handle,
+            manager: manager_ptr,
+            _lib: lib,
+        });
 
-            Ok(Box::from_raw(plugin_ref as *mut Plugin))
-        }
+        Ok(unsafe { plugin.assume_init() })
     }
 
     unsafe fn load_dependencies<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
@@ -352,9 +349,7 @@ impl Plugin {
     }
 
     pub fn manager(&self) -> &PluginManager {
-        unsafe {
-            &*self.manager
-        }
+        unsafe { &*self.manager }
     }
 }
 
