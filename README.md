@@ -1,6 +1,7 @@
-![Atri](statics/atri.jpg)
+<img alt="Atri" src="statics/atri.jpg" width="200"/>
 ----
 <div align="center">
+
 QQ群怎能少得了高性能亚托莉的身影呢？
 
 本项目致力于快速部署，简单使用。
