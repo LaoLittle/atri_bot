@@ -2,7 +2,6 @@ use crate::service::command::{CommandError, CommandResult, PLUGIN_COMMAND};
 use crate::service::plugin::PluginManager;
 use std::collections::hash_map::Entry;
 use std::mem;
-use std::str::FromStr;
 use tracing::info;
 
 pub fn handle_plugin_command(
@@ -33,7 +32,7 @@ pub fn handle_plugin_command(
             let plugin = manager
                 .load_plugin(path)
                 .map_err(|e| CommandError::ExecuteError(e.to_string().into()))?;
-            match manager.plugins.entry(plugin.handle()) {
+            match manager.plugins.entry(plugin.name().to_owned()) {
                 Entry::Vacant(vac) => {
                     vac.insert(plugin).enable();
                 }
@@ -44,10 +43,10 @@ pub fn handle_plugin_command(
             let &id = args
                 .get(1)
                 .ok_or(CommandError::MissingArgument("Plugin name"))?;
-            let id = usize::from_str(id)?;
+
             manager
                 .plugins
-                .remove(&id)
+                .remove(id)
                 .ok_or_else(|| CommandError::ExecuteError("未找到插件".into()))?;
             info!("成功卸载插件");
         }

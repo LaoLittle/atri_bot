@@ -5,6 +5,7 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::marker::{PhantomData, PhantomPinned};
+use std::mem::MaybeUninit;
 use std::ptr::null_mut;
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::{fs, io};
@@ -23,7 +24,7 @@ use crate::plugin::plugin_get_function;
 const EXTENSION: &str = std::env::consts::DLL_EXTENSION;
 
 pub struct PluginManager {
-    pub(crate) plugins: HashMap<usize, Plugin>,
+    pub(crate) plugins: HashMap<String, Box<Plugin>>,
     dependencies: Vec<Library>,
     plugins_path: PathBuf,
     async_runtime: runtime::Runtime,
@@ -60,15 +61,15 @@ impl PluginManager {
     }
 
     pub fn plugins(&self) -> Vec<&Plugin> {
-        self.plugins.values().collect()
+        self.plugins.values().map(Box::as_ref).collect()
     }
 
     pub fn plugins_path(&self) -> &Path {
         &self.plugins_path
     }
 
-    pub fn find_plugin(&self, handle: usize) -> Option<&Plugin> {
-        self.plugins.get(&handle)
+    pub fn find_plugin(&self, name: &str) -> Option<&Plugin> {
+        self.plugins.get(name).map(Box::as_ref)
     }
 
     pub fn load_plugins(&mut self) -> io::Result<()> {
@@ -121,7 +122,7 @@ impl PluginManager {
                             Ok(p) => {
                                 let plugin_display = p.to_string();
 
-                                match self.plugins.entry(p.handle) {
+                                match self.plugins.entry(p.name().to_owned()) {
                                     Entry::Occupied(_old) => {
                                         error!(
                                             "{} 被重复加载, 这是一个Bug, 请报告此Bug",
@@ -154,7 +155,7 @@ impl PluginManager {
         Ok(())
     }
 
-    pub fn load_plugin<P: AsRef<OsStr>>(&self, path: P) -> Result<Plugin, AtriError> {
+    pub fn load_plugin<P: AsRef<OsStr>>(&self, path: P) -> Result<Box<Plugin>, AtriError> {
         let path = Path::new(path.as_ref());
         trace!("正在加载插件动态库, Path={:?}", path);
 
@@ -164,7 +165,6 @@ impl PluginManager {
             .unwrap_or("unknown file")
             .to_string();
 
-        let ptr = self as *const PluginManager as usize;
         let lib = unsafe {
             Library::new(path)
                 .map_err(|e| PluginError::LoadFail(format!("无法加载插件动态库: {e}")))?
@@ -182,11 +182,16 @@ impl PluginManager {
                     )))?,
             )
         };
-        let handle = atri_manager_init as usize;
+
+        let plugin = Box::new(MaybeUninit::<Plugin>::uninit());
+        let plugin_ref = Box::into_raw(plugin);
+
+        let handle = plugin_ref as usize;
         trace!("正在初始化插件");
 
+        let manager_ptr = self as *const PluginManager;
         atri_manager_init(AtriManager {
-            manager_ptr: ptr as *const PluginManager as _,
+            manager_ptr: manager_ptr as *const (),
             handle,
             get_fun: plugin_get_function,
         });
@@ -205,20 +210,21 @@ impl PluginManager {
 
         let ptr = (plugin_instance.vtb.new)();
 
-        let plugin = Plugin {
-            enabled: AtomicBool::new(false),
-            instance: AtomicPtr::new(ptr),
-            vtb: plugin_instance.vtb,
-            name: plugin_instance.name.to_string(),
-            lib_name,
-            should_drop: plugin_instance.should_drop,
-            handle,
-            _lib: lib,
-        };
+        unsafe {
+            (*plugin_ref).write(Plugin {
+                enabled: AtomicBool::new(false),
+                instance: AtomicPtr::new(ptr),
+                vtb: plugin_instance.vtb,
+                name: plugin_instance.name.to_string(),
+                lib_name,
+                should_drop: plugin_instance.should_drop,
+                handle,
+                manager: manager_ptr,
+                _lib: lib,
+            });
 
-        trace!("正在启用插件");
-
-        Ok(plugin)
+            Ok(Box::from_raw(plugin_ref as *mut Plugin))
+        }
     }
 
     unsafe fn load_dependencies<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
@@ -269,6 +275,7 @@ pub struct Plugin {
     lib_name: String,
     should_drop: bool,
     handle: usize,
+    manager: *const PluginManager,
     _lib: Library,
 }
 
@@ -342,6 +349,12 @@ impl Plugin {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn manager(&self) -> &PluginManager {
+        unsafe {
+            &*self.manager
+        }
     }
 }
 
