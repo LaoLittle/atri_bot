@@ -1,6 +1,6 @@
-<img alt="Atri" src="statics/atri.jpg" width="200"/>
 ----
 <div align="center">
+<img alt="Atri" src="statics/atri.jpg" width="200"/>
 
 QQ群怎能少得了高性能亚托莉的身影呢？
 
