@@ -84,7 +84,7 @@ impl AtriGlobalStatus {
     pub fn new() -> Self {
         let listener_runtime = runtime::Builder::new_multi_thread()
             .worker_threads(8)
-            .thread_name("Global-Listener-Executor")
+            .thread_name("GlobalListenerExecutor")
             .enable_all()
             .build()
             .unwrap();

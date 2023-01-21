@@ -148,7 +148,7 @@ impl Group {
     }
     */
 
-    async fn _upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {
+    async fn _upload_image(&self, image: &[u8]) -> AtriResult<Image> {
         self.client()
             .request_client()
             .upload_group_image(self.id(), image)
@@ -168,8 +168,8 @@ impl Group {
     }
 
     #[inline]
-    pub async fn upload_image<I: Into<Vec<u8>>>(&self, image: I) -> AtriResult<Image> {
-        self._upload_image(image.into()).await
+    pub async fn upload_image<B: AsRef<[u8]>>(&self, image: B) -> AtriResult<Image> {
+        self._upload_image(image.as_ref()).await
     }
 
     async fn _recall_message(&self, receipt: MessageReceipt) -> AtriResult<()> {

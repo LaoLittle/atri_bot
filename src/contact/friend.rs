@@ -78,7 +78,7 @@ impl Friend {
         Err(AtriError::NotSupported)
     }
 
-    pub async fn upload_image(&self, image: Vec<u8>) -> AtriResult<Image> {
+    pub async fn _upload_image(&self, image: &[u8]) -> AtriResult<Image> {
         let f = self
             .client()
             .request_client()
@@ -86,6 +86,10 @@ impl Friend {
             .await?;
 
         Ok(Image::Friend(f))
+    }
+
+    pub async fn upload_image<B: AsRef<[u8]>>(&self, image: B) -> AtriResult<Image> {
+        self._upload_image(image.as_ref()).await
     }
 
     async fn _recall_message(&self, receipt: MessageReceipt) -> AtriResult<()> {

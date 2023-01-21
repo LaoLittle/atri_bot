@@ -1,5 +1,7 @@
 mod ffi;
 
+use crate::plugin::ffi::friend::friend_upload_image_ex;
+use crate::plugin::ffi::group::group_upload_image_ex;
 use crate::plugin::ffi::rt::{plugin_manager_block_on, plugin_manager_spawn};
 use crate::plugin::ffi::string::{c_str_cvt, rust_str_cvt, rust_string_drop};
 use ffi::client::{
@@ -103,6 +105,9 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         460 => group_send_forward_message_blocking,
         461 => group_invite_blocking,
 
+        // extension
+        480 => group_upload_image_ex,
+
         // friend
         500 => friend_get_id,
         501 => friend_get_nickname,
@@ -113,6 +118,9 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         // blocking api
         553 => friend_send_message_blocking,
         554 => friend_upload_image_blocking,
+
+        // extension
+        580 => friend_upload_image_ex,
 
         // named member
         600 => named_member_get_id,

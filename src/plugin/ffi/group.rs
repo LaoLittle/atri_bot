@@ -11,6 +11,7 @@ use atri_ffi::message::forward::FFIForwardNode;
 use atri_ffi::message::{FFIMessageChain, FFIMessageReceipt};
 use atri_ffi::{ManagedCloneable, RustStr, RustVec};
 use message::MessageChain;
+use std::slice;
 
 pub extern "C" fn group_get_id(group: *const ()) -> i64 {
     let group: &Group = cast_ref(group);
@@ -199,4 +200,21 @@ pub extern "C" fn group_invite_blocking(
 ) -> FFIResult<()> {
     let group: &Group = cast_ref(group);
     future_block_on(manager, async move { group.invite(id).await.into() })
+}
+
+pub extern "C" fn group_upload_image_ex(
+    group: *const (),
+    ptr: *const u8,
+    size: usize,
+) -> FFIFuture<FFIResult<ManagedCloneable>> {
+    let slice = unsafe { slice::from_raw_parts(ptr, size) };
+    FFIFuture::from(async {
+        let group: &Group = cast_ref(group);
+        let result = group
+            .upload_image(slice)
+            .await
+            .map(ManagedCloneable::from_value);
+
+        FFIResult::from(result)
+    })
 }

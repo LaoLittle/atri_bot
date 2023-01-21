@@ -8,6 +8,7 @@ use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::{FFIMessageChain, FFIMessageReceipt};
 use atri_ffi::{ManagedCloneable, RustStr, RustVec};
+use std::slice;
 
 pub extern "C" fn friend_get_id(friend: *const ()) -> i64 {
     let f: &Friend = cast_ref(friend);
@@ -83,6 +84,22 @@ pub extern "C" fn friend_upload_image_blocking(
             .await
             .map(ManagedCloneable::from_value);
 
+        FFIResult::from(result)
+    })
+}
+
+pub extern "C" fn friend_upload_image_ex(
+    friend: *const (),
+    ptr: *const u8,
+    size: usize,
+) -> FFIFuture<FFIResult<ManagedCloneable>> {
+    let slice = unsafe { slice::from_raw_parts(ptr, size) };
+    FFIFuture::from(async {
+        let f: &Friend = cast_ref(friend);
+        let result = f
+            .upload_image(slice)
+            .await
+            .map(ManagedCloneable::from_value);
         FFIResult::from(result)
     })
 }
