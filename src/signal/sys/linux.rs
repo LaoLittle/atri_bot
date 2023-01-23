@@ -26,7 +26,9 @@ pub fn init_crash_handler() {
         sigemptyset(&mut act.sa_mask);
 
         for sig in [SIGABRT, SIGSEGV, SIGBUS] {
-            sigaction(sig, &act, null_mut());
+            if sigaction(sig, &act, null_mut()) != 0 {
+                eprintln!("signal {} 注册失败", sig);
+            }
         }
     }
 }

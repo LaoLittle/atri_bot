@@ -17,20 +17,22 @@ impl fmt::Display for DlBacktrace {
         for (frame_cnt, frame) in self.inner.frames().iter().enumerate() {
             let fname = (self.fun)(frame.symbol_address());
 
-            writeln!(f, "{frame_cnt} File {fname}: ")?;
+            write!(f, "{frame_cnt} File ")?;
+            f.write_str(&fname)?;
+            f.write_str(": \n")?;
 
             frame_back.insert(fname);
 
             for symbol in frame.symbols() {
-                write!(
+                writeln!(
                     f,
-                    "    {}\n at {}",
+                    "    {}",
                     symbol.name().unwrap_or(backtrace::SymbolName::new(&[])),
-                    symbol
-                        .filename()
-                        .and_then(Path::to_str)
-                        .unwrap_or("unknown"),
                 )?;
+
+                if let Some(filename) = symbol.filename().and_then(Path::to_str) {
+                    write!(f, "  at {}", filename)?;
+                }
 
                 match (symbol.lineno(), symbol.colno()) {
                     (Some(line), Some(column)) => write!(f, ":{line}:{column}")?,
@@ -43,17 +45,19 @@ impl fmt::Display for DlBacktrace {
             }
         }
 
-        f.write_str("\n--------Frames--------\n")?;
+        f.write_str("--------Frames--------\n")?;
         for frame in frame_back {
             f.write_str(&frame)?;
             f.write_char('\n')?;
         }
         f.write_str("----------------------\n")?;
 
+        writeln!(f, "\ncurrent thread: {:?}", std::thread::current())?;
+
         Ok(())
     }
 }
 
 fn fatal_error_print() {
-    eprintln!("An fatal error has been detected");
+    eprintln!("An fatal error has been detected.");
 }
