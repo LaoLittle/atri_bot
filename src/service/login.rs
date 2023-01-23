@@ -108,7 +108,7 @@ pub async fn login_clients() -> Result<(), RQError> {
         });
         logins.push(handle);
 
-        let random = { thread_rng().gen_range(0..44) as f32 / 11.2f32 };
+        let random = { thread_rng().gen_range(6..44) as f32 / 11.2f32 };
         tokio::time::sleep(Duration::from_secs_f32(random)).await;
     }
 

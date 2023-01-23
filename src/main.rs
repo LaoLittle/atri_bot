@@ -67,14 +67,15 @@ async fn loop_cli(manager: &mut PluginManager) -> MainResult {
 
     let _out = tokio::task::spawn_blocking(|| {
         if let Err(e) = terminal::handle_standard_output() {
-            error!("接管Stdout失败: {}", e);
+            error!("接管Stdout出现错误: {}", e);
             return false;
         }
 
         true
     });
 
-    if let Err(e) = terminal::start_read_input(manager) {
+    let result = tokio::task::block_in_place(|| terminal::start_read_input(manager));
+    if let Err(e) = result {
         let _ = crossterm::terminal::disable_raw_mode();
         error!("初始化命令行服务异常: {}, 命令行可能不会正常工作", e);
 

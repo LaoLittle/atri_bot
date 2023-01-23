@@ -55,8 +55,7 @@ pub fn handle_standard_output() -> std::io::Result<()> {
             let size = libc::read(pipe[0], buf.as_mut_ptr() as _, BUFFER_SIZE as _);
 
             if size == -1 {
-                eprintln!("Error: {}", std::io::Error::last_os_error());
-                break;
+                return Err(std::io::Error::last_os_error());
             }
 
             if size == 1 && buf[0] == b'\n' {
@@ -98,8 +97,6 @@ pub fn handle_standard_output() -> std::io::Result<()> {
             }
         }
 
-        libc::dup2(stdout_bak, STDOUT_FILENO);
+        //libc::dup2(stdout_bak, STDOUT_FILENO);
     }
-
-    Ok(())
 }

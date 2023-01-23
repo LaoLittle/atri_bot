@@ -11,7 +11,7 @@ pub struct LoginConfig {
     #[serde(default = "true_bool")]
     pub auto_reconnect: bool,
     /// 所有配置进行登录的客户端
-    #[serde(rename = "client")]
+    #[serde(default, rename = "client")]
     pub clients: Vec<ClientConfig>,
 }
 
