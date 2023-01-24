@@ -221,6 +221,6 @@ pub fn save_jmp() -> std::ffi::c_int {
     0 // todo: sigsetjmp
 }
 
-pub fn expection_jmp(status: std::ffi::c_int) -> ! {
+pub fn exception_jmp(status: std::ffi::c_int) -> ! {
     std::process::exit(status); // todo: siglongjmp
 }
