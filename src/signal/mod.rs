@@ -5,6 +5,7 @@ use std::path::Path;
 
 mod sys;
 pub use sys::init_crash_handler;
+pub(crate) use sys::save_jmp;
 
 struct DlBacktrace {
     pub inner: backtrace::Backtrace,
@@ -60,4 +61,20 @@ impl fmt::Display for DlBacktrace {
 
 fn fatal_error_print() {
     eprintln!("An fatal error has been detected.");
+}
+
+fn pre_print_fatal() -> bool {
+    let enabled = crossterm::terminal::is_raw_mode_enabled().unwrap_or(false);
+    let _ = crossterm::terminal::disable_raw_mode();
+    enabled
+}
+
+fn post_print_fatal(enabled: bool) {
+    if enabled {
+        disable_raw_mode();
+    }
+}
+
+fn disable_raw_mode() {
+    let _ = crossterm::terminal::disable_raw_mode();
 }

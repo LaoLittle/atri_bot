@@ -1,4 +1,4 @@
-use crate::signal::DlBacktrace;
+use crate::signal::{disable_raw_mode, post_print_fatal, pre_print_fatal, DlBacktrace};
 use std::mem::MaybeUninit;
 use std::ptr::null_mut;
 
@@ -25,7 +25,7 @@ pub fn init_crash_handler() {
     unsafe {
         sigemptyset(&mut act.sa_mask);
 
-        for sig in [SIGABRT, SIGSEGV, SIGBUS] {
+        for sig in [SIGSEGV, SIGBUS, SIGABRT] {
             if sigaction(sig, &act, null_mut()) != 0 {
                 eprintln!("signal {} 注册失败", sig);
             }
@@ -63,6 +63,7 @@ unsafe extern "C" fn handle(
         }
     }
 
+    let enabled = pre_print_fatal();
     crate::signal::fatal_error_print();
 
     let bt = backtrace::Backtrace::new();
@@ -77,8 +78,12 @@ unsafe extern "C" fn handle(
     );
 
     eprintln!("Something went wrong, signal: {sig}");
+    post_print_fatal(enabled);
 
-    std::process::exit(sig as i32);
+    {
+        disable_raw_mode();
+        std::process::exit(sig as i32);
+    }
 }
 
 type DarwinSigsetT = u32;
@@ -210,4 +215,12 @@ struct DlInfo {
     pub dli_fbase: *mut std::os::raw::c_void,
     pub dli_sname: *const std::os::raw::c_char,
     pub dli_saddr: *mut std::os::raw::c_void,
+}
+
+pub fn save_jmp() -> std::ffi::c_int {
+    0 // todo: sigsetjmp
+}
+
+pub fn expection_jmp(status: std::ffi::c_int) -> ! {
+    std::process::exit(status); // todo: siglongjmp
 }

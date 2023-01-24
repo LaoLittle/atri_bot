@@ -1,4 +1,4 @@
-use crate::signal::DlBacktrace;
+use crate::signal::{disable_raw_mode, post_print_fatal, pre_print_fatal, DlBacktrace};
 
 pub fn init_crash_handler() {
     extern "C" {
@@ -25,12 +25,12 @@ unsafe extern "stdcall" fn handle(_: *const ExceptionPointers) -> DWORD {
 
             fn GetModuleFileNameW(
                 h_module: HMODULE,
-                lp_filename: *const WCHAR,
+                lp_filename: *mut WCHAR,
                 n_size: DWORD,
             ) -> DWORD;
         }
 
-        let mut module = 0 as HMODULE;
+        let mut module: HMODULE = 0;
         let mut buffer = [0 as WCHAR; MAX_PATH];
         let size;
         unsafe {
@@ -53,6 +53,7 @@ unsafe extern "stdcall" fn handle(_: *const ExceptionPointers) -> DWORD {
         String::from_utf16_lossy(slice)
     }
 
+    let enabled = pre_print_fatal();
     crate::signal::fatal_error_print();
 
     let bt = backtrace::Backtrace::new();
@@ -65,6 +66,11 @@ unsafe extern "stdcall" fn handle(_: *const ExceptionPointers) -> DWORD {
     );
 
     eprintln!("Something went wrong.");
+    post_print_fatal(enabled);
+
+    {
+        disable_raw_mode();
+    }
 
     1
 }
@@ -84,3 +90,11 @@ type HANDLE = usize;
 type HMODULE = HANDLE;
 
 type WCHAR = u16;
+
+pub fn save_jmp() -> std::ffi::c_int {
+    0 // todo: RtlCaptureContext
+}
+
+pub fn expection_jmp(status: std::ffi::c_int) -> ! {
+    std::process::exit(status); // todo: RtlRestoreContext
+}
