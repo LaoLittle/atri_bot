@@ -1,6 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-/// 对插件产生错误的态度
+pub const DEFAULT_CONFIG: &[u8] = include_bytes!("../../default_config/plugin.toml");
+
+/// 插件服务配置
+#[derive(Serialize, Deserialize, Default)]
+pub struct PluginConfig {
+    pub fault_attitude: FaultAttitude,
+}
+
+/// 对插件产生异常的态度
 #[derive(Serialize, Deserialize, Default)]
 pub enum FaultAttitude {
     #[default]

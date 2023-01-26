@@ -1,0 +1,4 @@
+# 对插件异常的态度
+# FastFault: 立即结束程序, 记录堆栈
+# Ignore (实验性): 忽略错误, 关闭产生错误的监听器, 记录堆栈, 但可能导致内存泄露或其他问题
+fault_attitude = 'FastFault'

@@ -1,3 +1,4 @@
+use crate::service::plugin::is_rec_enabled;
 use crate::signal::{disable_raw_mode, post_print_fatal, pre_print_fatal, DlBacktrace};
 use std::cell::RefCell;
 use std::mem::MaybeUninit;
@@ -25,8 +26,10 @@ pub fn init_crash_handler() {
     unsafe {
         sigemptyset(&mut act.sa_mask);
 
-        if sigaction(SIGSEGV, &act, null_mut()) != 0 {
-            eprintln!("signal {} 注册失败", sig);
+        for sig in [SIGSEGV, SIGBUS, SIGABRT] {
+            if sigaction(SIGSEGV, &act, null_mut()) != 0 {
+                eprintln!("signal {} handler 注册失败", sig);
+            }
         }
     }
 }
@@ -78,7 +81,19 @@ unsafe extern "C" fn handle(
     eprintln!("Something went wrong, signal: {}", sig);
     post_print_fatal(enabled);
 
-    exception_jmp(sig);
+    let exit = |sig| -> ! {
+        disable_raw_mode();
+        std::process::exit(sig);
+    };
+
+    if !is_rec_enabled() {
+        exit(sig);
+    }
+
+    match sig {
+        SIGSEGV => exception_jmp(sig),
+        or => exit(or),
+    }
 }
 
 pub type DarwinPidT = i32;

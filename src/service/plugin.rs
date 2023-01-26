@@ -14,6 +14,9 @@ use libloading::Library;
 use tokio::runtime;
 use tracing::{error, info, trace, warn};
 
+use crate::config;
+use crate::config::plugin::{FaultAttitude, PluginConfig};
+use crate::config::service::ServiceConfig;
 use crate::error::{AtriError, PluginError};
 use atri_ffi::ffi::AtriManager;
 use atri_ffi::plugin::{PluginInstance, PluginVTable};
@@ -21,6 +24,30 @@ use atri_ffi::plugin::{PluginInstance, PluginVTable};
 use crate::plugin::plugin_get_function;
 
 const EXTENSION: &str = std::env::consts::DLL_EXTENSION;
+
+static ENABLE_REC: AtomicBool = AtomicBool::new(false);
+pub fn enable_rec() {
+    ENABLE_REC.store(true, Ordering::Relaxed);
+}
+
+pub fn disable_rec() {
+    ENABLE_REC.store(false, Ordering::Relaxed);
+}
+
+pub fn is_rec_enabled() -> bool {
+    ENABLE_REC.load(Ordering::Relaxed)
+}
+
+pub fn init_plugin_service() {
+    let config =
+        ServiceConfig::<PluginConfig>::new("plugin", config::plugin::DEFAULT_CONFIG).read();
+    match config.fault_attitude {
+        FaultAttitude::FastFault => {}
+        FaultAttitude::Ignore => {
+            enable_rec();
+        }
+    }
+}
 
 pub struct PluginManager {
     pub(crate) plugins: HashMap<String, Box<Plugin>>,

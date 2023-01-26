@@ -17,6 +17,7 @@ fn main() -> MainResult {
     print_welcome_info();
     let _guards = init_logger();
     atri_bot::signal::init_crash_handler();
+    atri_bot::service::plugin::init_plugin_service();
     pre_create_dirs();
 
     // start
