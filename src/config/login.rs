@@ -15,6 +15,7 @@ pub struct LoginConfig {
     pub clients: Vec<ClientConfig>,
 }
 
+/// 客户端配置
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ClientConfig {
     /// 账号

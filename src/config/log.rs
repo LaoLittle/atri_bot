@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub static DEFAULT_CONFIG: &[u8] = include_bytes!("../../default_config/log.toml");
 
+/// 日志配置
 #[derive(Serialize, Deserialize, Debug)]
 pub struct LogConfig {
     #[serde(default = "default_level")]
