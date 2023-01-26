@@ -25,10 +25,8 @@ pub fn init_crash_handler() {
     unsafe {
         sigemptyset(&mut act.sa_mask);
 
-        for sig in [SIGSEGV, SIGBUS, SIGABRT] {
-            if sigaction(sig, &act, null_mut()) != 0 {
-                eprintln!("signal {} 注册失败", sig);
-            }
+        if sigaction(SIGSEGV, &act, null_mut()) != 0 {
+            eprintln!("signal {} 注册失败", sig);
         }
     }
 }
@@ -80,11 +78,7 @@ unsafe extern "C" fn handle(
     eprintln!("Something went wrong, signal: {}", sig);
     post_print_fatal(enabled);
 
-    //exception_jmp(sig);
-    {
-        disable_raw_mode();
-        std::process::exit(sig as i32);
-    }
+    exception_jmp(sig);
 }
 
 pub type DarwinPidT = i32;
@@ -158,22 +152,21 @@ thread_local! {
     static JMP_BUF: RefCell<Option<SigjmpBuf>> = RefCell::new(None);
 }
 
-pub fn save_jmp() -> std::ffi::c_int {
+pub fn save_jmp() {
     extern "C" {
-        fn sigsetjmp(buf: *mut std::ffi::c_int, save_mask: bool) -> std::ffi::c_int;
+        fn sigsetjmp(buf: *mut std::ffi::c_int, save_mask: std::ffi::c_int) -> std::ffi::c_int;
+    }
+
+    let mut buf: SigjmpBuf = [0; _SIGJBLEN];
+    let ret = unsafe { sigsetjmp(buf.as_mut_ptr(), 1) };
+
+    if ret != 0 {
+        panic!("exception occurred, status: {ret}");
     }
 
     JMP_BUF.with(|r| {
-        let mut buf: SigjmpBuf = [0; _SIGJBLEN];
-        let ret = unsafe { sigsetjmp(buf.as_mut_ptr(), true) };
-        if ret == 0 {
-            *r.borrow_mut() = Some(buf);
-        } else {
-            panic!("RET = {ret}");
-        }
-
-        ret
-    })
+        *r.borrow_mut() = Some(buf);
+    });
 }
 
 pub fn exception_jmp(status: std::ffi::c_int) -> ! {

@@ -1,5 +1,6 @@
 use super::cast_ref;
 use crate::service::plugin::PluginManager;
+use crate::signal::save_jmp;
 use atri_ffi::error::FFIResult;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::Managed;
@@ -10,7 +11,11 @@ pub extern "C" fn plugin_manager_spawn(
     future: FFIFuture<Managed>,
 ) -> FFIFuture<FFIResult<Managed>> {
     let manager: &PluginManager = cast_ref(manager);
-    let handle = manager.async_runtime().spawn(future);
+    let handle = manager.async_runtime().spawn(async move {
+        save_jmp();
+
+        future.await
+    });
 
     FFIFuture::from(async { FFIResult::from(handle.await) })
 }
