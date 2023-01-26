@@ -167,7 +167,7 @@ thread_local! {
     static JMP_BUF: RefCell<Option<SigjmpBuf>> = RefCell::new(None);
 }
 
-pub fn save_jmp() {
+pub unsafe fn save_jmp() {
     extern "C" {
         fn sigsetjmp(buf: *mut std::ffi::c_int, save_mask: std::ffi::c_int) -> std::ffi::c_int;
     }
@@ -184,7 +184,7 @@ pub fn save_jmp() {
     });
 }
 
-pub fn exception_jmp(status: std::ffi::c_int) -> ! {
+pub unsafe fn exception_jmp(status: std::ffi::c_int) -> ! {
     extern "C" {
         fn siglongjmp(buf: *const std::ffi::c_int, val: std::ffi::c_int) -> !;
     }
