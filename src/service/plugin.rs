@@ -44,6 +44,9 @@ pub fn init_plugin_service() {
     match config.fault_attitude {
         FaultAttitude::FastFault => {}
         FaultAttitude::Ignore => {
+            #[cfg(not(any(target_os = "macos", target_os = "ios",)))]
+            warn!("你所使用的系统可能不支持插件异常处理, 默认使用FastFault");
+
             enable_rec();
         }
     }
@@ -198,11 +201,11 @@ impl PluginManager {
 
         let (atri_manager_init, on_init) = unsafe {
             (
-                *lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init")
+                *lib.get::<extern "C" fn(AtriManager)>(b"atri_manager_init\0")
                     .or(Err(PluginError::InitializeFail(
                         "无法找到插件初始化函数'atri_manager_init', 或许这不是一个插件",
                     )))?,
-                *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init")
+                *lib.get::<extern "C" fn() -> PluginInstance>(b"on_init\0")
                     .or(Err(PluginError::InitializeFail(
                         "无法找到插件初始化函数'on_init', 或许是插件作者太粗心了?",
                     )))?,

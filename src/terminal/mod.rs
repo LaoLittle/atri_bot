@@ -8,7 +8,7 @@ mod sys;
 pub use sys::handle_standard_output;
 
 use crate::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
-use crate::terminal::buffer::{INPUT_BUFFER, INPUT_CACHE, TERMINAL_CLOSED};
+use crate::terminal::buffer::{INPUT_BUFFER, INPUT_CACHE};
 use crate::PluginManager;
 use crossterm::cursor::MoveToColumn;
 use crossterm::event::{
@@ -21,7 +21,6 @@ use crossterm::{event, execute};
 use event::Event;
 use std::error::Error;
 use std::io::{stdout, Write};
-use std::sync::atomic::Ordering;
 use tracing::{error, info};
 
 pub const BUFFER_SIZE: usize = 512;
@@ -174,7 +173,6 @@ pub fn start_read_input(manager: &mut PluginManager) -> Result<(), Box<dyn Error
                             info!("{}", s);
                         }
                         "exit" | "quit" | "stop" | "q" => {
-                            TERMINAL_CLOSED.store(true, Ordering::Relaxed);
                             break;
                         }
                         plugin if plugin.starts_with(PLUGIN_COMMAND) => {

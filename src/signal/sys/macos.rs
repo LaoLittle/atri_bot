@@ -173,7 +173,7 @@ pub unsafe fn save_jmp() {
     }
 
     let mut buf: SigjmpBuf = [0; _SIGJBLEN];
-    let ret = unsafe { sigsetjmp(buf.as_mut_ptr(), 1) };
+    let ret = unsafe { sigsetjmp(buf.as_mut_ptr(), true as _) };
 
     if ret != 0 {
         panic!("exception occurred, status: {ret}");
