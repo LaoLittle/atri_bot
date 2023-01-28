@@ -61,7 +61,7 @@ unsafe extern "stdcall" fn handle(pinfo: *const ExceptionPointers) -> DWORD {
                 &mut module,
             ) == 0
             {
-                return String::new();
+                return String::from("unknown");
             }
 
             size = GetModuleFileNameW(module, buffer.as_mut_ptr(), MAX_PATH as DWORD);

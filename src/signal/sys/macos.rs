@@ -99,7 +99,7 @@ unsafe extern "C" fn handle(
         or => {
             disable_raw_mode();
             std::process::exit(or);
-        },
+        }
     }
 }
 

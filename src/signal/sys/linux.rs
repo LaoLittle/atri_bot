@@ -82,13 +82,11 @@ unsafe extern "C" fn handle(
     let enabled = pre_print_fatal();
     crate::signal::fatal_error_print();
 
-    let bt = backtrace::Backtrace::new();
-
     eprintln!("addr: {:p}", (*_info)._sifields._sigfault.si_addr);
     eprintln!(
         "stack backtrace:\n{}",
         DlBacktrace {
-            inner: bt,
+            inner: backtrace::Backtrace::new(),
             fun: dl_get_name
         }
     );
@@ -101,11 +99,9 @@ unsafe extern "C" fn handle(
         or => {
             disable_raw_mode();
             std::process::exit(or);
-        },
+        }
     }
 }
-
-type DarwinSigsetT = u32;
 
 type PidT = std::ffi::c_int;
 type UidT = std::ffi::c_uint;
@@ -236,8 +232,8 @@ struct DlInfo {
     pub dli_saddr: *mut std::ffi::c_void,
 }
 
-pub fn save_jmp() -> std::ffi::c_int {
-    0 // todo: sigsetjmp
+pub unsafe fn save_jmp() {
+    // todo: sigsetjmp
 }
 
 pub fn exception_jmp(status: std::ffi::c_int) -> ! {
