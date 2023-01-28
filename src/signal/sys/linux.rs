@@ -13,13 +13,13 @@ pub fn init_crash_handler() {
     };
 
     extern "C" {
-        fn sigemptyset(arg1: *mut SigsetT) -> std::os::raw::c_int;
+        fn sigemptyset(arg1: *mut SigsetT) -> std::ffi::c_int;
 
         fn sigaction(
-            arg1: std::os::raw::c_int,
+            arg1: std::ffi::c_int,
             arg2: *const Sigaction,
             arg3: *mut Sigaction,
-        ) -> std::os::raw::c_int;
+        ) -> std::ffi::c_int;
     }
 
     unsafe {
@@ -33,18 +33,34 @@ pub fn init_crash_handler() {
     }
 }
 
-const SIGABRT: std::ffi::c_int = 6;
-const SIGBUS: std::ffi::c_int = 7;
-const SIGSEGV: std::ffi::c_int = 11;
+macro_rules! exception_sig {
+    ($($sig:expr => $name:ident),* $(,)?) => {
+        $(const $name: std::ffi::c_int = $sig;)*
+
+        #[allow(dead_code)]
+        const fn sig_name(code: std::ffi::c_int) -> &'static str {
+            match code {
+                $($sig => stringify!($name),)*
+                _ => "unknown"
+            }
+        }
+    };
+}
+
+exception_sig! {
+    6 => SIGABRT,
+    7 => SIGBUS,
+    11 => SIGSEGV,
+}
 
 unsafe extern "C" fn handle(
-    sig: std::os::raw::c_int,
+    sig: std::ffi::c_int,
     _info: *mut Siginfo,
-    _addr: *mut std::os::raw::c_void,
+    _addr: *mut std::ffi::c_void,
 ) {
     fn dl_get_name(addr: *const std::ffi::c_void) -> String {
         extern "C" {
-            fn dladdr(arg1: *const std::os::raw::c_void, arg2: *mut DlInfo) -> std::os::raw::c_int;
+            fn dladdr(arg1: *const std::ffi::c_void, arg2: *mut DlInfo) -> std::ffi::c_int;
         }
 
         let mut di = MaybeUninit::<DlInfo>::uninit();
@@ -77,26 +93,29 @@ unsafe extern "C" fn handle(
         }
     );
 
-    eprintln!("Something went wrong, signal: {sig}");
+    eprintln!("Something went wrong, signal: {sig}({})", sig_name(sig));
     post_print_fatal(enabled);
 
-    {
-        disable_raw_mode();
-        std::process::exit(sig as i32);
+    match sig {
+        SIGSEGV if crate::service::plugin::is_rec_enabled() => exception_jmp(sig),
+        or => {
+            disable_raw_mode();
+            std::process::exit(or);
+        },
     }
 }
 
 type DarwinSigsetT = u32;
 
-type PidT = std::os::raw::c_int;
-type UidT = std::os::raw::c_uint;
+type PidT = std::ffi::c_int;
+type UidT = std::ffi::c_uint;
 
-const _SIGSET_NWORDS: usize = 1024 / (8 * std::mem::size_of::<std::os::raw::c_ulong>());
+const _SIGSET_NWORDS: usize = 1024 / (8 * std::mem::size_of::<std::ffi::c_ulong>());
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Default)]
 struct SigsetT {
-    __val: [std::os::raw::c_ulong; _SIGSET_NWORDS],
+    __val: [std::ffi::c_ulong; _SIGSET_NWORDS],
 }
 
 //pub type SigsetT = DarwinSigsetT;
@@ -104,21 +123,21 @@ struct SigsetT {
 #[repr(C)]
 #[derive(Copy, Clone)]
 struct Siginfo {
-    pub si_signo: std::os::raw::c_int,
-    pub si_errno: std::os::raw::c_int,
-    pub si_code: std::os::raw::c_int,
+    pub si_signo: std::ffi::c_int,
+    pub si_errno: std::ffi::c_int,
+    pub si_code: std::ffi::c_int,
     #[cfg(target_pointer_width = "64")]
-    __pad0: std::os::raw::c_int,
+    __pad0: std::ffi::c_int,
     pub _sifields: Sifields,
 }
 
 const __SI_MAX_SIZE: usize = 128;
-const __SI_PAD_SIZE: usize = (__SI_MAX_SIZE / std::mem::size_of::<std::os::raw::c_int>()) - 4;
+const __SI_PAD_SIZE: usize = (__SI_MAX_SIZE / std::mem::size_of::<std::ffi::c_int>()) - 4;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 union Sifields {
-    _pad: [std::os::raw::c_int; __SI_PAD_SIZE],
+    _pad: [std::ffi::c_int; __SI_PAD_SIZE],
     _kill: SiKill,
     _timer: SiTimer,
     _rt: SiRt,
@@ -136,8 +155,8 @@ struct SiKill {
 #[repr(C)]
 #[derive(Copy, Clone)]
 struct SiTimer {
-    si_tid: std::os::raw::c_int,
-    si_overrun: std::os::raw::c_int,
+    si_tid: std::ffi::c_int,
+    si_overrun: std::ffi::c_int,
     si_sigval: Sigval,
 }
 
@@ -154,14 +173,14 @@ struct SiRt {
 struct Sigchld {
     si_pid: PidT,
     si_uid: UidT,
-    si_status: std::os::raw::c_int,
+    si_status: std::ffi::c_int,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 struct Sigfault {
-    si_addr: *mut std::os::raw::c_void,
-    si_addr_lsb: std::os::raw::c_short,
+    si_addr: *mut std::ffi::c_void,
+    si_addr_lsb: std::ffi::c_short,
     _bounds: Bounds,
 }
 
@@ -175,26 +194,26 @@ union Bounds {
 #[repr(C)]
 #[derive(Copy, Clone)]
 struct AddrBnd {
-    _lower: *mut std::os::raw::c_void,
-    _upper: *mut std::os::raw::c_void,
+    _lower: *mut std::ffi::c_void,
+    _upper: *mut std::ffi::c_void,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union Sigval {
-    pub sival_int: std::os::raw::c_int,
-    pub sival_ptr: *mut std::os::raw::c_void,
+    pub sival_int: std::ffi::c_int,
+    pub sival_ptr: *mut std::ffi::c_void,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 union SigactionU {
-    pub __sa_handler: Option<unsafe extern "C" fn(arg1: std::os::raw::c_int)>,
+    pub __sa_handler: Option<unsafe extern "C" fn(arg1: std::ffi::c_int)>,
     pub __sa_sigaction: Option<
         unsafe extern "C" fn(
-            arg1: std::os::raw::c_int,
+            arg1: std::ffi::c_int,
             arg2: *mut Siginfo,
-            arg3: *mut std::os::raw::c_void,
+            arg3: *mut std::ffi::c_void,
         ),
     >,
 }
@@ -204,17 +223,17 @@ union SigactionU {
 struct Sigaction {
     pub __sigaction_u: SigactionU,
     pub sa_mask: SigsetT,
-    pub sa_flags: std::os::raw::c_int,
+    pub sa_flags: std::ffi::c_int,
     pub sa_restorer: Option<unsafe extern "C" fn()>,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 struct DlInfo {
-    pub dli_fname: *const std::os::raw::c_char,
-    pub dli_fbase: *mut std::os::raw::c_void,
-    pub dli_sname: *const std::os::raw::c_char,
-    pub dli_saddr: *mut std::os::raw::c_void,
+    pub dli_fname: *const std::ffi::c_char,
+    pub dli_fbase: *mut std::ffi::c_void,
+    pub dli_sname: *const std::ffi::c_char,
+    pub dli_saddr: *mut std::ffi::c_void,
 }
 
 pub fn save_jmp() -> std::ffi::c_int {

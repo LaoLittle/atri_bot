@@ -1,4 +1,3 @@
-use crate::service::plugin::is_rec_enabled;
 use crate::signal::{disable_raw_mode, post_print_fatal, pre_print_fatal, DlBacktrace};
 use std::cell::RefCell;
 use std::mem::MaybeUninit;
@@ -34,9 +33,25 @@ pub fn init_crash_handler() {
     }
 }
 
-pub const SIGABRT: std::ffi::c_int = 6;
-pub const SIGBUS: std::ffi::c_int = 10;
-pub const SIGSEGV: std::ffi::c_int = 11;
+macro_rules! exception_sig {
+    ($($sig:expr => $name:ident),* $(,)?) => {
+        $(const $name: std::ffi::c_int = $sig;)*
+
+        #[allow(dead_code)]
+        const fn sig_name(code: std::ffi::c_int) -> &'static str {
+            match code {
+                $($sig => stringify!($name),)*
+                _ => "unknown"
+            }
+        }
+    };
+}
+
+exception_sig! {
+    6 => SIGABRT,
+    10 => SIGBUS,
+    11 => SIGSEGV,
+}
 
 unsafe extern "C" fn handle(
     sig: std::ffi::c_int,
@@ -67,32 +82,24 @@ unsafe extern "C" fn handle(
     let enabled = pre_print_fatal();
     crate::signal::fatal_error_print();
 
-    let bt = backtrace::Backtrace::new();
-
     eprintln!("exception address: {:p}", (*_info).si_addr);
     eprintln!(
         "stack backtrace:\n{}",
         DlBacktrace {
-            inner: bt,
+            inner: backtrace::Backtrace::new(),
             fun: dl_get_name
         }
     );
 
-    eprintln!("Something went wrong, signal: {}", sig);
+    eprintln!("Something went wrong, signal: {sig}({})", sig_name(sig));
     post_print_fatal(enabled);
 
-    let exit = |sig| -> ! {
-        disable_raw_mode();
-        std::process::exit(sig);
-    };
-
-    if !is_rec_enabled() {
-        exit(sig);
-    }
-
     match sig {
-        SIGSEGV => exception_jmp(sig),
-        or => exit(or),
+        SIGSEGV if crate::service::plugin::is_rec_enabled() => exception_jmp(sig),
+        or => {
+            disable_raw_mode();
+            std::process::exit(or);
+        },
     }
 }
 

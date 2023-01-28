@@ -89,16 +89,13 @@ unsafe extern "stdcall" fn handle(pinfo: *const ExceptionPointers) -> DWORD {
     );
 
     eprintln!(
-        "Something went wrong, code: 0x{:x}({})",
-        code,
+        "Something went wrong, code: 0x{code:x}({})",
         code_name(code)
     );
     post_print_fatal(enabled);
 
     match code {
-        STATUS_ACCESS_VIOLATION => {
-            exception_jmp(code);
-        }
+        STATUS_ACCESS_VIOLATION if crate::service::plugin::is_rec_enabled() => exception_jmp(code),
         _ => {
             disable_raw_mode();
             1
@@ -127,7 +124,7 @@ const EXCEPTION_MAXIMUM_PARAMETERS: usize = 15;
 type LpTopLevelExceptionFilter = unsafe extern "stdcall" fn(*const ExceptionPointers) -> DWORD;
 
 type DWORD = std::ffi::c_ulong;
-type BOOL = std::os::raw::c_int;
+type BOOL = std::ffi::c_int;
 type HANDLE = usize;
 type HMODULE = HANDLE;
 type WCHAR = u16;
