@@ -16,7 +16,8 @@ impl fmt::Display for DlBacktrace {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut frame_back = HashSet::new();
         for (frame_cnt, frame) in self.inner.frames().iter().enumerate() {
-            let fname = (self.fun)(frame.symbol_address());
+            let addr = frame.symbol_address();
+            let fname = (self.fun)(addr);
 
             write!(f, "{frame_cnt} File ")?;
             f.write_str(&fname)?;
@@ -24,7 +25,13 @@ impl fmt::Display for DlBacktrace {
 
             frame_back.insert(fname);
 
-            for symbol in frame.symbols() {
+            let symbols = frame.symbols();
+
+            if symbols.len() == 0 {
+                writeln!(f, "  at {:p}", addr)?;
+            }
+
+            for symbol in symbols {
                 writeln!(
                     f,
                     "    {}",

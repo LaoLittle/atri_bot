@@ -1,4 +1,5 @@
 use crate::signal::{disable_raw_mode, post_print_fatal, pre_print_fatal, DlBacktrace};
+use std::cell::RefCell;
 
 pub fn init_crash_handler() {
     extern "C" {
@@ -88,14 +89,16 @@ unsafe extern "stdcall" fn handle(pinfo: *const ExceptionPointers) -> DWORD {
     );
 
     eprintln!(
-        "Something went wrong, code: {:x}({})",
+        "Something went wrong, code: 0x{:x}({})",
         code,
         code_name(code)
     );
     post_print_fatal(enabled);
 
     match code {
-        STATUS_ACCESS_VIOLATION => 1,
+        STATUS_ACCESS_VIOLATION => {
+            exception_jmp(code);
+        }
         _ => {
             disable_raw_mode();
             1
@@ -110,7 +113,6 @@ struct ExceptionPointers {
 }
 
 #[repr(C)]
-#[derive(Debug)]
 struct ExceptionRecord {
     exception_code: DWORD,
     exception_flags: DWORD,
@@ -136,8 +138,45 @@ type ULONG_PTR = std::ffi::c_ulong;
 const GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT: DWORD = 0x00000002;
 const GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS: DWORD = 0x00000004;
 
-pub unsafe fn save_jmp() {}
+type _JBTYPE = [u64; 2];
+const _JBLEN: usize = 16;
+#[allow(non_camel_case_types)]
+type jmp_buf = [_JBTYPE; _JBLEN];
 
-pub unsafe fn exception_jmp(status: std::ffi::c_int) -> ! {
-    std::process::exit(status);
+thread_local! {
+    static JMP_BUF: RefCell<Option<jmp_buf>> = RefCell::new(None);
+}
+
+pub unsafe fn save_jmp() {
+    extern "C" {
+        fn setjmp(buf: *mut _JBTYPE) -> std::ffi::c_int;
+    }
+
+    let mut buf: jmp_buf = [[0, 0]; _JBLEN];
+
+    /*
+    let ret = unsafe { setjmp(buf.as_mut_ptr()) };
+
+    if ret != 0 {
+        panic!("exception occurred, status: {ret}");
+    }
+    */
+
+    JMP_BUF.with(|r| {
+        *r.borrow_mut() = Some(buf);
+    });
+}
+
+pub unsafe fn exception_jmp(status: DWORD) -> ! {
+    extern "C" {
+        fn longjmp(buf: *const _JBTYPE, val: std::ffi::c_int) -> !;
+    }
+
+    JMP_BUF.with(|r| unsafe {
+        if let Some(buf) = &*r.borrow() {
+            longjmp(buf.as_ptr(), status as _);
+        } else {
+            std::process::exit(status as i32);
+        }
+    })
 }
