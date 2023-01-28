@@ -44,8 +44,8 @@ pub fn init_plugin_service() {
     match config.fault_attitude {
         FaultAttitude::FastFault => {}
         FaultAttitude::Ignore => {
-            #[cfg(not(any(target_os = "macos", target_os = "ios",)))]
-            warn!("你所使用的系统可能不支持插件异常处理, 默认使用FastFault");
+            #[cfg(not(any(target_os = "macos", target_os = "ios", windows)))]
+            warn!("你所使用的系统可能不支持插件异常恢复, 默认使用FastFault");
 
             enable_rec();
         }
