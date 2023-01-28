@@ -12,14 +12,33 @@ pub fn init_crash_handler() {
     }
 }
 
-unsafe extern "stdcall" fn handle(_: *const ExceptionPointers) -> DWORD {
+macro_rules! exception_code {
+    ($($code:expr => $name:ident),* $(,)?) => {
+        $(const $name: DWORD = $code;)*
+
+        const fn code_name(code: DWORD) -> &'static str {
+            match code {
+                $($code => stringify!($name),)*
+                _ => "unknown"
+            }
+        }
+    };
+}
+
+exception_code! {
+    0xC0000005 => STATUS_ACCESS_VIOLATION
+}
+
+unsafe extern "stdcall" fn handle(pinfo: *const ExceptionPointers) -> DWORD {
+    let record = &*(*pinfo).exception_record;
+    let code = record.exception_code;
     fn dl_get_name(addr: *const std::ffi::c_void) -> String {
         const MAX_PATH: usize = 260;
 
         extern "C" {
             fn GetModuleHandleExW(
                 dw_flags: DWORD,
-                addr: *const std::os::raw::c_void,
+                addr: *const std::ffi::c_void,
                 ph_module: *mut HMODULE,
             ) -> BOOL;
 
@@ -34,12 +53,15 @@ unsafe extern "stdcall" fn handle(_: *const ExceptionPointers) -> DWORD {
         let mut buffer = [0 as WCHAR; MAX_PATH];
         let size;
         unsafe {
-            GetModuleHandleExW(
+            if GetModuleHandleExW(
                 GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT
                     | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-                addr as _,
+                addr,
                 &mut module,
-            );
+            ) == 0
+            {
+                return String::new();
+            }
 
             size = GetModuleFileNameW(module, buffer.as_mut_ptr(), MAX_PATH as DWORD);
         }
@@ -56,45 +78,66 @@ unsafe extern "stdcall" fn handle(_: *const ExceptionPointers) -> DWORD {
     let enabled = pre_print_fatal();
     crate::signal::fatal_error_print();
 
-    let bt = backtrace::Backtrace::new();
+    eprintln!("exception address: {:p}", record.exception_address);
     eprintln!(
         "stack backtrace:\n{}",
         DlBacktrace {
-            inner: bt,
+            inner: backtrace::Backtrace::new(),
             fun: dl_get_name
         }
     );
 
-    eprintln!("Something went wrong.");
+    eprintln!(
+        "Something went wrong, code: {:x}({})",
+        code,
+        code_name(code)
+    );
     post_print_fatal(enabled);
 
-    {
-        disable_raw_mode();
+    match code {
+        STATUS_ACCESS_VIOLATION => 1,
+        _ => {
+            disable_raw_mode();
+            1
+        }
     }
-
-    1
 }
 
-type ExceptionPointers = std::os::raw::c_void; // FIXME
+#[repr(C)]
+struct ExceptionPointers {
+    exception_record: *const ExceptionRecord,
+    context_record: *const std::ffi::c_void,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+struct ExceptionRecord {
+    exception_code: DWORD,
+    exception_flags: DWORD,
+    exception_record: *const ExceptionRecord,
+    exception_address: *const std::ffi::c_void,
+    number_parameters: DWORD,
+    exception_information: [ULONG_PTR; EXCEPTION_MAXIMUM_PARAMETERS],
+}
+
+const EXCEPTION_MAXIMUM_PARAMETERS: usize = 15;
 
 type LpTopLevelExceptionFilter = unsafe extern "stdcall" fn(*const ExceptionPointers) -> DWORD;
 
-type DWORD = std::os::raw::c_ulong;
-
+type DWORD = std::ffi::c_ulong;
 type BOOL = std::os::raw::c_int;
+type HANDLE = usize;
+type HMODULE = HANDLE;
+type WCHAR = u16;
+
+#[allow(non_camel_case_types)]
+type ULONG_PTR = std::ffi::c_ulong;
 
 const GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT: DWORD = 0x00000002;
 const GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS: DWORD = 0x00000004;
 
-type HANDLE = usize;
-type HMODULE = HANDLE;
+pub unsafe fn save_jmp() {}
 
-type WCHAR = u16;
-
-pub fn save_jmp() -> std::ffi::c_int {
-    0 // todo: RtlCaptureContext
-}
-
-pub fn exception_jmp(status: std::ffi::c_int) -> ! {
-    std::process::exit(status); // todo: RtlRestoreContext
+pub unsafe fn exception_jmp(status: std::ffi::c_int) -> ! {
+    std::process::exit(status);
 }
