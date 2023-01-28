@@ -64,6 +64,10 @@ git = "https://github.com/AtriKawaii/ricq.git"
 [dependencies.atri_ffi]
 version = "0.8.0"
 
+[target."cfg(windows)".dependencies.winapi]
+version = "0"
+features = ["winnt"]
+
 [profile.release]
 lto = true
 strip = true

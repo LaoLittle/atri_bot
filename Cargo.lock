@@ -70,6 +70,7 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "tui",
+ "winapi",
 ]
 
 [[package]]

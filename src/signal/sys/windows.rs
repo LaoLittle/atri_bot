@@ -1,5 +1,7 @@
 use crate::signal::{disable_raw_mode, post_print_fatal, pre_print_fatal, DlBacktrace};
 use std::cell::RefCell;
+use std::sync::atomic::{AtomicU32, Ordering};
+use winapi::um::winnt::{RtlCaptureContext, RtlRestoreContext, CONTEXT};
 
 pub fn init_crash_handler() {
     extern "C" {
@@ -135,45 +137,36 @@ type ULONG_PTR = std::ffi::c_ulong;
 const GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT: DWORD = 0x00000002;
 const GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS: DWORD = 0x00000004;
 
-type _JBTYPE = [u64; 2];
-const _JBLEN: usize = 16;
-#[allow(non_camel_case_types)]
-type jmp_buf = [_JBTYPE; _JBLEN];
-
 thread_local! {
-    static JMP_BUF: RefCell<Option<jmp_buf>> = RefCell::new(None);
+    static CONTEXT: RefCell<Option<CONTEXT>> = RefCell::new(None);
+    static STATUS: AtomicU32 = AtomicU32::new(0);
 }
 
 pub unsafe fn save_jmp() {
-    extern "C" {
-        fn setjmp(buf: *mut _JBTYPE) -> std::ffi::c_int;
+    let mut buf = std::mem::zeroed::<CONTEXT>();
+
+    unsafe {
+        RtlCaptureContext(&mut buf);
     }
 
-    let mut buf: jmp_buf = [[0, 0]; _JBLEN];
-
-    /*
-    let ret = unsafe { setjmp(buf.as_mut_ptr()) };
-
-    if ret != 0 {
-        panic!("exception occurred, status: {ret}");
+    let status = STATUS.with(|r| r.load(Ordering::Relaxed));
+    if status != 0 {
+        panic!("exception occurred, status: 0x{status:x}");
     }
-    */
 
-    JMP_BUF.with(|r| {
+    CONTEXT.with(|r| {
         *r.borrow_mut() = Some(buf);
     });
 }
 
-pub unsafe fn exception_jmp(status: DWORD) -> ! {
-    extern "C" {
-        fn longjmp(buf: *const _JBTYPE, val: std::ffi::c_int) -> !;
-    }
-
-    JMP_BUF.with(|r| unsafe {
-        if let Some(buf) = &*r.borrow() {
-            longjmp(buf.as_ptr(), status as _);
-        } else {
-            std::process::exit(status as i32);
+pub unsafe fn exception_jmp(status: u32) -> ! {
+    CONTEXT.with(|r| unsafe {
+        let mut brr = r.borrow_mut();
+        if let Some(ctx) = &mut *brr {
+            STATUS.with(|r| r.store(status, Ordering::Relaxed));
+            RtlRestoreContext(ctx, std::ptr::null_mut());
         }
+
+        std::process::exit(status as i32);
     })
 }
