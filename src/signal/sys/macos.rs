@@ -69,7 +69,7 @@ unsafe extern "C" fn handle(
 
     let bt = backtrace::Backtrace::new();
 
-    eprintln!("addr: {:p}", (*_info).si_addr);
+    eprintln!("exception address: {:p}", (*_info).si_addr);
     eprintln!(
         "stack backtrace:\n{}",
         DlBacktrace {
