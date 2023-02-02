@@ -1,0 +1,3 @@
+[submodule "atri_rust"]
+	path = atri_rust
+	url = https://github.com/AtriKawaii/atri_rust.git

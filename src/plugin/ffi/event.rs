@@ -3,8 +3,10 @@ use crate::event::{FriendMessageEvent, GroupMessageEvent};
 use atri_ffi::contact::FFIMember;
 use atri_ffi::ffi::ForFFI;
 
+use crate::contact::friend::Friend;
+use crate::contact::group::Group;
 use atri_ffi::message::FFIMessageChain;
-use atri_ffi::ManagedCloneable;
+use atri_ffi::PHandle;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub extern "C" fn event_intercept(intercepted: *const ()) {
@@ -17,9 +19,9 @@ pub extern "C" fn event_is_intercepted(intercepted: *const ()) -> bool {
     intercepted.load(Ordering::Relaxed)
 }
 
-pub extern "C" fn group_message_event_get_group(event: *const ()) -> ManagedCloneable {
+pub extern "C" fn group_message_event_get_group(event: *const ()) -> PHandle {
     let event: &GroupMessageEvent = cast_ref(event);
-    ManagedCloneable::from_value(event.group().to_owned())
+    event.group() as *const Group as PHandle
 }
 
 pub extern "C" fn group_message_event_get_message(event: *const ()) -> FFIMessageChain {
@@ -34,9 +36,9 @@ pub extern "C" fn group_message_event_get_sender(event: *const ()) -> FFIMember 
     sender.into_ffi()
 }
 
-pub extern "C" fn friend_message_event_get_friend(event: *const ()) -> ManagedCloneable {
+pub extern "C" fn friend_message_event_get_friend(event: *const ()) -> PHandle {
     let event: &FriendMessageEvent = cast_ref(event);
-    ManagedCloneable::from_value(event.friend().to_owned())
+    event.friend() as *const Friend as PHandle
 }
 
 pub extern "C" fn friend_message_event_get_message(event: *const ()) -> FFIMessageChain {

@@ -1,9 +1,10 @@
 use super::cast_ref;
 use super::rt::future_block_on;
+use crate::contact::group::Group;
 use crate::contact::member::NamedMember;
 use atri_ffi::error::FFIResult;
 use atri_ffi::future::FFIFuture;
-use atri_ffi::{ManagedCloneable, RustStr};
+use atri_ffi::{PHandle, RustStr};
 
 pub extern "C" fn named_member_get_id(named: *const ()) -> i64 {
     let named: &NamedMember = cast_ref(named);
@@ -20,10 +21,9 @@ pub extern "C" fn named_member_get_card_name(named: *const ()) -> RustStr {
     RustStr::from(named.card_name())
 }
 
-pub extern "C" fn named_member_get_group(named: *const ()) -> ManagedCloneable {
+pub extern "C" fn named_member_get_group(named: *const ()) -> PHandle {
     let named: &NamedMember = cast_ref(named);
-    let g = named.group().clone();
-    ManagedCloneable::from_value(g)
+    named.group() as *const Group as PHandle
 }
 
 pub extern "C" fn named_member_change_card_name(

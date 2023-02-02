@@ -1,3 +1,5 @@
+use atri_ffi::PHandle;
+
 pub mod client;
 pub mod env;
 pub mod event;
@@ -12,6 +14,10 @@ pub mod string;
 
 fn cast_ref<'a, T>(ptr: *const ()) -> &'a T {
     unsafe { &*(ptr as *const T) }
+}
+
+fn cast_ref_phandle<'a, T>(ptr: PHandle) -> &'a T {
+    unsafe { &*(ptr as *const *const () as *const T) }
 }
 
 fn _cast_ref_mut<'a, T>(ptr: *mut ()) -> &'a mut T {

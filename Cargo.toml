@@ -1,6 +1,6 @@
 [package]
 name = "atri_bot"
-version = "0.8.7"
+version = "0.9.0"
 edition = "2021"
 authors = ["LaoLittle"]
 description = "A simple bot"
@@ -62,7 +62,8 @@ git = "https://github.com/AtriKawaii/ricq.git"
 #version = "0.1.0"
 
 [dependencies.atri_ffi]
-version = "0.8.0"
+version = "0.9.0"
+path = "atri_rust/atri_ffi"
 
 [target."cfg(windows)".dependencies.winapi]
 version = "0"
@@ -74,5 +75,5 @@ strip = true
 codegen-units = 1
 
 [build-dependencies]
-serde = { version = "1.0.150", features = ["derive"] }
-toml = "0.5.9"
+serde = { version = "1", features = ["derive"] }
+toml = "0"

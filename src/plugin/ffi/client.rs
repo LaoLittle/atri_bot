@@ -1,64 +1,81 @@
-use super::cast_ref;
+use crate::plugin::ffi::cast_ref_phandle;
+use crate::plugin::ffi::friend::{friend_to_ptr, friend_to_ptr_option};
+use crate::plugin::ffi::group::{group_to_ptr, group_to_ptr_option};
 use crate::Client;
-use atri_ffi::{ManagedCloneable, RustString, RustVec};
+use atri_ffi::{Handle, RustString, RustVec};
 
-pub extern "C" fn find_client(id: i64) -> ManagedCloneable {
-    Client::find(id)
-        .map(ManagedCloneable::from_value)
-        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
+pub unsafe fn client_to_ptr(client: Client) -> Handle {
+    unsafe { std::mem::transmute(client) }
 }
 
-pub extern "C" fn client_get_id(client: *const ()) -> i64 {
-    let b: &Client = cast_ref(client);
+pub unsafe fn client_to_ptr_option(client: Option<Client>) -> Handle {
+    client
+        .map(|c| unsafe { client_to_ptr(c) })
+        .unwrap_or_else(std::ptr::null)
+}
+
+pub extern "C" fn find_client(id: i64) -> Handle {
+    unsafe { client_to_ptr_option(Client::find(id)) }
+}
+
+pub extern "C" fn client_get_id(client: Handle) -> i64 {
+    let b: &Client = cast_ref_phandle(&client);
     b.id()
 }
 
-pub extern "C" fn client_get_nickname(client: *const ()) -> RustString {
-    let b: &Client = cast_ref(client);
+pub extern "C" fn client_get_nickname(client: Handle) -> RustString {
+    let b: &Client = cast_ref_phandle(&client);
     RustString::from(b.nickname())
 }
 
-pub extern "C" fn client_get_list() -> RustVec<ManagedCloneable> {
-    let clients: Vec<ManagedCloneable> = Client::list()
+pub extern "C" fn client_get_list() -> RustVec<Handle> {
+    let clients: Vec<Handle> = Client::list()
         .into_iter()
-        .map(ManagedCloneable::from_value)
+        .map(|c| unsafe { client_to_ptr(c) })
         .collect();
 
     RustVec::from(clients)
 }
 
-pub extern "C" fn client_find_group(client: *const (), id: i64) -> ManagedCloneable {
-    let b: &Client = cast_ref(client);
-    b.find_group(id)
-        .map(ManagedCloneable::from_value)
-        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
+pub extern "C" fn client_find_group(client: Handle, id: i64) -> Handle {
+    let b: &Client = cast_ref_phandle(&client);
+
+    unsafe { group_to_ptr_option(b.find_group(id)) }
 }
 
-pub extern "C" fn client_find_friend(client: *const (), id: i64) -> ManagedCloneable {
-    let b: &Client = cast_ref(client);
-    b.find_friend(id)
-        .map(ManagedCloneable::from_value)
-        .unwrap_or_else(|| unsafe { ManagedCloneable::null() })
+pub extern "C" fn client_find_friend(client: Handle, id: i64) -> Handle {
+    let b: &Client = cast_ref_phandle(&client);
+
+    unsafe { friend_to_ptr_option(b.find_friend(id)) }
 }
 
-pub extern "C" fn client_get_groups(client: *const ()) -> RustVec<ManagedCloneable> {
-    let b: &Client = cast_ref(client);
-    let ma: Vec<ManagedCloneable> = b
+pub extern "C" fn client_get_groups(client: Handle) -> RustVec<Handle> {
+    let b: &Client = cast_ref_phandle(&client);
+    let ma: Vec<Handle> = b
         .groups()
         .into_iter()
-        .map(ManagedCloneable::from_value)
+        .map(|g| unsafe { group_to_ptr(g) })
         .collect();
 
     RustVec::from(ma)
 }
 
-pub extern "C" fn client_get_friends(client: *const ()) -> RustVec<ManagedCloneable> {
-    let b: &Client = cast_ref(client);
-    let ma: Vec<ManagedCloneable> = b
+pub extern "C" fn client_get_friends(client: Handle) -> RustVec<Handle> {
+    let b: &Client = cast_ref_phandle(&client);
+    let ma: Vec<Handle> = b
         .friends()
         .into_iter()
-        .map(ManagedCloneable::from_value)
+        .map(|f| unsafe { friend_to_ptr(f) })
         .collect();
 
     RustVec::from(ma)
+}
+
+pub extern "C" fn client_clone(client: Handle) -> Handle {
+    let b: &Client = cast_ref_phandle(&client);
+    unsafe { client_to_ptr(b.clone()) }
+}
+
+pub extern "C" fn client_drop(client: Handle) {
+    drop::<Client>(unsafe { std::mem::transmute(client) })
 }

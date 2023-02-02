@@ -1,37 +1,48 @@
-use super::cast_ref;
 use super::rt::future_block_on;
+use crate::client::Client;
 use crate::contact::friend::Friend;
 use crate::message::meta::MessageReceipt;
 use crate::message::MessageChain;
+use crate::plugin::ffi::cast_ref_phandle;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::{FFIMessageChain, FFIMessageReceipt};
-use atri_ffi::{ManagedCloneable, RustStr, RustVec};
+use atri_ffi::{Handle, ManagedCloneable, RustStr, RustVec};
 use std::slice;
 
-pub extern "C" fn friend_get_id(friend: *const ()) -> i64 {
-    let f: &Friend = cast_ref(friend);
+pub unsafe fn friend_to_ptr(friend: Friend) -> Handle {
+    unsafe { std::mem::transmute(friend) }
+}
+
+pub unsafe fn friend_to_ptr_option(friend: Option<Friend>) -> Handle {
+    friend
+        .map(|c| unsafe { friend_to_ptr(c) })
+        .unwrap_or_else(std::ptr::null)
+}
+
+pub extern "C" fn friend_get_id(friend: Handle) -> i64 {
+    let f: &Friend = cast_ref_phandle(&friend);
     f.id()
 }
 
-pub extern "C" fn friend_get_nickname(friend: *const ()) -> RustStr {
-    let f: &Friend = cast_ref(friend);
+pub extern "C" fn friend_get_nickname(friend: Handle) -> RustStr {
+    let f: &Friend = cast_ref_phandle(&friend);
     let s = f.nickname();
     RustStr::from(s)
 }
 
-pub extern "C" fn friend_get_client(friend: *const ()) -> ManagedCloneable {
-    let f: &Friend = cast_ref(friend);
-    ManagedCloneable::from_value(f.client().clone())
+pub extern "C" fn friend_get_client(friend: Handle) -> *const Handle {
+    let f: &Friend = cast_ref_phandle(&friend);
+    f.client() as *const Client as _
 }
 
 pub extern "C" fn friend_send_message(
-    friend: *const (),
+    friend: Handle,
     chain: FFIMessageChain,
 ) -> FFIFuture<FFIResult<FFIMessageReceipt>> {
     FFIFuture::from(async move {
-        let f: &Friend = cast_ref(friend);
+        let f: &Friend = cast_ref_phandle(&friend);
         let chain = MessageChain::from_ffi(chain);
         let result = f.send_message(chain).await.map(MessageReceipt::into_ffi);
 
@@ -40,15 +51,15 @@ pub extern "C" fn friend_send_message(
 }
 
 pub extern "C" fn friend_send_message_blocking(
-    manager: *const (),
-    group: *const (),
+    manager: Handle,
+    friend: Handle,
     chain: FFIMessageChain,
 ) -> FFIResult<FFIMessageReceipt> {
-    let group: &Friend = cast_ref(group);
+    let friend: &Friend = cast_ref_phandle(&friend);
     let chain = MessageChain::from_ffi(chain);
 
     future_block_on(manager, async move {
-        let result = group
+        let result = friend
             .send_message(chain)
             .await
             .map(MessageReceipt::into_ffi);
@@ -58,11 +69,11 @@ pub extern "C" fn friend_send_message_blocking(
 }
 
 pub extern "C" fn friend_upload_image(
-    friend: *const (),
+    friend: Handle,
     img: RustVec<u8>,
 ) -> FFIFuture<FFIResult<ManagedCloneable>> {
     FFIFuture::from(async {
-        let f: &Friend = cast_ref(friend);
+        let f: &Friend = cast_ref_phandle(&friend);
         let img = img.into_vec();
 
         let result = f.upload_image(img).await.map(ManagedCloneable::from_value);
@@ -71,11 +82,11 @@ pub extern "C" fn friend_upload_image(
 }
 
 pub extern "C" fn friend_upload_image_blocking(
-    manager: *const (),
-    friend: *const (),
+    manager: Handle,
+    friend: Handle,
     data: RustVec<u8>,
 ) -> FFIResult<ManagedCloneable> {
-    let friend: &Friend = cast_ref(friend);
+    let friend: &Friend = cast_ref_phandle(&friend);
     let data = data.into_vec();
 
     future_block_on(manager, async move {
@@ -89,17 +100,26 @@ pub extern "C" fn friend_upload_image_blocking(
 }
 
 pub extern "C" fn friend_upload_image_ex(
-    friend: *const (),
+    friend: Handle,
     ptr: *const u8,
     size: usize,
 ) -> FFIFuture<FFIResult<ManagedCloneable>> {
     let slice = unsafe { slice::from_raw_parts(ptr, size) };
     FFIFuture::from(async {
-        let f: &Friend = cast_ref(friend);
+        let f: &Friend = cast_ref_phandle(&friend);
         let result = f
             .upload_image(slice)
             .await
             .map(ManagedCloneable::from_value);
         FFIResult::from(result)
     })
+}
+
+pub extern "C" fn friend_clone(friend: Handle) -> Handle {
+    let f: &Friend = cast_ref_phandle(&friend);
+    unsafe { friend_to_ptr(f.clone()) }
+}
+
+pub extern "C" fn friend_drop(friend: Handle) {
+    drop::<Friend>(unsafe { std::mem::transmute(friend) })
 }

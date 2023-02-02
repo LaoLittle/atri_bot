@@ -1,7 +1,8 @@
 mod ffi;
 
-use crate::plugin::ffi::friend::friend_upload_image_ex;
-use crate::plugin::ffi::group::group_upload_image_ex;
+use crate::plugin::ffi::client::{client_clone, client_drop};
+use crate::plugin::ffi::friend::{friend_clone, friend_drop, friend_upload_image_ex};
+use crate::plugin::ffi::group::{group_clone, group_drop, group_upload_image_ex};
 use crate::plugin::ffi::rt::{plugin_manager_block_on, plugin_manager_spawn};
 use crate::plugin::ffi::string::{c_str_cvt, rust_str_cvt, rust_string_drop};
 use ffi::client::{
@@ -82,6 +83,10 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         306 => client_get_groups,
         307 => client_get_friends,
 
+        // client handle
+        320 => client_clone,
+        321 => client_drop,
+
 
         // group
         400 => group_get_id,
@@ -96,6 +101,10 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         409 => group_change_name,
         410 => group_send_forward_message,
         411 => group_invite,
+
+        //group handle
+        420 => group_clone,
+        421 => group_drop,
 
         // blocking api
         456 => group_send_message_blocking,
@@ -114,6 +123,10 @@ pub extern "C" fn plugin_get_function(sig: u16) -> *const () {
         502 => friend_get_client,
         503 => friend_send_message,
         504 => friend_upload_image,
+
+        // friend handle
+        520 => friend_clone,
+        521 => friend_drop,
 
         // blocking api
         553 => friend_send_message_blocking,
