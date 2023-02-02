@@ -41,7 +41,7 @@ macro_rules! exception_sig {
         const fn sig_name(code: std::ffi::c_int) -> &'static str {
             match code {
                 $($sig => stringify!($name),)*
-                _ => "unknown"
+                _ => "UNKNOWN"
             }
         }
     };

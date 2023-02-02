@@ -1,7 +1,4 @@
 use crate::signal::{disable_raw_mode, post_print_fatal, pre_print_fatal, DlBacktrace};
-use std::cell::RefCell;
-use std::sync::atomic::{AtomicU32, Ordering};
-use winapi::um::winnt::{RtlCaptureContext, RtlRestoreContext, CONTEXT};
 
 pub fn init_crash_handler() {
     extern "C" {
@@ -22,7 +19,7 @@ macro_rules! exception_code {
         const fn code_name(code: DWORD) -> &'static str {
             match code {
                 $($code => stringify!($name),)*
-                _ => "unknown"
+                _ => "UNKNOWN"
             }
         }
     };
@@ -137,36 +134,57 @@ type ULONG_PTR = std::ffi::c_ulong;
 const GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT: DWORD = 0x00000002;
 const GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS: DWORD = 0x00000004;
 
-thread_local! {
-    static CONTEXT: RefCell<Option<CONTEXT>> = RefCell::new(None);
-    static STATUS: AtomicU32 = AtomicU32::new(0);
-}
-
-pub unsafe fn save_jmp() {
-    let mut buf = std::mem::zeroed::<CONTEXT>();
-
-    unsafe {
-        RtlCaptureContext(&mut buf);
+#[cfg(target_arch = "x86_64")]
+mod x64 {
+    use std::cell::RefCell;
+    use std::sync::atomic::{AtomicU32, Ordering};
+    use winapi::um::winnt::{RtlCaptureContext, RtlRestoreContext, CONTEXT};
+    thread_local! {
+        static CONTEXT: RefCell<Option<CONTEXT>> = RefCell::new(None);
+        static STATUS: AtomicU32 = AtomicU32::new(0);
     }
 
-    let status = STATUS.with(|r| r.load(Ordering::Relaxed));
-    if status != 0 {
-        panic!("exception occurred, status: 0x{status:x}");
-    }
+    pub unsafe fn save_jmp() {
+        let mut buf = std::mem::zeroed::<CONTEXT>();
 
-    CONTEXT.with(|r| {
-        *r.borrow_mut() = Some(buf);
-    });
-}
-
-pub unsafe fn exception_jmp(status: u32) -> ! {
-    CONTEXT.with(|r| unsafe {
-        let mut brr = r.borrow_mut();
-        if let Some(ctx) = &mut *brr {
-            STATUS.with(|r| r.store(status, Ordering::Relaxed));
-            RtlRestoreContext(ctx, std::ptr::null_mut());
+        unsafe {
+            RtlCaptureContext(&mut buf);
         }
 
-        std::process::exit(status as i32);
-    })
+        let status = STATUS.with(|r| r.load(Ordering::Relaxed));
+        if status != 0 {
+            panic!("exception occurred, status: 0x{status:x}");
+        }
+
+        CONTEXT.with(|r| {
+            *r.borrow_mut() = Some(buf);
+        });
+    }
+
+    pub unsafe fn exception_jmp(status: u32) -> ! {
+        CONTEXT.with(|r| unsafe {
+            let mut brr = r.borrow_mut();
+            if let Some(ctx) = &mut *brr {
+                STATUS.with(|r| r.store(status, Ordering::Relaxed));
+                RtlRestoreContext(ctx, std::ptr::null_mut());
+            }
+
+            std::process::exit(status as i32);
+        })
+    }
 }
+
+#[cfg(target_arch = "x86_64")]
+pub use x64::*;
+
+#[cfg(target_arch = "aarch64")]
+mod aarch64 {
+    pub unsafe fn save_jmp() {}
+
+    pub unsafe fn exception_jmp(status: u32) -> ! {
+        std::process::exit(status as i32);
+    }
+}
+
+#[cfg(target_arch = "aarch64")]
+pub use aarch64::*;
