@@ -149,7 +149,7 @@ impl PluginManager {
                         let result = self.load_plugin(&path);
                         match result {
                             Ok(p) => {
-                                let plugin_display = p.to_string();
+                                let plugin_display = format!("{} ({})", p, p.library_name());
 
                                 match self.plugins.entry(p.name().to_owned()) {
                                     Entry::Occupied(_old) => {
@@ -376,6 +376,10 @@ impl Plugin {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn library_name(&self) -> &str {
+        &self.lib_name
     }
 
     pub fn manager(&self) -> &PluginManager {
