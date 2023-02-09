@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use tracing::error;
 
+use crate::client::WeakClient;
 use crate::contact::member::NamedMember;
 use crate::error::{AtriError, AtriResult};
 use crate::message::forward::ForwardMessage;
@@ -24,8 +25,8 @@ impl Group {
     }
 
     #[inline]
-    pub fn client(&self) -> &Client {
-        &self.0.client
+    pub fn client(&self) -> Client {
+        self.0.client.force_upgrade()
     }
 
     #[inline]
@@ -238,9 +239,9 @@ impl Group {
 // internal impls
 impl Group {
     #[inline]
-    pub(crate) fn from(client: Client, info: ricq::structs::GroupInfo) -> Self {
+    pub(crate) fn from(client: &Client, info: ricq::structs::GroupInfo) -> Self {
         let imp = imp::Group {
-            client,
+            client: WeakClient::new(client),
             info,
             member_list_refreshed: AtomicBool::new(false),
             members: DashMap::new(),
@@ -310,11 +311,11 @@ mod imp {
     use ricq::structs::GroupInfo;
     use std::sync::atomic::AtomicBool;
 
+    use crate::client::WeakClient;
     use crate::contact::member::NamedMember;
-    use crate::Client;
 
     pub struct Group {
-        pub client: Client,
+        pub client: WeakClient,
         pub info: GroupInfo,
         pub member_list_refreshed: AtomicBool,
         pub members: DashMap<i64, Option<NamedMember>>,

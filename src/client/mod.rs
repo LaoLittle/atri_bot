@@ -6,7 +6,7 @@ use std::fmt::{Debug, Display, Formatter};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 use std::time::Duration;
 
 use crate::client::info::AccountInfo;
@@ -29,8 +29,11 @@ pub struct Client(Arc<imp::Client>);
 
 impl Client {
     pub async fn new(id: i64, conf: ClientConfiguration) -> Self {
-        let b = imp::Client::new(id, conf).await;
-        Self(Arc::new(b))
+        let inner = imp::ClientInner::new(id, conf).await;
+        Self(Arc::new_cyclic(|weak| imp::Client {
+            inner,
+            weak: weak.clone(),
+        }))
     }
 
     pub async fn try_login(&self) -> AtriResult<()> {
@@ -95,8 +98,9 @@ impl Client {
 
     #[inline]
     pub async fn start(&self) -> io::Result<()> {
-        const OFFLINE_STATUS: ricq::client::NetworkStatus =
-            ricq::client::NetworkStatus::NetworkOffline;
+        const OFFLINE_STATUS: u8 = ricq::client::NetworkStatus::NetworkOffline as u8;
+
+        const DROP_STATUS: u8 = ricq::client::NetworkStatus::Drop as u8;
 
         const RECONNECT_DURATION: Duration = Duration::from_secs(2);
 
@@ -114,42 +118,48 @@ impl Client {
                     return;
                 }
 
-                if client.network_status() == OFFLINE_STATUS as u8 {
-                    if reconnected {
-                        error!(
-                            "{}因网络原因掉线, 将于{:.2}秒后尝试重连",
-                            client,
-                            RECONNECT_DURATION.as_secs_f32()
-                        );
-                    } else {
-                        error!("{}因网络原因掉线, 尝试重连", client);
-                    }
+                match client.network_status() {
+                    OFFLINE_STATUS => {
+                        if reconnected {
+                            error!(
+                                "{}因网络原因掉线, 将于{:.2}秒后尝试重连",
+                                client,
+                                RECONNECT_DURATION.as_secs_f32()
+                            );
+                        } else {
+                            error!("{}因网络原因掉线, 尝试重连", client);
+                        }
 
-                    client.request_client().stop(OFFLINE_STATUS);
+                        client
+                            .request_client()
+                            .stop(ricq::client::NetworkStatus::Drop);
 
-                    let stream = match client.0.connect().await {
-                        Ok(s) => s,
-                        Err(e) => {
-                            error!("重连失败: {}", e);
+                        let stream = match client.0.connect().await {
+                            Ok(s) => s,
+                            Err(e) => {
+                                error!("重连失败: {}", e);
+                                break;
+                            }
+                        };
+
+                        let handle = client.0.start(stream);
+
+                        if let Err(e) = client.try_login().await {
+                            error!("重连登录失败: {}", e);
                             break;
                         }
-                    };
 
-                    let handle = client.0.start(stream);
+                        info!("{}重连成功", client);
 
-                    if let Err(e) = client.try_login().await {
-                        error!("重连登录失败: {}", e);
+                        global_status().add_client(client.clone());
+
+                        handle.await;
+                    }
+                    DROP_STATUS => {}
+                    _ => {
+                        warn!("{}下线", client);
                         break;
                     }
-
-                    info!("{}重连成功", client);
-
-                    global_status().add_client(client.clone());
-
-                    handle.await;
-                } else {
-                    warn!("{}下线", client);
-                    break;
                 }
 
                 global_status().remove_client(id);
@@ -243,7 +253,7 @@ impl Client {
 
         for info in list.friends {
             self.friend_caches()
-                .insert(info.uin, Friend::from(self.clone(), info));
+                .insert(info.uin, Friend::from(self, info));
         }
 
         Ok(())
@@ -254,7 +264,7 @@ impl Client {
         let infos = self.request_client().get_group_list().await?;
 
         for info in infos {
-            let group = Group::from(self.clone(), info);
+            let group = Group::from(self, info);
 
             self.cache_group(group);
         }
@@ -266,7 +276,7 @@ impl Client {
     pub async fn refresh_group(&self, group_id: i64) -> AtriResult<Option<Group>> {
         let info = self.request_client().get_group_info(group_id).await?;
         if let Some(info) = info {
-            let g = Group::from(self.clone(), info);
+            let g = Group::from(self, info);
             self.cache_group(g.clone());
             return Ok(Some(g));
         } else {
@@ -313,6 +323,10 @@ impl Client {
     /*pub async fn guild_client(&self) -> GuildClient {
         GuildClient::new(&self.0.client).await
     }*/
+
+    pub fn close(&self) {
+        self.0.close();
+    }
 }
 
 impl Client {
@@ -410,12 +424,30 @@ impl Display for Client {
     }
 }
 
+pub struct WeakClient(Weak<imp::Client>);
+
+impl WeakClient {
+    #[inline]
+    pub fn new(c: &Client) -> Self {
+        Self(c.0.weak.clone())
+    }
+
+    pub fn upgrade(&self) -> Option<Client> {
+        self.0.upgrade().map(Client)
+    }
+
+    pub fn force_upgrade(&self) -> Client {
+        self.upgrade().expect("client has been dropped")
+    }
+}
+
 mod imp {
     use std::future::Future;
     use std::io::ErrorKind;
+    use std::ops::Deref;
     use std::path::{Path, PathBuf};
     use std::sync::atomic::AtomicBool;
-    use std::sync::{Arc, OnceLock};
+    use std::sync::{Arc, OnceLock, Weak};
     use std::time::Duration;
 
     use dashmap::DashMap;
@@ -434,6 +466,20 @@ mod imp {
     use crate::contact::group::Group;
 
     pub struct Client {
+        pub inner: ClientInner,
+        pub weak: Weak<Self>,
+    }
+
+    impl Deref for Client {
+        type Target = ClientInner;
+
+        #[inline]
+        fn deref(&self) -> &Self::Target {
+            &self.inner
+        }
+    }
+
+    pub struct ClientInner {
         pub id: i64,
         pub info: OnceLock<AccountInfo>,
         pub enable: AtomicBool,
@@ -443,7 +489,7 @@ mod imp {
         pub work_dir: PathBuf,
     }
 
-    impl Client {
+    impl ClientInner {
         pub async fn new(id: i64, conf: ClientConfiguration) -> Self {
             let work_dir = conf.work_dir(id);
 
@@ -553,6 +599,10 @@ mod imp {
 
                 let _ = handle.await;
             }
+        }
+
+        pub fn close(&self) {
+            self.client.stop(ricq::client::NetworkStatus::Drop);
         }
     }
 }

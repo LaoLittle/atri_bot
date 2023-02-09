@@ -117,6 +117,13 @@ impl AtriGlobalStatus {
     pub(crate) fn remove_client(&self, client_id: i64) -> Option<Client> {
         self.clients.remove(&client_id).map(|(_, client)| client)
     }
+
+    pub fn close_clients(&self) {
+        for client in self.clients() {
+            client.close();
+            self.remove_client(client.id());
+        }
+    }
 }
 
 impl Default for AtriGlobalStatus {

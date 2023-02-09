@@ -159,7 +159,7 @@ impl GroupMessageEvent {
         &self.inner().group
     }
 
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> Client {
         self.group().client()
     }
 
@@ -244,7 +244,7 @@ impl FriendMessageEvent {
         &self.inner().friend
     }
 
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> Client {
         self.friend().client()
     }
 
@@ -299,7 +299,7 @@ impl NewFriendEvent {
         &self.inner().friend
     }
 
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> Client {
         self.friend().client()
     }
 }
@@ -317,7 +317,7 @@ impl DeleteFriendEvent {
         &self.inner().friend
     }
 
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> Client {
         self.friend().client()
     }
 }
@@ -335,7 +335,7 @@ impl FriendPokeEvent {
         &self.inner().friend
     }
 
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> Client {
         self.friend().client()
     }
 }
@@ -353,7 +353,7 @@ impl GroupPokeEvent {
         &self.inner().group
     }
 
-    pub fn client(&self) -> &Client {
+    pub fn client(&self) -> Client {
         self.group().client()
     }
 

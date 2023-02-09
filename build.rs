@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::error::Error;
-use std::fs::{read_to_string, write};
+use std::fs::{read, read_to_string, write};
 use std::path::PathBuf;
 
 fn main() {
@@ -21,8 +21,8 @@ struct Package<'a> {
 
 fn _main() -> Result<(), Box<dyn Error>> {
     let welcome_info = read_to_string("resources/welcome.txt")?;
-    let cargo = read_to_string("Cargo.toml")?;
-    let config: CargoConfig = toml::from_str(&cargo)?;
+    let cargo = read("Cargo.toml")?;
+    let config: CargoConfig = toml::from_slice(&cargo)?;
 
     let env = env::var_os("OUT_DIR").unwrap();
     let mut path = PathBuf::from(env);

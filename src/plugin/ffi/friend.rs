@@ -1,9 +1,9 @@
 use super::rt::future_block_on;
-use crate::client::Client;
 use crate::contact::friend::Friend;
 use crate::message::meta::MessageReceipt;
 use crate::message::MessageChain;
 use crate::plugin::ffi::cast_ref_phandle;
+use crate::plugin::ffi::client::client_to_ptr;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
@@ -32,9 +32,9 @@ pub extern "C" fn friend_get_nickname(friend: Handle) -> RustStr {
     RustStr::from(s)
 }
 
-pub extern "C" fn friend_get_client(friend: Handle) -> *const Handle {
+pub extern "C" fn friend_get_client(friend: Handle) -> Handle {
     let f: &Friend = cast_ref_phandle(&friend);
-    f.client() as *const Client as _
+    unsafe { client_to_ptr(f.client()) }
 }
 
 pub extern "C" fn friend_send_message(

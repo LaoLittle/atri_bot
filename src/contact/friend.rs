@@ -1,3 +1,4 @@
+use crate::client::WeakClient;
 use crate::error::{AtriError, AtriResult};
 use crate::message::forward::ForwardMessage;
 use crate::message::image::Image;
@@ -24,8 +25,8 @@ impl Friend {
         &self.0.info.remark
     }
 
-    pub fn client(&self) -> &Client {
-        &self.0.client
+    pub fn client(&self) -> Client {
+        self.0.client.force_upgrade()
     }
 
     pub async fn delete(&self) -> bool {
@@ -112,8 +113,11 @@ impl Friend {
 
 // internal impls
 impl Friend {
-    pub(crate) fn from(client: Client, info: ricq::structs::FriendInfo) -> Self {
-        let f = imp::Friend { client, info };
+    pub(crate) fn from(client: &Client, info: ricq::structs::FriendInfo) -> Self {
+        let f = imp::Friend {
+            client: WeakClient::new(client),
+            info,
+        };
 
         Self(Arc::new(f))
     }
@@ -132,11 +136,11 @@ impl fmt::Display for Friend {
 }
 
 mod imp {
-    use crate::Client;
+    use crate::client::WeakClient;
     use ricq::structs::FriendInfo;
 
     pub struct Friend {
-        pub client: Client,
+        pub client: WeakClient,
         pub info: FriendInfo,
     }
 }

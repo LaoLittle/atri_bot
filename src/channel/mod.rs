@@ -163,7 +163,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
             QEvent::NewFriend(e) => {
                 client = get_client!(e.client);
 
-                let f = Friend::from(client.clone(), e.inner);
+                let f = Friend::from(&client, e.inner);
                 client.cache_friend(f.clone());
 
                 info!("{f}已添加");

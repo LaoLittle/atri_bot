@@ -1,16 +1,16 @@
 use super::rt::future_block_on;
-use crate::client::Client;
 use crate::contact::group::Group;
 use crate::message;
 use crate::message::forward::ForwardMessage;
 use crate::message::meta::MessageReceipt;
 use crate::plugin::ffi::cast_ref_phandle;
+use crate::plugin::ffi::client::client_to_ptr;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
 use atri_ffi::message::forward::FFIForwardNode;
 use atri_ffi::message::{FFIMessageChain, FFIMessageReceipt};
-use atri_ffi::{Handle, ManagedCloneable, PHandle, RustStr, RustVec};
+use atri_ffi::{Handle, ManagedCloneable, RustStr, RustVec};
 use message::MessageChain;
 use std::slice;
 
@@ -35,9 +35,9 @@ pub extern "C" fn group_get_name(group: Handle) -> RustStr {
     RustStr::from(s)
 }
 
-pub extern "C" fn group_get_client(group: Handle) -> PHandle {
+pub extern "C" fn group_get_client(group: Handle) -> Handle {
     let group: &Group = cast_ref_phandle(&group);
-    group.client() as *const Client as PHandle
+    unsafe { client_to_ptr(group.client()) }
 }
 
 pub extern "C" fn group_get_members(group: Handle) -> FFIFuture<RustVec<ManagedCloneable>> {
