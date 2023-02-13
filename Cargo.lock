@@ -57,7 +57,7 @@ dependencies = [
  "futures",
  "libc",
  "libloading",
- "prost",
+ "prost 0.11.6",
  "rand",
  "regex",
  "ricq",
@@ -749,6 +749,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost"
+version = "0.11.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21dc42e00223fc37204bd4aa177e69420c604ca4a183209a8f9de30c6d934698"
+dependencies = [
+ "bytes",
+]
+
+[[package]]
 name = "prost-build"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -761,7 +770,7 @@ dependencies = [
  "log",
  "multimap",
  "petgraph",
- "prost",
+ "prost 0.9.0",
  "prost-types",
  "regex",
  "tempfile",
@@ -788,7 +797,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "534b7a0e836e3c482d2693070f982e39e7611da9695d4d1f5a4b186b51faef0a"
 dependencies = [
  "bytes",
- "prost",
+ "prost 0.9.0",
 ]
 
 [[package]]
@@ -878,7 +887,7 @@ dependencies = [
  "futures-util",
  "jcers",
  "md5",
- "prost",
+ "prost 0.9.0",
  "rand",
  "ricq-core",
  "serde",
@@ -900,7 +909,7 @@ dependencies = [
  "jcers",
  "md5",
  "p256",
- "prost",
+ "prost 0.9.0",
  "prost-build",
  "prost-types",
  "rand",
