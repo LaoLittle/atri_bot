@@ -2,7 +2,7 @@ use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 use tracing::error;
 
@@ -56,7 +56,7 @@ impl Group {
                 })
                 .into_iter()
                 .map(|info| {
-                    let named = NamedMember::from(self.clone(), info);
+                    let named = NamedMember::from(self, info);
                     self.cache_member(named.clone());
                     named
                 })
@@ -240,14 +240,17 @@ impl Group {
 impl Group {
     #[inline]
     pub(crate) fn from(client: &Client, info: ricq::structs::GroupInfo) -> Self {
-        let imp = imp::Group {
+        let inner = imp::GroupInner {
             client: WeakClient::new(client),
             info,
             member_list_refreshed: AtomicBool::new(false),
             members: DashMap::new(),
         };
 
-        Self(Arc::new(imp))
+        Self(Arc::new_cyclic(|weak| imp::Group {
+            inner,
+            weak: weak.clone(),
+        }))
     }
 
     #[inline]
@@ -275,7 +278,7 @@ impl Group {
                     return None;
                 }
 
-                let named = NamedMember::from(self.clone(), info);
+                let named = NamedMember::from(self, info);
                 self.cache_member(named.clone());
                 Some(named)
             })?;
@@ -306,15 +309,47 @@ impl Display for Group {
     }
 }
 
+pub struct WeakGroup(Weak<imp::Group>);
+
+impl WeakGroup {
+    #[inline]
+    pub fn new(g: &Group) -> Self {
+        Self(g.0.weak.clone())
+    }
+
+    pub fn upgrade(&self) -> Option<Group> {
+        self.0.upgrade().map(Group)
+    }
+
+    pub fn force_upgrade(&self) -> Group {
+        self.upgrade().expect("group has been dropped")
+    }
+}
+
 mod imp {
     use dashmap::DashMap;
     use ricq::structs::GroupInfo;
+    use std::ops::Deref;
     use std::sync::atomic::AtomicBool;
+    use std::sync::Weak;
 
     use crate::client::WeakClient;
     use crate::contact::member::NamedMember;
 
     pub struct Group {
+        pub inner: GroupInner,
+        pub weak: Weak<Self>,
+    }
+
+    impl Deref for Group {
+        type Target = GroupInner;
+
+        fn deref(&self) -> &Self::Target {
+            &self.inner
+        }
+    }
+
+    pub struct GroupInner {
         pub client: WeakClient,
         pub info: GroupInfo,
         pub member_list_refreshed: AtomicBool,

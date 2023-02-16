@@ -1,21 +1,22 @@
 use crate::plugin::ffi::cast_ref_phandle;
 use crate::plugin::ffi::friend::{friend_to_ptr, friend_to_ptr_option};
-use crate::plugin::ffi::group::{group_to_ptr, group_to_ptr_option};
+use crate::plugin::ffi::group::{group_to_handle, group_to_ptr_option};
 use crate::Client;
 use atri_ffi::{Handle, RustString, RustVec};
 
-pub unsafe fn client_to_ptr(client: Client) -> Handle {
+#[inline]
+pub unsafe fn client_to_handle(client: Client) -> Handle {
     unsafe { std::mem::transmute(client) }
 }
 
-pub unsafe fn client_to_ptr_option(client: Option<Client>) -> Handle {
+pub unsafe fn client_to_handle_option(client: Option<Client>) -> Handle {
     client
-        .map(|c| unsafe { client_to_ptr(c) })
+        .map(|c| unsafe { client_to_handle(c) })
         .unwrap_or_else(std::ptr::null)
 }
 
 pub extern "C" fn find_client(id: i64) -> Handle {
-    unsafe { client_to_ptr_option(Client::find(id)) }
+    unsafe { client_to_handle_option(Client::find(id)) }
 }
 
 pub extern "C" fn client_get_id(client: Handle) -> i64 {
@@ -31,7 +32,7 @@ pub extern "C" fn client_get_nickname(client: Handle) -> RustString {
 pub extern "C" fn client_get_list() -> RustVec<Handle> {
     let clients: Vec<Handle> = Client::list()
         .into_iter()
-        .map(|c| unsafe { client_to_ptr(c) })
+        .map(|c| unsafe { client_to_handle(c) })
         .collect();
 
     RustVec::from(clients)
@@ -54,7 +55,7 @@ pub extern "C" fn client_get_groups(client: Handle) -> RustVec<Handle> {
     let ma: Vec<Handle> = b
         .groups()
         .into_iter()
-        .map(|g| unsafe { group_to_ptr(g) })
+        .map(|g| unsafe { group_to_handle(g) })
         .collect();
 
     RustVec::from(ma)
@@ -73,7 +74,7 @@ pub extern "C" fn client_get_friends(client: Handle) -> RustVec<Handle> {
 
 pub extern "C" fn client_clone(client: Handle) -> Handle {
     let b: &Client = cast_ref_phandle(&client);
-    unsafe { client_to_ptr(b.clone()) }
+    unsafe { client_to_handle(b.clone()) }
 }
 
 pub extern "C" fn client_drop(client: Handle) {

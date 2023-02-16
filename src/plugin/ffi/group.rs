@@ -4,7 +4,7 @@ use crate::message;
 use crate::message::forward::ForwardMessage;
 use crate::message::meta::MessageReceipt;
 use crate::plugin::ffi::cast_ref_phandle;
-use crate::plugin::ffi::client::client_to_ptr;
+use crate::plugin::ffi::client::client_to_handle;
 use atri_ffi::error::FFIResult;
 use atri_ffi::ffi::ForFFI;
 use atri_ffi::future::FFIFuture;
@@ -14,13 +14,13 @@ use atri_ffi::{Handle, ManagedCloneable, RustStr, RustVec};
 use message::MessageChain;
 use std::slice;
 
-pub unsafe fn group_to_ptr(group: Group) -> Handle {
+pub unsafe fn group_to_handle(group: Group) -> Handle {
     unsafe { std::mem::transmute(group) }
 }
 
 pub unsafe fn group_to_ptr_option(group: Option<Group>) -> Handle {
     group
-        .map(|c| unsafe { group_to_ptr(c) })
+        .map(|c| unsafe { group_to_handle(c) })
         .unwrap_or_else(std::ptr::null)
 }
 
@@ -37,7 +37,7 @@ pub extern "C" fn group_get_name(group: Handle) -> RustStr {
 
 pub extern "C" fn group_get_client(group: Handle) -> Handle {
     let group: &Group = cast_ref_phandle(&group);
-    unsafe { client_to_ptr(group.client()) }
+    unsafe { client_to_handle(group.client()) }
 }
 
 pub extern "C" fn group_get_members(group: Handle) -> FFIFuture<RustVec<ManagedCloneable>> {
@@ -228,7 +228,7 @@ pub extern "C" fn group_upload_image_ex(
 
 pub extern "C" fn group_clone(group: Handle) -> Handle {
     let g: &Group = cast_ref_phandle(&group);
-    unsafe { group_to_ptr(g.clone()) }
+    unsafe { group_to_handle(g.clone()) }
 }
 
 pub extern "C" fn group_drop(group: Handle) {

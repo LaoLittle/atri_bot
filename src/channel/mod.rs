@@ -106,7 +106,7 @@ impl ricq::handler::Handler for GlobalEventBroadcastHandler {
                         return;
                     };
 
-                    member = Member::Anonymous(AnonymousMember::from(group.clone(), info.into()));
+                    member = Member::Anonymous(AnonymousMember::from(&group, info.into()));
                     "匿名"
                 } else {
                     match group.try_refresh_member(sender).await {

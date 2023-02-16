@@ -1,4 +1,4 @@
-use crate::contact::group::Group;
+use crate::contact::group::{Group, WeakGroup};
 use crate::error::{AtriError, AtriResult};
 use crate::message::at::At;
 use crate::message::meta::{Anonymous, MessageReceipt};
@@ -25,7 +25,7 @@ impl Member {
         }
     }
 
-    pub fn group(&self) -> &Group {
+    pub fn group(&self) -> Group {
         match self {
             Self::Named(named) => named.group(),
             Self::Anonymous(ano) => ano.group(),
@@ -90,8 +90,8 @@ impl NamedMember {
         &self.0.info.card_name
     }
 
-    pub fn group(&self) -> &Group {
-        &self.0.group
+    pub fn group(&self) -> Group {
+        self.0.group.force_upgrade()
     }
 
     pub fn client(&self) -> Client {
@@ -153,8 +153,11 @@ impl NamedMember {
         }
     }
 
-    pub(crate) fn from(group: Group, info: GroupMemberInfo) -> Self {
-        let inner = imp::NamedMember { group, info };
+    pub(crate) fn from(group: &Group, info: GroupMemberInfo) -> Self {
+        let inner = imp::NamedMember {
+            group: WeakGroup::new(group),
+            info,
+        };
 
         Self(inner.into())
     }
@@ -176,8 +179,11 @@ impl fmt::Display for NamedMember {
 pub struct AnonymousMember(Arc<imp::AnonymousMember>);
 
 impl AnonymousMember {
-    pub(crate) fn from(group: Group, info: Anonymous) -> Self {
-        let inner = imp::AnonymousMember { group, info };
+    pub(crate) fn from(group: &Group, info: Anonymous) -> Self {
+        let inner = imp::AnonymousMember {
+            group: WeakGroup::new(group),
+            info,
+        };
 
         Self(inner.into())
     }
@@ -194,8 +200,8 @@ impl AnonymousMember {
         &self.0.info.nick
     }
 
-    pub fn group(&self) -> &Group {
-        &self.0.group
+    pub fn group(&self) -> Group {
+        self.0.group.force_upgrade()
     }
 
     pub fn client(&self) -> Client {
@@ -204,17 +210,17 @@ impl AnonymousMember {
 }
 
 mod imp {
-    use crate::contact::group::Group;
+    use crate::contact::group::{Group, WeakGroup};
     use crate::message::meta::Anonymous;
     use crate::GroupMemberInfo;
 
     pub struct NamedMember {
-        pub group: Group,
+        pub group: WeakGroup,
         pub info: GroupMemberInfo,
     }
 
     pub struct AnonymousMember {
-        pub group: Group,
+        pub group: WeakGroup,
         pub info: Anonymous,
     }
 }
