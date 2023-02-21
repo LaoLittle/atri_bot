@@ -868,7 +868,7 @@ dependencies = [
 [[package]]
 name = "ricq"
 version = "0.1.20"
-source = "git+https://github.com/AtriKawaii/ricq.git#45c47cc630a5923af3da9ff1327f9057eb4df0eb"
+source = "git+https://github.com/AtriKawaii/ricq.git#e7946cc69222f0e2ced1bc962a91757b07a2d722"
 dependencies = [
  "async-trait",
  "bytes",
@@ -890,7 +890,7 @@ dependencies = [
 [[package]]
 name = "ricq-core"
 version = "0.1.20"
-source = "git+https://github.com/AtriKawaii/ricq.git#45c47cc630a5923af3da9ff1327f9057eb4df0eb"
+source = "git+https://github.com/AtriKawaii/ricq.git#e7946cc69222f0e2ced1bc962a91757b07a2d722"
 dependencies = [
  "byteorder",
  "bytes",
