@@ -137,6 +137,7 @@ const GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS: DWORD = 0x00000004;
 #[cfg(target_arch = "x86_64")]
 mod x64 {
     use std::cell::RefCell;
+    use std::mem::MaybeUninit;
     use std::sync::atomic::{AtomicU32, Ordering};
     use winapi::um::winnt::{RtlCaptureContext, RtlRestoreContext, CONTEXT};
     thread_local! {
@@ -145,11 +146,13 @@ mod x64 {
     }
 
     pub unsafe fn save_jmp() {
-        let mut buf = std::mem::zeroed::<CONTEXT>();
+        let mut buf = MaybeUninit::uninit();
 
         unsafe {
-            RtlCaptureContext(&mut buf);
+            RtlCaptureContext(buf.as_mut_ptr());
         }
+
+        let buf = buf.assume_init();
 
         let status = STATUS.with(|r| r.load(Ordering::Relaxed));
         if status != 0 {

@@ -210,7 +210,7 @@ impl AnonymousMember {
 }
 
 mod imp {
-    use crate::contact::group::{Group, WeakGroup};
+    use crate::contact::group::WeakGroup;
     use crate::message::meta::Anonymous;
     use crate::GroupMemberInfo;
 

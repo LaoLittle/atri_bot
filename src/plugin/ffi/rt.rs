@@ -12,8 +12,10 @@ pub extern "C" fn plugin_manager_spawn(
 ) -> FFIFuture<FFIResult<Managed>> {
     let manager: &PluginManager = cast_ref(manager);
     let handle = manager.async_runtime().spawn(async move {
-        unsafe {
-            save_jmp();
+        if crate::service::plugin::is_rec_enabled() {
+            unsafe {
+                save_jmp();
+            }
         }
 
         future.await
