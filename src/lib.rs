@@ -39,11 +39,13 @@ pub struct Atri {
 
 impl Atri {
     pub fn new() -> Self {
-        let runtime = runtime::Builder::new_multi_thread()
+        let mut builder = runtime::Builder::new_multi_thread();
+
+        let runtime = builder
             .thread_name("GlobalRuntime")
             .enable_all()
             .build()
-            .unwrap();
+            .expect("cannot create runtime");
 
         Self {
             runtime,

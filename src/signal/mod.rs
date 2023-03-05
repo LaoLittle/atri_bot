@@ -72,7 +72,7 @@ fn fatal_error_print() {
 
 fn pre_print_fatal() -> bool {
     let enabled = crossterm::terminal::is_raw_mode_enabled().unwrap_or(false);
-    let _ = crossterm::terminal::disable_raw_mode();
+    disable_raw_mode();
     enabled
 }
 
