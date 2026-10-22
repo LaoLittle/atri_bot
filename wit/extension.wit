@@ -1,0 +1,21 @@
+package atri:extension@1.0.0;
+
+// All byte frames use the bounded atri_core CBOR contracts. Identity comes
+// exclusively from describe metadata, never supplied as a start argument.
+interface host {
+    invoke: async func(request: list<u8>) -> list<u8>;
+}
+
+interface plugin {
+    describe: func() -> list<u8>;
+    start: async func() -> list<u8>;
+    on-event: async func(event: list<u8>) -> list<u8>;
+    on-service: async func(call: list<u8>) -> list<u8>;
+    stop: async func() -> list<u8>;
+}
+
+world extension {
+    import host;
+    import wasi:clocks/monotonic-clock@0.3.0;
+    export plugin;
+}

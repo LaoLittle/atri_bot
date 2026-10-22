@@ -1,12 +1,3 @@
-/.idea
-/.DS_Store
-/target
-/config
-/data
-/example_plugins
-/log
-/plugins
-/service
-/clients
-/workspaces
-/src/.DS_Store
+.idea/
+.DS_Store
+target/

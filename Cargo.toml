@@ -1,77 +1,98 @@
+[workspace]
+resolver = "3"
+members = ["crates/atri_core", "crates/atri_extensions", "crates/atri_macros"]
+default-members = ["."]
+
+[workspace.package]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+version = "1.0.0"
+
+[workspace.dependencies]
+atri_core = { path = "crates/atri_core" }
+atri_extensions = { path = "crates/atri_extensions" }
+async-ffi = "=0.5.1"
+async-trait = "0.1"
+bytes = { version = "1", features = ["serde"] }
+ciborium = "0.2"
+futures = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_bytes = "0.11"
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "time", "sync", "signal", "fs", "process", "io-util", "io-std", "macros"] }
+tokio-util = { version = "0.7", features = ["rt", "codec"] }
+tracing = "0.1"
+toml = "1.1"
+
 [package]
 name = "atri_bot"
-version = "0.9.4"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 authors = ["LaoLittle"]
-description = "A simple bot"
-readme = "README.md"
-keywords = [
-    "Atri",
-    "plugin",
-    "oicq"
-]
-license = "MPL-2.0"
-homepage = "https://github.com/LaoLittle/atri_bot"
-repository = "https://github.com/LaoLittle/atri_bot"
+description = "AtriBot"
+license.workspace = true
+build = false
+
+[[bin]]
+name = "atri"
+path = "src/main.rs"
 
 [dependencies]
-# serilize
-serde = "1"
-serde_json = "1"
-toml = "0.5"
-prost = { version = "0.9", default-features = false }
+atri_core.workspace = true
+async-ffi.workspace = true
+async-trait.workspace = true
+bytes.workspace = true
+ciborium.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+serde_json.workspace = true
+crash-handler = "=0.8.1"
+minidumper = "0.11"
+minidump = "0.26"
+minidump-processor = "0.26"
+minidump-unwind = "0.26"
+wholesym = "0.8.1"
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+toml.workspace = true
+tracing.workspace = true
+axum = "0.8"
+clap = { version = "4", features = ["derive"] }
+comfy-table = "7"
+crossterm = "0.29"
+fs4 = "0.13"
+hex = "0.4"
+libloading = "0.8"
+owo-colors = "4"
+qrcode = { version = "0.14", default-features = false }
+rand = "0.9"
+ratatui = "0.29"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+sha2 = "0.10"
+shell-words = "1"
+tempfile = "3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+walkdir = "2"
+wasmparser = "=0.261.0"
+wasmtime = { version = "=50.0.0", default-features = false, features = ["component-model-async", "cranelift", "runtime", "std", "wat"] }
+wasmtime-wasi = { version = "=50.0.0", default-features = false, features = ["p3"] }
+wat = "1"
 
-bytes = "1"
-tracing = "0"
-tracing-subscriber = { version = "0", features = ["fmt", "local-time"] }
-tracing-appender = "0"
-async-trait = "0"
-time = { version = "0", features = ["macros", "local-offset", "formatting"] }
-regex = "1"
-dashmap = "5"
-rand = "0"
-futures = "0"
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
-# plugin
-libloading = "0"
-backtrace = "0"
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_Storage_FileSystem", "Win32_System_Threading", "Win32_System_Memory"] }
 
-# terminal
-crossterm = "0"
-libc = "0"
-cfg-if = "1"
-
-[dependencies.tokio]
-version = "1"
-features = [
-    "rt-multi-thread",
-    "sync",
-    "mio",
-    "io-std",
-    "io-util",
-    "fs",
-    "signal",
-]
-
-[dependencies.ricq]
-git = "https://github.com/AtriKawaii/ricq.git"
-#version = "0.1.19"
-
-#[dependencies.ricq-guild]
-#version = "0.1.0"
-
-[dependencies.atri_ffi]
-version = "0.9.0"
-
-[target."cfg(windows)".dependencies.winapi]
-version = "0"
-features = ["winnt"]
+[dev-dependencies]
+atri_extensions.workspace = true
 
 [profile.release]
-lto = true
-strip = true
+lto = "thin"
+strip = false
+debug = 1
 codegen-units = 1
-
-[build-dependencies]
-serde = { version = "1", features = ["derive"] }
-toml = "0.5"

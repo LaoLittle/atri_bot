@@ -1,141 +1,68 @@
-use std::error::Error;
-use std::time::Duration;
+mod cli;
 
-use atri_bot::service::command::{builtin::handle_plugin_command, PLUGIN_COMMAND};
-use atri_bot::service::log::init_logger;
-use atri_bot::service::login::login_clients;
-use atri_bot::service::plugin::PluginManager;
-use atri_bot::{global_listener_runtime, global_listener_worker, global_status, terminal, Atri};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::{io, signal};
-use tracing::{error, info};
+use clap::Parser;
+use std::{io, path::PathBuf, process::ExitCode};
 
-type MainResult = Result<(), Box<dyn Error>>;
-
-fn main() -> MainResult {
-    // pre-load
-    print_welcome_info();
-    let _guards = init_logger();
-    atri_bot::signal::init_crash_handler();
-    atri_bot::service::plugin::init_plugin_service();
-    pre_create_dirs();
-
-    // start
-    let mut atri = Atri::new();
-
-    global_listener_runtime().spawn(global_listener_worker().start());
-
-    atri.plugin_manager.load_plugins()?;
-
-    let runtime = &atri.runtime;
-
-    runtime.spawn(async {
-        main0().await.expect("Error");
-    });
-
-    runtime.block_on(async {
-        tokio::select! {
-            result = loop_cli(&mut atri.plugin_manager) => {
-                if let Err(e) = result {
-                    error!("{}", e);
-                }
-            }
-            result = signal::ctrl_c() => {
-                if let Err(e) = result {
-                    error!("{}", e);
-                }
-            }
-        }
-
-        Ok::<_, Box<dyn Error>>(())
-    })?;
-
-    global_status().close_clients();
-
-    atri.runtime.shutdown_timeout(Duration::from_millis(800));
-
-    println!("已成功停止服务");
-
-    Ok(())
-}
-
-async fn main0() -> MainResult {
-    login_clients().await?;
-
-    Ok(())
-}
-
-async fn loop_cli(manager: &mut PluginManager) -> MainResult {
-    info!("已启动AtriBot");
-
-    let _out = tokio::task::spawn_blocking(|| {
-        if let Err(e) = terminal::handle_standard_output() {
-            error!("接管Stdout出现错误: {}", e);
-            return false;
-        }
-
-        true
-    });
-
-    let result = tokio::task::block_in_place(|| terminal::start_read_input(manager));
-    if let Err(e) = result {
-        let _ = crossterm::terminal::disable_raw_mode();
-        error!("初始化命令行服务异常: {}, 命令行可能不会正常工作", e);
-
-        let stdin = io::stdin();
-        let mut stdin = BufReader::new(stdin);
-        let mut stdout = io::stdout();
-
-        let mut buf = String::with_capacity(terminal::BUFFER_SIZE);
-        loop {
-            buf.clear();
-            stdin.read_line(&mut buf).await?;
-            let cmd = buf.trim_end();
-
-            match cmd {
-                "" => {
-                    stdout.write_all(terminal::PROMPT).await?;
-                    stdout.flush().await?;
-                }
-                "help" | "?" | "h" => {
-                    static INFOS: &[&str] = &["help: 显示本帮助", "exit: 退出程序"];
-
-                    let mut s = String::from('\n');
-                    for &info in INFOS {
-                        s.push_str(info);
-                        s.push('\n');
-                    }
-                    s.pop();
-                    info!("{}", s);
-                }
-                "exit" | "quit" | "stop" | "q" => {
-                    terminal::stop_info();
-                    break;
-                }
-                plugin if plugin.starts_with(PLUGIN_COMMAND) => {
-                    if let Err(e) = handle_plugin_command(plugin, manager) {
-                        error!("{}", e);
-                    }
-                }
-                _ => {
-                    info!("未知的命令 '{}', 使用 'help' 显示帮助信息", cmd);
-                }
-            }
+fn main() -> ExitCode {
+    if let Some(code) = atri_bot::crash::maybe_monitor() {
+        return code;
+    }
+    atri_bot::crash::install_panic_hook();
+    // Before starting any runtime or loading any extension. Separately linked
+    // modules may use their own std panic hook during descriptor discovery.
+    if std::env::var_os("RUST_BACKTRACE").is_none() {
+        unsafe {
+            std::env::set_var("RUST_BACKTRACE", "1");
         }
     }
-
-    Ok(())
-}
-
-fn print_welcome_info() {
-    println!(
-        "{}",
-        include_str!(concat!(env!("OUT_DIR"), "/welcome_info"))
-    );
-}
-
-fn pre_create_dirs() {
-    for name in ["workspaces"] {
-        let _ = std::fs::create_dir(name);
+    let mut args = match cli::args::Cli::try_parse() {
+        Ok(args) => args,
+        Err(error) => {
+            let code = error.exit_code();
+            let _ = error.print();
+            return ExitCode::from(code as u8);
+        }
+    };
+    let bot_dir = match resolve_bot_dir(args.bot_dir.take()) {
+        Ok(path) => path,
+        Err(error) => {
+            eprintln!("cannot determine deployment directory: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let _diagnostics = match atri_bot::crash::install(&bot_dir) {
+        Ok(guard) => guard,
+        Err(error) => {
+            eprintln!("cannot install crash diagnostics: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let runtime = match tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => runtime,
+        Err(error) => {
+            eprintln!("cannot create runtime: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    match runtime.block_on(cli::execute(args, bot_dir)) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("error: {}", cli::render::clean(&error.error.to_string()));
+            ExitCode::from(error.exit_code)
+        }
     }
+}
+
+fn resolve_bot_dir(override_dir: Option<PathBuf>) -> io::Result<PathBuf> {
+    if let Some(path) = override_dir {
+        return Ok(path);
+    }
+    let executable = std::env::current_exe()?;
+    executable
+        .parent()
+        .map(std::path::Path::to_path_buf)
+        .ok_or_else(|| io::Error::other("executable path has no parent directory"))
 }

@@ -1,0 +1,37 @@
+[package]
+name = "atri_extensions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+core-module = []
+component-tool = ["dep:wit-component"]
+
+[[bin]]
+name = "atri-component"
+path = "src/bin/atri-component.rs"
+required-features = ["component-tool"]
+
+[dependencies]
+atri_core.workspace = true
+atri_macros = { path = "../atri_macros" }
+async-trait.workspace = true
+futures.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+async-ffi.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+wit-component = { version = "=0.262.0", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wit-bindgen = "=0.63.0"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_Threading"] }
